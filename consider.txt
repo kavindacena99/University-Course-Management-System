@@ -1,0 +1,9 @@
+postgres=# create user uni_app with login password 'root';
+CREATE ROLE
+postgres=# create database user owner uni_app;
+ERROR:  syntax error at or near "user"
+LINE 1: create database user owner uni_app;
+                        ^
+postgres=# create database users owner uni_app;
+CREATE DATABASE
+postgres=#
