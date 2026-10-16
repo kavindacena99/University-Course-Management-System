@@ -1,124 +1,61 @@
 package main
 
 import (
-	"context"
 	"log"
 	"net/http"
-	"time"
-
-	"github.com/joho/godotenv"
 
 	"github.com/gin-gonic/gin"
 
 	"user/database"
+	user "user/internal"
+	"user/internal/config"
 )
 
 func main() {
-	if err := godotenv.Load(); err != nil {
-		log.Println(".env not found; using default values")
-	}
-
-	db, err := database.Connect()
+	cfg, err := config.Load()
 	if err != nil {
-		log.Fatalf("failed to connect to database: %v", err)
+		log.Fatalf("Load configuration: %v", err)
 	}
 
+	db, err := database.Connect(cfg)
+	if err != nil {
+		log.Fatalf("Connect to PostgreSQL: %v", err)
+	}
 	defer db.Close()
-
-	log.Println("Connected to Postgresql correctly")
 
 	router := gin.Default()
 
 	router.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
-			"status": "user is healthy",
+			"service": "user-service",
+			"status":  "healthy",
 		})
 	})
 
-	router.GET("/api/v1/db-check", func(c *gin.Context) {
-		ctx, cancel := context.WithTimeout(
-			c.Request.Context(),
-			3*time.Second,
-		)
-		defer cancel()
-
-		var databaseName string
-
-		err := db.QueryRowContext(
-			ctx,
-			"SELECT current_database()",
-		).Scan(&databaseName)
-
-		if err != nil {
+	router.GET("/health/ready", func(c *gin.Context) {
+		if err := db.Ping(c.Request.Context()); err != nil {
 			c.JSON(http.StatusServiceUnavailable, gin.H{
-				"error": "Database query failed",
+				"service": "user-service",
+				"status":  "not ready",
 			})
 			return
 		}
 
 		c.JSON(http.StatusOK, gin.H{
-			"database": databaseName,
-			"status":   "Database connection is healthy",
+			"service":  "user-service",
+			"status":   "ready",
+			"database": "connected",
 		})
 	})
 
-	router.GET("/api/v1/users", func(c *gin.Context) {
-		rows, err := db.QueryContext(
-			c.Request.Context(),
-			`SELECT id, full_name, created_at
-			FROM users
-			ORDER BY id`,
-		)
+	// User API
+	repo := user.NewRepository(db)
+	handler := user.NewHandler(repo)
+	handler.RegisterRoutes(router)
 
-		if err != nil {
-			log.Printf("failed to query users: %v", err)
+	log.Printf("User Service starting on 127.0.0.1:%s", cfg.Port)
 
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": "Failed to retrieve users",
-			})
-			return
-		}
-		defer rows.Close()
-
-		type User struct {
-			ID        int64     `json:"id"`
-			FullName  string    `json:"full_name"`
-			CreatedAt time.Time `json:"created_at"`
-		}
-
-		users := make([]User, 0)
-
-		for rows.Next() {
-			var user User
-
-			if err := rows.Scan(
-				&user.ID,
-				&user.FullName,
-				&user.CreatedAt,
-			); err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{
-					"error": "Failed to read user data",
-				})
-				return
-			}
-
-			users = append(users, user)
-		}
-
-		if err := rows.Err(); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": "Failed to iterate over users",
-			})
-			return
-		}
-
-		c.JSON(http.StatusOK, gin.H{
-			"count": len(users),
-			"users": users,
-		})
-	})
-
-	if err := router.Run(":8080"); err != nil {
-		log.Fatal(err)
+	if err := router.Run("127.0.0.1:" + cfg.Port); err != nil {
+		log.Fatalf("Start User Service: %v", err)
 	}
 }

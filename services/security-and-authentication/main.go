@@ -12,11 +12,12 @@ func main() {
 
 	router.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
+			"service": "security-and-authentication",
 			"status": "security is healthy",
 		})
 	})
 
-	if err := router.Run(":8080"); err != nil {
+	if err := router.Run(":8081"); err != nil {
 		log.Fatal(err)
 	}
 }
