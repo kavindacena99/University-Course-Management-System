@@ -1,61 +1,45 @@
 package main
 
 import (
-	"log"
-	"net/http"
+	"context"
+	"fmt"
+	"log/slog"
+	"os"
+	"os/signal"
+	"syscall"
 
-	"github.com/gin-gonic/gin"
-
-	"user/database"
 	user "user/internal"
 	"user/internal/config"
 )
 
 func main() {
+	if err := run(); err != nil {
+		slog.New(slog.NewJSONHandler(os.Stderr, nil)).Error(
+			"user_service_failed", "error", err,
+		)
+		os.Exit(1)
+	}
+}
+
+func run() error {
 	cfg, err := config.Load()
 	if err != nil {
-		log.Fatalf("Load configuration: %v", err)
+		return fmt.Errorf("load configuration: %w", err)
 	}
 
-	db, err := database.Connect(cfg)
+	logger := user.NewLogger(cfg.LogLevel)
+	app, err := user.NewApp(cfg, logger)
 	if err != nil {
-		log.Fatalf("Connect to PostgreSQL: %v", err)
+		return fmt.Errorf("initialise application: %w", err)
 	}
-	defer db.Close()
+	defer app.Close()
 
-	router := gin.Default()
+	ctx, stop := signal.NotifyContext(
+		context.Background(),
+		os.Interrupt,
+		syscall.SIGTERM,
+	)
+	defer stop()
 
-	router.GET("/health", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{
-			"service": "user-service",
-			"status":  "healthy",
-		})
-	})
-
-	router.GET("/health/ready", func(c *gin.Context) {
-		if err := db.Ping(c.Request.Context()); err != nil {
-			c.JSON(http.StatusServiceUnavailable, gin.H{
-				"service": "user-service",
-				"status":  "not ready",
-			})
-			return
-		}
-
-		c.JSON(http.StatusOK, gin.H{
-			"service":  "user-service",
-			"status":   "ready",
-			"database": "connected",
-		})
-	})
-
-	// User API
-	repo := user.NewRepository(db)
-	handler := user.NewHandler(repo)
-	handler.RegisterRoutes(router)
-
-	log.Printf("User Service starting on 127.0.0.1:%s", cfg.Port)
-
-	if err := router.Run("127.0.0.1:" + cfg.Port); err != nil {
-		log.Fatalf("Start User Service: %v", err)
-	}
+	return app.Run(ctx)
 }

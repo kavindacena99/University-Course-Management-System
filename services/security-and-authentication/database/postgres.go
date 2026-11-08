@@ -1,56 +1,54 @@
-
 package database
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
-	"os"
+	"net"
+	"net/url"
+	"strconv"
 	"time"
 
-	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/jackc/pgx/v5/pgxpool"
+
+	"security-and-authentication/internal/config"
 )
 
-func Connect() (*sql.DB, error) {
-	host := os.Getenv("DB_HOST")
-	port := os.Getenv("DB_PORT")
-	user := os.Getenv("DB_USER")
-	password := os.Getenv("DB_PASSWORD")
-	dbName := os.Getenv("DB_NAME")
-	sslMode := os.Getenv("DB_SSLMODE")
-
-	if host == "" || port == "" || user == "" ||
-		password == "" || dbName == "" {
-		return nil, fmt.Errorf("missing required database configuration")
+func Connect(cfg *config.Config) (*pgxpool.Pool, error) {
+	dsn := &url.URL{
+		Scheme: "postgres",
+		User:   url.UserPassword(cfg.DBUser, cfg.DBPass),
+		Host:   net.JoinHostPort(cfg.DBHost, strconv.Itoa(cfg.DBPort)),
+		Path:   "/" + cfg.DBName,
 	}
 
-	if sslMode == "" {
-		sslMode = "disable"
-	}
+	query := dsn.Query()
+	query.Set("sslmode", cfg.DBSSLMode)
+	query.Set("application_name", cfg.ServiceName)
+	dsn.RawQuery = query.Encode()
 
-	dsn := fmt.Sprintf(
-		"host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
-		host, port, user, password, dbName, sslMode,
-	)
-
-	db, err := sql.Open("pgx", dsn)
+	poolConfig, err := pgxpool.ParseConfig(dsn.String())
 	if err != nil {
-		return nil, fmt.Errorf("open database: %w", err)
+		return nil, fmt.Errorf("parse database configuration: %w", err)
 	}
 
-	db.SetMaxOpenConns(10)
-	db.SetMaxIdleConns(5)
-	db.SetConnMaxLifetime(30 * time.Minute)
+	poolConfig.MaxConns = 20
+	poolConfig.MinConns = 2
+	poolConfig.MaxConnLifetime = 30 * time.Minute
+	poolConfig.MaxConnIdleTime = 5 * time.Minute
+	poolConfig.HealthCheckPeriod = time.Minute
 
-	ctx, cancel := context.WithTimeout(
-		context.Background(), 5*time.Second,
-	)
+	pool, err := pgxpool.NewWithConfig(context.Background(), poolConfig)
+	if err != nil {
+		return nil, fmt.Errorf("create database connection pool: %w", err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	if err := db.PingContext(ctx); err != nil {
-		db.Close()
+	if err := pool.Ping(ctx); err != nil {
+		pool.Close()
 		return nil, fmt.Errorf("connect to PostgreSQL: %w", err)
 	}
 
-	return db, nil
+	return pool, nil
 }
