@@ -364,6 +364,19 @@ func (s *Service) LecturerEligibility(ctx context.Context, userID uuid.UUID) (bo
 	return user.IsActive() && user.HasRole(RoleLecturer), nil
 }
 
+// StudentEligibility reports Auth-owned activation and STUDENT role state.
+// Enrollment separately verifies live User Service registration approval.
+func (s *Service) StudentEligibility(ctx context.Context, userID uuid.UUID) (bool, error) {
+	user, err := s.store.GetUserByID(ctx, userID)
+	if errors.Is(err, ErrNotFound) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return user.IsActive() && user.HasRole(RoleStudent), nil
+}
+
 func (s *Service) Activate(ctx context.Context, token, password string) (*AuthUser, error) {
 	token = strings.TrimSpace(token)
 	if token == "" || len(token) > 512 {

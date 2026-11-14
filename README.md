@@ -4,16 +4,17 @@ Group 5 · COSC 52083
 
 ## Overview
 
-This repository contains the current Go backend for identity, users, and academic courses.
+This repository contains the current Go backend for identity, users, academic courses, and student enrollment.
 
 The codebase currently includes:
 
 - `services/security-and-authentication` for login, session management, role handling, activation, and password flows
 - `services/user` for registration, profile management, and admin approval workflows
 - `services/course` for course definitions, offerings, lecturer assignment, and catalogue APIs
+- `services/enrollment` for student enrollment, capacity enforcement, and Assessment-facing eligibility checks
 - `infrastructure/nginx` as a basic reverse proxy in front of the services
 
-The repository does not yet include a frontend UI or enrollment and assessment workflows.
+The repository does not yet include a frontend UI or Assessment Service. Course remains the authority for lecturer assignment.
 
 ## Documentation
 
@@ -22,6 +23,8 @@ Detailed project documentation is available in the `docs/` directory:
 - [System Architecture](docs/architecture.md)
 - [User Service](docs/user-service.md)
 - [Course Service](docs/course-service.md)
+- [Enrollment Service](services/enrollment/README.md)
+- [Enrollment discovery](docs/enrollment-discovery.md)
 - [Authentication Service](docs/authentication-service.md)
 - [Service Integration](docs/service-integration.md)
 - [Security](docs/security.md)
@@ -32,6 +35,7 @@ Detailed project documentation is available in the `docs/` directory:
 - [OpenAPI: Authentication Service](docs/openapi/auth-service.yaml)
 - [OpenAPI: User Service](docs/openapi/user-service.yaml)
 - [OpenAPI: Course Service](docs/openapi/course-service.yaml)
+- [OpenAPI: Enrollment Service](docs/openapi/enrollment-service.yaml)
 
 Original design documents:
 
@@ -67,7 +71,15 @@ Original design documents:
 │   │   ├── migrations/
 │   │   ├── go.mod
 │   │   └── main.go
-│   └── course/
+│   ├── course/
+│   │   ├── cmd/
+│   │   ├── database/
+│   │   ├── internal/
+│   │   ├── migrations/
+│   │   ├── Dockerfile
+│   │   ├── go.mod
+│   │   └── main.go
+│   └── enrollment/
 │       ├── cmd/
 │       ├── database/
 │       ├── internal/
@@ -96,10 +108,11 @@ NGINX (port 8080)
   ├── /api/v1/users/        -> user service (127.0.0.1:8082)
   ├── /api/v1/admin/users/  -> user service (127.0.0.1:8082)
   ├── /api/v1/courses/, /api/v1/admin/courses/ -> course service (127.0.0.1:8083)
-  └── /api/v1/offerings/, /api/v1/admin/offerings/ -> course service (127.0.0.1:8083)
+  ├── /api/v1/offerings/, /api/v1/admin/offerings/ -> course service (127.0.0.1:8083)
+  └── /api/v1/enrollments/, student/Offering enrollment routes -> enrollment service (127.0.0.1:8084)
 ```
 
-The three services are separate Go applications and use signed internal HTTP requests.
+The four services are separate Go applications and use signed internal HTTP requests.
 
 ## Service responsibilities
 
@@ -135,6 +148,14 @@ Implements:
 - JWT authorization with resource-level checks for assigned lecturers
 - signed eligibility checks against User and Authentication services
 
+### Enrollment service
+
+- student enrollment in CourseOfferings with historical cancellation records
+- transactional capacity enforcement and active-enrollment uniqueness
+- signed User, Auth, and Course eligibility checks
+- HMAC-protected student and lecturer verification for future Assessment Service
+- no lecturer assignment records; Course owns those assignments
+
 ## Data model
 
 The current implementation persists data in PostgreSQL.
@@ -161,7 +182,12 @@ The current implementation persists data in PostgreSQL.
 - `course_offerings`
 - `course_audit_events`
 
-Enrollment and assessment records are not stored in the Course Service.
+### Enrollment service
+- `enrollments`
+- `enrollment_offering_guards`
+
+Enrollment records are stored only in Enrollment Service. Assessment records
+are not implemented.
 
 ## Security model
 
@@ -170,7 +196,8 @@ The current implementation includes:
 - roles `ADMIN`, `STAFF`, `LECTURER`, and `STUDENT`
 - permission claims (`users:read`, `users:manage`, `roles:manage`,
   `sessions:read`, `sessions:revoke`, `account:unlock`, `audit:read`,
-  `courses:manage`, `offerings:manage`)
+  `courses:manage`, `offerings:manage`, `enrollments:read`,
+  `enrollments:manage`)
 - CSRF validation support for cookie-based tokens
 - HMAC-signed internal service requests with timestamp and nonce protection
 - fail-closed login and refresh eligibility verification via the user service
@@ -192,11 +219,12 @@ The current implementation includes:
 cp services/security-and-authentication/.env.example services/security-and-authentication/.env
 cp services/user/.env.example services/user/.env
 cp services/course/.env.example services/course/.env
+cp services/enrollment/.env.example services/enrollment/.env
 ```
 
 Set the database credentials, a shared `INTERNAL_SERVICE_SECRET` (32+
-characters), and the user-service `AUTH_JWT_PUBLIC_KEYS_JSON` value generated
-from the auth service public key. Never commit `.env` files.
+characters), and matching `AUTH_JWT_PUBLIC_KEYS_JSON` values in User, Course,
+and Enrollment generated from Auth's public key. Never commit `.env` files.
 
 ### 2. Generate JWT keys
 
@@ -222,6 +250,11 @@ cd services/course
 go run ./cmd/migrate -direction up
 ```
 
+```bash
+cd services/enrollment
+go run ./cmd/migrate -direction up
+```
+
 ### 4. Start the services
 
 ```bash
@@ -239,6 +272,11 @@ cd services/course
 go run .
 ```
 
+```bash
+cd services/enrollment
+go run .
+```
+
 ### 5. Optional admin bootstrap
 
 ```bash
@@ -251,8 +289,9 @@ This requires `ADMIN_BOOTSTRAP_TOKEN` to be configured.
 ## Testing
 
 Unit tests run without a database. Integration tests run when
-`TEST_DATABASE_URL` points at the dedicated `auth_test` or `users_test`
-database; tests refuse to run against any other database.
+`TEST_DATABASE_URL` points at the dedicated `auth_test`, `users_test`,
+`courses_test`, or `enrollments_test` database; tests refuse to run against
+any other database.
 
 ```bash
 cd services/security-and-authentication
@@ -272,12 +311,18 @@ go test ./...
 TEST_DATABASE_URL='postgres://course_app:password@127.0.0.1:5432/courses_test?sslmode=disable' go test ./internal/...
 ```
 
+```bash
+cd services/enrollment
+go test ./...
+TEST_DATABASE_URL='postgres://enrollment_app:password@127.0.0.1:5432/enrollments_test?sslmode=disable' go test ./internal/...
+```
+
 ## Known gaps
 
 The repository does not yet include:
 - a frontend or browser application
-- enrollment, timetable, result, and assessment workflows
-- Docker/Compose deployment files
+- timetable, result, and assessment workflows
+- Docker container verification of the local Compose stack
 - CI/CD workflow configuration
 - production deployment manifests
 - a complete end-to-end university workflow beyond identity and authorization

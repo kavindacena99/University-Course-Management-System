@@ -128,3 +128,27 @@ lecturer. Configure `course-service` in both receiver allowlists. Auth Service
 further restricts provisioning and user-event endpoints to `user-service`, and
 lecturer eligibility to `course-service`. Course Service does not access either
 service's database.
+
+## Enrollment Service integration
+
+Enrollment Service is `enrollment-service` for HMAC signing. On creation it
+checks User's existing `GET /internal/users/{id}/eligibility` for live
+`approved` status, Auth's new
+`GET /internal/users/{id}/student-eligibility` for active STUDENT role, and
+Course's new `GET /internal/offerings/{id}` for the actual CourseOffering
+status, enrollment window, capacity, version, and lecturer ID. All three
+responses are identity-checked; malformed or unavailable responses fail
+closed. Add `enrollment-service` to Auth and User caller allowlists. Course
+allows that caller on its Offering facts endpoint.
+
+Course remains the authority for lecturer assignment. Enrollment's
+Assessment-facing lecturer check reads the Course assignment and verifies
+live User approval and Auth lecturer role; Auth's existing lecturer eligibility
+route now accepts `enrollment-service` as well as `course-service`.
+
+Only `assessment-service` may call Enrollment's signed
+`GET /internal/offerings/{id}/enrollments/{student_id}/active` and
+`GET /internal/offerings/{id}/lecturers/{lecturer_id}/active`. The gateway
+does not expose these paths. Enrollment returns an explicit `active` boolean
+and no user profile. The Assessment Service does not exist yet; these are
+producer contracts, not a tested Assessment integration.

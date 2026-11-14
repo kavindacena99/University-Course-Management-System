@@ -40,8 +40,11 @@ type Config struct {
 	CSRFCookieName        string
 	CSRFHeaderName        string
 
-	InternalServiceID     string
-	InternalServiceSecret string
+	InternalServiceID             string
+	InternalServiceSecret         string
+	InternalServiceSecretPrevious string
+	AllowedInternalCallers        []string
+	InternalAuthMaxSkew           time.Duration
 
 	UserServiceInternalURL string
 	UserServiceTimeout     time.Duration
@@ -102,8 +105,9 @@ func Load() (*Config, error) {
 		CSRFCookieName:        getEnv("CSRF_COOKIE_NAME", "csrf_token"),
 		CSRFHeaderName:        getEnv("CSRF_HEADER_NAME", "X-CSRF-Token"),
 
-		InternalServiceID:     getEnv("INTERNAL_SERVICE_ID", "course-service"),
-		InternalServiceSecret: os.Getenv("INTERNAL_SERVICE_SECRET"),
+		InternalServiceID:             getEnv("INTERNAL_SERVICE_ID", "course-service"),
+		InternalServiceSecret:         os.Getenv("INTERNAL_SERVICE_SECRET"),
+		InternalServiceSecretPrevious: os.Getenv("INTERNAL_SERVICE_SECRET_PREVIOUS"),
 
 		UserServiceInternalURL: getEnv("USER_SERVICE_INTERNAL_URL", "http://127.0.0.1:8082"),
 		AuthServiceInternalURL: getEnv("AUTH_SERVICE_INTERNAL_URL", "http://127.0.0.1:8081"),
@@ -112,10 +116,14 @@ func Load() (*Config, error) {
 	}
 
 	cfg.CORSAllowedOrigins = splitCSV(os.Getenv("CORS_ALLOWED_ORIGINS"))
+	cfg.AllowedInternalCallers = splitCSV(getEnv("INTERNAL_ALLOWED_CALLERS", "enrollment-service"))
 	cfg.TrustedProxies = splitCSV(getEnv("TRUSTED_PROXIES", "127.0.0.1,::1"))
 	cfg.CORSAllowCredentials = getBool("CORS_ALLOW_CREDENTIALS", true)
 
 	if cfg.AuthJWTClockSkew, err = getDuration("AUTH_JWT_CLOCK_SKEW", 30*time.Second); err != nil {
+		return nil, err
+	}
+	if cfg.InternalAuthMaxSkew, err = getDuration("INTERNAL_AUTH_MAX_SKEW", 2*time.Minute); err != nil {
 		return nil, err
 	}
 	if cfg.UserServiceTimeout, err = getDuration("USER_SERVICE_TIMEOUT", 2*time.Second); err != nil {
@@ -207,6 +215,15 @@ func validate(cfg *Config) error {
 	}
 	if len(cfg.InternalServiceSecret) < 32 {
 		return fmt.Errorf("INTERNAL_SERVICE_SECRET must be at least 32 characters")
+	}
+	if cfg.InternalServiceSecretPrevious != "" && len(cfg.InternalServiceSecretPrevious) < 32 {
+		return fmt.Errorf("INTERNAL_SERVICE_SECRET_PREVIOUS must be at least 32 characters")
+	}
+	if len(cfg.AllowedInternalCallers) == 0 {
+		return fmt.Errorf("INTERNAL_ALLOWED_CALLERS must contain a service identity")
+	}
+	if cfg.InternalAuthMaxSkew <= 0 || cfg.InternalAuthMaxSkew > 10*time.Minute {
+		return fmt.Errorf("INTERNAL_AUTH_MAX_SKEW must be between 0 and 10 minutes")
 	}
 
 	if cfg.AuthCookieEnabled {

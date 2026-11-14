@@ -21,6 +21,7 @@ type courseService interface {
 
 	CreateOffering(ctx context.Context, claims *AccessClaims, input CreateOfferingInput) (*CourseOffering, error)
 	GetOffering(ctx context.Context, claims *AccessClaims, offeringID uuid.UUID) (*CourseOffering, error)
+	GetOfferingFacts(ctx context.Context, offeringID uuid.UUID) (*OfferingFacts, error)
 	ListCourseOfferings(ctx context.Context, claims *AccessClaims, courseID uuid.UUID, filter OfferingFilter) (*OfferingList, error)
 	ListOfferings(ctx context.Context, claims *AccessClaims, filter OfferingFilter) (*OfferingList, error)
 	UpdateOffering(ctx context.Context, claims *AccessClaims, offeringID uuid.UUID, input UpdateOfferingInput) (*CourseOffering, error)
@@ -40,7 +41,7 @@ func NewHandler(service courseService, logger *slog.Logger) *Handler {
 	return &Handler{service: service, logger: logger}
 }
 
-func (h *Handler) RegisterRoutes(router gin.IRouter, auth gin.HandlerFunc) {
+func (h *Handler) RegisterRoutes(router gin.IRouter, auth, internal gin.HandlerFunc) {
 	api := router.Group("/api/v1")
 	authenticated := func(handler gin.HandlerFunc) []gin.HandlerFunc {
 		return withMiddleware([]gin.HandlerFunc{auth}, handler)
@@ -84,6 +85,23 @@ func (h *Handler) RegisterRoutes(router gin.IRouter, auth gin.HandlerFunc) {
 		permitted(PermCoursesManage, h.AssignLecturer)...)
 	api.POST("/admin/offerings/:id/restore",
 		permitted(PermCoursesManage, h.ChangeOfferingStatus("restore"))...)
+
+	router.GET("/internal/offerings/:id",
+		withMiddleware([]gin.HandlerFunc{internal, RequireInternalCaller("enrollment-service")}, h.InternalGetOffering)...)
+}
+
+func (h *Handler) InternalGetOffering(c *gin.Context) {
+	offeringID, err := uuid.Parse(c.Param("id"))
+	if err != nil || offeringID == uuid.Nil {
+		RespondValidationError(c, "id", "must be a valid UUID")
+		return
+	}
+	facts, err := h.service.GetOfferingFacts(c.Request.Context(), offeringID)
+	if err != nil {
+		RespondServiceError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"offering": facts})
 }
 
 type createCourseRequest struct {

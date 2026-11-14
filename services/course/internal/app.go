@@ -44,6 +44,16 @@ func NewApp(cfg *config.Config, logger *slog.Logger) (*App, error) {
 		db.Close()
 		return nil, err
 	}
+	internalVerifier, err := NewServiceVerifier(
+		cfg.InternalServiceSecret,
+		cfg.InternalServiceSecretPrevious,
+		cfg.AllowedInternalCallers,
+		cfg.InternalAuthMaxSkew,
+	)
+	if err != nil {
+		db.Close()
+		return nil, fmt.Errorf("configure internal authentication: %w", err)
+	}
 
 	userClient, err := NewUserServiceClient(
 		cfg.UserServiceInternalURL,
@@ -64,7 +74,7 @@ func NewApp(cfg *config.Config, logger *slog.Logger) (*App, error) {
 	service := NewService(repository, &LecturerVerifier{users: userClient, auth: authClient})
 	handler := NewHandler(service, logger)
 
-	router, err := newRouter(cfg, logger, db, verifier, handler)
+	router, err := newRouter(cfg, logger, db, verifier, internalVerifier, handler)
 	if err != nil {
 		db.Close()
 		return nil, err
@@ -140,6 +150,7 @@ func newRouter(
 	logger *slog.Logger,
 	db *pgxpool.Pool,
 	verifier *TokenVerifier,
+	internalVerifier *ServiceVerifier,
 	handler *Handler,
 ) (*gin.Engine, error) {
 	if cfg.Environment == "production" {
@@ -209,7 +220,8 @@ func newRouter(
 		cfg.CSRFHeaderName,
 	)
 
-	handler.RegisterRoutes(router, auth)
+	handler.RegisterRoutes(router, auth,
+		InternalAuthMiddleware(internalVerifier, cfg.MaxRequestBytes))
 
 	router.NoRoute(func(c *gin.Context) {
 		RespondError(c, http.StatusNotFound, CodeNotFound,

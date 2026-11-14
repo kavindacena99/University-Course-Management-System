@@ -30,6 +30,7 @@ type authService interface {
 	ProvisionUser(ctx context.Context, input ProvisionUserInput) (*AuthUser, error)
 	ProcessUserEvent(ctx context.Context, event UserEvent) (InboxResult, error)
 	LecturerEligibility(ctx context.Context, userID uuid.UUID) (bool, error)
+	StudentEligibility(ctx context.Context, userID uuid.UUID) (bool, error)
 	ListRoles(ctx context.Context) ([]Role, error)
 	ListPermissions(ctx context.Context) ([]Permission, error)
 	GetRolePermissions(ctx context.Context, roleCode string) ([]string, error)
@@ -114,7 +115,23 @@ func (h *Handler) RegisterRoutes(router gin.IRouter, deps RouteDependencies) {
 	router.POST("/internal/events/users",
 		withMiddleware([]gin.HandlerFunc{deps.Internal, RequireInternalCaller("user-service")}, h.InternalUserEvent)...)
 	router.GET("/internal/users/:id/lecturer-eligibility",
-		withMiddleware([]gin.HandlerFunc{deps.Internal, RequireInternalCaller("course-service")}, h.InternalLecturerEligibility)...)
+		withMiddleware([]gin.HandlerFunc{deps.Internal, RequireInternalCaller("course-service", "enrollment-service")}, h.InternalLecturerEligibility)...)
+	router.GET("/internal/users/:id/student-eligibility",
+		withMiddleware([]gin.HandlerFunc{deps.Internal, RequireInternalCaller("enrollment-service")}, h.InternalStudentEligibility)...)
+}
+
+func (h *Handler) InternalStudentEligibility(c *gin.Context) {
+	userID, err := uuid.Parse(c.Param("id"))
+	if err != nil || userID == uuid.Nil {
+		RespondValidationError(c, "id", "must be a valid UUID")
+		return
+	}
+	eligible, err := h.service.StudentEligibility(c.Request.Context(), userID)
+	if err != nil {
+		h.respondError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"user_id": userID, "eligible": eligible})
 }
 
 func (h *Handler) InternalLecturerEligibility(c *gin.Context) {

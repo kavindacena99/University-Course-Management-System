@@ -1,9 +1,11 @@
 package course
 
 import (
+	"bytes"
 	"crypto/subtle"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -14,6 +16,7 @@ import (
 )
 
 const claimsContextKey = "auth_claims"
+const internalCallerContextKey = "internal_caller"
 
 func RequestIDMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -239,6 +242,48 @@ func RequirePermissions(permissions ...string) gin.HandlerFunc {
 			return
 		}
 
+		c.Next()
+	}
+}
+
+func InternalAuthMiddleware(verifier *ServiceVerifier, maxBodyBytes int64) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		limit := maxBodyBytes
+		if limit <= 0 {
+			limit = 1 << 20
+		}
+		body, err := io.ReadAll(io.LimitReader(c.Request.Body, limit+1))
+		if err != nil {
+			AbortWithError(c, http.StatusBadRequest, CodeInvalidRequest,
+				"Unable to read the request body.")
+			return
+		}
+		if int64(len(body)) > limit {
+			AbortWithError(c, http.StatusRequestEntityTooLarge, CodePayloadTooLarge,
+				"The request body is too large.")
+			return
+		}
+		c.Request.Body = io.NopCloser(bytes.NewReader(body))
+		caller, err := verifier.Verify(c.Request, body)
+		if err != nil {
+			AbortWithError(c, http.StatusUnauthorized, CodeInvalidServiceAuth,
+				"Invalid internal service authentication.")
+			return
+		}
+		c.Set(internalCallerContextKey, caller)
+		c.Next()
+	}
+}
+
+func RequireInternalCaller(allowed string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		value, exists := c.Get(internalCallerContextKey)
+		caller, ok := value.(string)
+		if !exists || !ok || caller != allowed {
+			AbortWithError(c, http.StatusForbidden, CodeForbidden,
+				"Internal caller is not permitted.")
+			return
+		}
 		c.Next()
 	}
 }

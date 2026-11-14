@@ -1,6 +1,6 @@
 # Database
 
-Three PostgreSQL databases are used. Each service owns its schema and migrations.
+Four PostgreSQL databases are used. Each service owns its schema and migrations.
 
 ## User Service database
 
@@ -69,6 +69,23 @@ Migrations: `services/course/migrations`
   course or offering. See [Course Service](course-service.md) for constraints,
   indexes, and lifecycle rules.
 
+## Enrollment Service database
+
+Migration: `services/enrollment/migrations/000001_enrollment_schema`.
+
+- `enrollments`: student and CourseOffering external UUIDs, `active` or
+  `cancelled` state, version, enrollment/end and actor timestamps. A partial
+  unique index permits only one active row per student and Offering while
+  retaining cancelled history. Check constraints enforce end-state and
+  version consistency.
+- `enrollment_offering_guards`: one local row per external Offering UUID,
+  locked for every seat-affecting write. The active count and insert are in
+  one PostgreSQL transaction. This is not an Offering replica or a
+  cross-service foreign key.
+
+Course remains the authority for lecturer assignments, so this database has
+no lecturer assignment table.
+
 ## Migrations
 
 Run migrations with each service's migration command:
@@ -81,6 +98,9 @@ cd services/user
 go run ./cmd/migrate -direction up
 
 cd services/course
+go run ./cmd/migrate -direction up
+
+cd services/enrollment
 go run ./cmd/migrate -direction up
 ```
 
@@ -104,6 +124,8 @@ Integration tests require:
 
 - `auth_test` for the Authentication Service
 - `users_test` for the User Service
+- `courses_test` for the Course Service
+- `enrollments_test` for the Enrollment Service
 
 The test helpers refuse to run against any other database name. Apply all
 migrations to the test databases before running integration tests.
@@ -114,4 +136,10 @@ DB_NAME=auth_test go run ./cmd/migrate -direction up
 
 cd services/user
 DB_NAME=users_test go run ./cmd/migrate -direction up
+
+cd services/course
+DB_NAME=courses_test go run ./cmd/migrate -direction up
+
+cd services/enrollment
+DB_NAME=enrollments_test go run ./cmd/migrate -direction up
 ```

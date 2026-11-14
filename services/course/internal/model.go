@@ -160,6 +160,18 @@ type CourseOffering struct {
 	ArchivedAt         *time.Time     `json:"archived_at,omitempty"`
 }
 
+// OfferingFacts is the minimal signed internal contract consumed by
+// Enrollment Service. It does not expose Course's audit or author fields.
+type OfferingFacts struct {
+	ID                 uuid.UUID      `json:"id"`
+	Status             OfferingStatus `json:"status"`
+	EnrollmentOpensAt  *time.Time     `json:"enrollment_opens_at,omitempty"`
+	EnrollmentClosesAt *time.Time     `json:"enrollment_closes_at,omitempty"`
+	EnrollmentCapacity *int           `json:"enrollment_capacity,omitempty"`
+	LecturerUserID     *uuid.UUID     `json:"lecturer_user_id,omitempty"`
+	Version            int64          `json:"version"`
+}
+
 type CourseFilter struct {
 	Status CourseStatus
 	Search string

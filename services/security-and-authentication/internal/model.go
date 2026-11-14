@@ -34,6 +34,8 @@ const (
 	PermAuditRead       = "audit:read"
 	PermCoursesManage   = "courses:manage"
 	PermOfferingsManage = "offerings:manage"
+	PermEnrollmentsRead = "enrollments:read"
+	PermEnrollmentsManage = "enrollments:manage"
 )
 
 var AllPermissions = []string{
@@ -46,6 +48,8 @@ var AllPermissions = []string{
 	PermAuditRead,
 	PermCoursesManage,
 	PermOfferingsManage,
+	PermEnrollmentsRead,
+	PermEnrollmentsManage,
 }
 
 func IsValidPermission(permission string) bool {

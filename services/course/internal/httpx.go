@@ -14,6 +14,7 @@ const requestIDContextKey = "request_id"
 
 const (
 	CodeInvalidRequest     = "invalid_request"
+	CodeInvalidServiceAuth = "invalid_service_auth"
 	CodeValidationFailed   = "validation_failed"
 	CodeUnauthorized       = "unauthorized"
 	CodeForbidden          = "forbidden"
