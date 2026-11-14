@@ -24,6 +24,35 @@ func IsValidRole(role string) bool {
 	return false
 }
 
+const (
+	PermUsersRead      = "users:read"
+	PermUsersManage    = "users:manage"
+	PermRolesManage    = "roles:manage"
+	PermSessionsRead   = "sessions:read"
+	PermSessionsRevoke = "sessions:revoke"
+	PermAccountUnlock  = "account:unlock"
+	PermAuditRead      = "audit:read"
+)
+
+var AllPermissions = []string{
+	PermUsersRead,
+	PermUsersManage,
+	PermRolesManage,
+	PermSessionsRead,
+	PermSessionsRevoke,
+	PermAccountUnlock,
+	PermAuditRead,
+}
+
+func IsValidPermission(permission string) bool {
+	for _, candidate := range AllPermissions {
+		if permission == candidate {
+			return true
+		}
+	}
+	return false
+}
+
 type RegistrationStatus string
 
 const (
@@ -58,6 +87,7 @@ type AuthUser struct {
 	CreatedAt           time.Time
 	UpdatedAt           time.Time
 	Roles               []string
+	Permissions         []string
 }
 
 func (u *AuthUser) IsActive() bool {
@@ -88,6 +118,7 @@ func (u *AuthUser) Summary() UserSummary {
 		LastName:           u.LastName,
 		RegistrationStatus: u.RegistrationStatus,
 		Roles:              append([]string(nil), u.Roles...),
+		Permissions:        append([]string(nil), u.Permissions...),
 	}
 }
 
@@ -98,6 +129,7 @@ type UserSummary struct {
 	LastName           string             `json:"last_name"`
 	RegistrationStatus RegistrationStatus `json:"registration_status"`
 	Roles              []string           `json:"roles"`
+	Permissions        []string           `json:"permissions"`
 }
 
 type Session struct {
@@ -154,6 +186,21 @@ type ActionToken struct {
 type Role struct {
 	Code        string `json:"code"`
 	Description string `json:"description"`
+}
+
+type Permission struct {
+	Code        string `json:"code"`
+	Description string `json:"description"`
+}
+
+type AuditEvent struct {
+	ID        int64          `json:"id"`
+	ActorID   *uuid.UUID     `json:"actor_id,omitempty"`
+	SubjectID *uuid.UUID     `json:"subject_id,omitempty"`
+	EventType string         `json:"event_type"`
+	Success   bool           `json:"success"`
+	Details   map[string]any `json:"details,omitempty"`
+	CreatedAt time.Time      `json:"created_at"`
 }
 
 type LoginResult struct {

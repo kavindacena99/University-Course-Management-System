@@ -327,7 +327,7 @@ func (s *Service) authorizeUserRead(claims *AccessClaims, userID uuid.UUID) erro
 	if claims == nil {
 		return ErrUnauthorized
 	}
-	if HasAnyRole(claims, RoleAdmin, RoleStaff) {
+	if HasAnyPermission(claims, PermUsersRead, PermUsersManage) {
 		return nil
 	}
 	ownID, err := claims.UserID()

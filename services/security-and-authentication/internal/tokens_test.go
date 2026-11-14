@@ -48,6 +48,7 @@ func TestTokenManagerIssuesAndVerifiesAccessToken(t *testing.T) {
 		userID,
 		sessionID,
 		[]string{RoleStudent},
+		[]string{PermUsersRead},
 	)
 	if err != nil {
 		t.Fatalf("issue access token: %v", err)
@@ -76,6 +77,12 @@ func TestTokenManagerIssuesAndVerifiesAccessToken(t *testing.T) {
 	if HasAnyRole(claims, RoleAdmin) {
 		t.Fatal("did not expect admin role")
 	}
+	if !HasAnyPermission(claims, PermUsersRead) {
+		t.Fatal("expected users:read permission")
+	}
+	if HasAnyPermission(claims, PermUsersManage) {
+		t.Fatal("did not expect users:manage permission")
+	}
 }
 
 func TestTokenManagerRejectsExpiredToken(t *testing.T) {
@@ -84,6 +91,7 @@ func TestTokenManagerRejectsExpiredToken(t *testing.T) {
 		uuid.New(),
 		uuid.New(),
 		[]string{RoleStudent},
+		nil,
 	)
 	if err != nil {
 		t.Fatalf("issue access token: %v", err)
@@ -102,6 +110,7 @@ func TestTokenManagerRejectsUnknownKeyID(t *testing.T) {
 		uuid.New(),
 		uuid.New(),
 		[]string{RoleStudent},
+		nil,
 	)
 	if err != nil {
 		t.Fatalf("issue access token: %v", err)
@@ -146,6 +155,7 @@ func TestTokenManagerRejectsTamperedToken(t *testing.T) {
 		uuid.New(),
 		uuid.New(),
 		[]string{RoleStudent},
+		nil,
 	)
 	if err != nil {
 		t.Fatalf("issue access token: %v", err)

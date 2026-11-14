@@ -19,6 +19,7 @@ type Store interface {
 	GetUserByEmail(ctx context.Context, email string) (*AuthUser, error)
 	RecordLoginFailure(ctx context.Context, userID uuid.UUID, maxAttempts int, lockedUntil time.Time) error
 	RecordLoginSuccess(ctx context.Context, userID uuid.UUID, rehashedPassword string) error
+	InspectRefreshToken(ctx context.Context, rawHash []byte, now time.Time) (*AuthUser, uuid.UUID, error)
 	CreateSession(ctx context.Context, session NewSession) error
 	RotateRefreshToken(ctx context.Context, rawHash []byte, newTokenID uuid.UUID, newHash []byte, now time.Time) (*RotationResult, error)
 	RevokeSessionByRefreshHash(ctx context.Context, rawHash []byte, reason string) (bool, error)
@@ -30,9 +31,13 @@ type Store interface {
 	ConsumeActionTokenAndSetPassword(ctx context.Context, tokenHash []byte, purpose string, newPasswordHash string, now time.Time) (*AuthUser, error)
 	ProvisionUser(ctx context.Context, input ProvisionUserInput, passwordHash string) (*AuthUser, error)
 	ListRoles(ctx context.Context) ([]Role, error)
-	SetUserRoles(ctx context.Context, userID uuid.UUID, roles []string) (*AuthUser, error)
+	ListPermissions(ctx context.Context) ([]Permission, error)
+	GetRolePermissions(ctx context.Context, roleCode string) ([]string, error)
+	SetRolePermissions(ctx context.Context, actorID uuid.UUID, roleCode string, permissions []string) ([]Permission, error)
+	SetUserRoles(ctx context.Context, actorID uuid.UUID, userID uuid.UUID, roles []string) (*AuthUser, error)
 	UnlockUser(ctx context.Context, userID uuid.UUID) (*AuthUser, error)
 	ProcessUserEvent(ctx context.Context, event UserEvent, now time.Time, notify NotifyFunc) (InboxResult, error)
+	ListAuditEvents(ctx context.Context, limit, offset int) ([]AuditEvent, int64, error)
 }
 
 type Service struct {
@@ -40,6 +45,7 @@ type Service struct {
 	hasher        *PasswordHasher
 	tokens        *TokenManager
 	notifications NotificationSender
+	eligibility   EligibilityChecker
 	now           func() time.Time
 	accessTTL     time.Duration
 	refreshTTL    time.Duration
@@ -55,6 +61,7 @@ func NewService(
 	hasher *PasswordHasher,
 	tokens *TokenManager,
 	notifications NotificationSender,
+	eligibility EligibilityChecker,
 	accessTTL time.Duration,
 	refreshTTL time.Duration,
 	sessionTTL time.Duration,
@@ -73,6 +80,9 @@ func NewService(
 	}
 	if notifications == nil {
 		return nil, fmt.Errorf("notification sender is required")
+	}
+	if eligibility == nil {
+		return nil, fmt.Errorf("eligibility checker is required")
 	}
 	if accessTTL <= 0 || refreshTTL <= 0 || sessionTTL <= 0 || resetTTL <= 0 {
 		return nil, fmt.Errorf("token lifetimes must be positive")
@@ -94,6 +104,7 @@ func NewService(
 		hasher:        hasher,
 		tokens:        tokens,
 		notifications: notifications,
+		eligibility:   eligibility,
 		now:           time.Now,
 		accessTTL:     accessTTL,
 		refreshTTL:    refreshTTL,
@@ -133,18 +144,8 @@ func (s *Service) Login(ctx context.Context, input LoginInput) (*LoginResult, er
 		return nil, err
 	}
 
-	if user.IsLocked(now) {
-		return nil, ErrAccountLocked
-	}
-	if err := loginAvailability(user); err != nil {
-		return nil, err
-	}
-
 	matches, err := s.hasher.Verify(input.Password, user.PasswordHash)
-	if err != nil {
-		return nil, ErrInvalidCredentials
-	}
-	if !matches {
+	if err != nil || !matches {
 		if err := s.store.RecordLoginFailure(
 			ctx,
 			user.UserID,
@@ -154,6 +155,16 @@ func (s *Service) Login(ctx context.Context, input LoginInput) (*LoginResult, er
 			return nil, err
 		}
 		return nil, ErrInvalidCredentials
+	}
+
+	if user.IsLocked(now) {
+		return nil, ErrAccountLocked
+	}
+	if err := loginAvailability(user); err != nil {
+		return nil, err
+	}
+	if err := s.eligibility.CheckEligibility(ctx, user.UserID); err != nil {
+		return nil, err
 	}
 
 	rehashed := ""
@@ -220,6 +231,28 @@ func (s *Service) Refresh(ctx context.Context, rawRefreshToken string) (*Refresh
 	}
 
 	now := s.now().UTC()
+	user, sessionID, err := s.store.InspectRefreshToken(
+		ctx,
+		HashOpaqueToken(rawRefreshToken),
+		now,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := loginAvailability(user); err != nil {
+		_ = s.store.RevokeSession(ctx, sessionID, uuid.Nil,
+			"account is not available", true)
+		return nil, err
+	}
+	if err := s.eligibility.CheckEligibility(ctx, user.UserID); err != nil {
+		if errors.Is(err, ErrUserIneligible) {
+			_ = s.store.RevokeSession(ctx, sessionID, uuid.Nil,
+				"account is not eligible", true)
+		}
+		return nil, err
+	}
+
 	rotation, err := s.store.RotateRefreshToken(
 		ctx,
 		HashOpaqueToken(rawRefreshToken),
@@ -228,12 +261,6 @@ func (s *Service) Refresh(ctx context.Context, rawRefreshToken string) (*Refresh
 		now,
 	)
 	if err != nil {
-		return nil, err
-	}
-
-	if err := loginAvailability(rotation.User); err != nil {
-		_ = s.store.RevokeSession(ctx, rotation.SessionID, uuid.Nil,
-			"account is not available", true)
 		return nil, err
 	}
 
@@ -519,11 +546,47 @@ func (s *Service) ListRoles(ctx context.Context) ([]Role, error) {
 	return s.store.ListRoles(ctx)
 }
 
+func (s *Service) ListPermissions(ctx context.Context) ([]Permission, error) {
+	return s.store.ListPermissions(ctx)
+}
+
+func (s *Service) GetRolePermissions(
+	ctx context.Context,
+	roleCode string,
+) ([]string, error) {
+	return s.store.GetRolePermissions(ctx, roleCode)
+}
+
+func (s *Service) SetRolePermissions(
+	ctx context.Context,
+	claims *AccessClaims,
+	roleCode string,
+	permissions []string,
+) ([]Permission, error) {
+	actorID, err := claimsUserID(claims)
+	if err != nil {
+		return nil, err
+	}
+	for _, permission := range permissions {
+		if !IsValidPermission(permission) {
+			return nil, fmt.Errorf("%w: %s", ErrInvalidPermission, permission)
+		}
+	}
+	return s.store.SetRolePermissions(
+		ctx, actorID, roleCode, normalizePermissions(permissions),
+	)
+}
+
 func (s *Service) SetUserRoles(
 	ctx context.Context,
+	claims *AccessClaims,
 	userID uuid.UUID,
 	roles []string,
 ) (*AuthUser, error) {
+	actorID, err := claimsUserID(claims)
+	if err != nil {
+		return nil, err
+	}
 	if userID == uuid.Nil {
 		return nil, newValidationError("user_id", "must be a valid UUID")
 	}
@@ -534,7 +597,24 @@ func (s *Service) SetUserRoles(
 	if len(normalized) == 0 {
 		return nil, newValidationError("roles", "must contain at least one role")
 	}
-	return s.store.SetUserRoles(ctx, userID, normalized)
+	return s.store.SetUserRoles(ctx, actorID, userID, normalized)
+}
+
+func (s *Service) ListAuditEvents(
+	ctx context.Context,
+	limit int,
+	offset int,
+) ([]AuditEvent, int64, error) {
+	if limit < 1 {
+		limit = 50
+	}
+	if limit > 200 {
+		limit = 200
+	}
+	if offset < 0 {
+		offset = 0
+	}
+	return s.store.ListAuditEvents(ctx, limit, offset)
 }
 
 func (s *Service) UnlockUser(ctx context.Context, userID uuid.UUID) (*AuthUser, error) {
@@ -562,6 +642,7 @@ func (s *Service) issueAccess(
 		user.UserID,
 		sessionID,
 		user.Roles,
+		user.Permissions,
 	)
 	if err != nil {
 		return "", time.Time{}, "", err

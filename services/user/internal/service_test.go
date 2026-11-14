@@ -478,10 +478,15 @@ func TestServiceBootstrapAdminValidatesPassword(t *testing.T) {
 }
 
 func claimsFor(userID uuid.UUID, role string) *AccessClaims {
+	permissions := []string{}
+	if role == RoleAdmin {
+		permissions = []string{PermUsersRead, PermUsersManage}
+	}
 	return &AccessClaims{
-		SessionID: "session",
-		Roles:     []string{role},
-		TokenType: "access",
+		SessionID:   "session",
+		Roles:       []string{role},
+		Permissions: permissions,
+		TokenType:   "access",
 		RegisteredClaims: jwt.RegisteredClaims{
 			Subject:   userID.String(),
 			Issuer:    "university-auth",

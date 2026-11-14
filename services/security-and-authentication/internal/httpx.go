@@ -41,6 +41,8 @@ const (
 	CodePayloadTooLarge    = "payload_too_large"
 	CodeDisabledFeature    = "feature_disabled"
 	CodeInvalidRole        = "invalid_role"
+	CodeInvalidPermission  = "invalid_permission"
+	CodeEligibilityFailed  = "eligibility_unavailable"
 )
 
 type apiErrorDetail struct {
@@ -136,6 +138,15 @@ func RespondServiceError(c *gin.Context, err error) {
 	case errors.Is(err, ErrInvalidRole):
 		AbortWithError(c, http.StatusBadRequest, CodeInvalidRole,
 			"One or more roles are invalid.")
+	case errors.Is(err, ErrInvalidPermission):
+		AbortWithError(c, http.StatusBadRequest, CodeInvalidPermission,
+			"One or more permissions are invalid.")
+	case errors.Is(err, ErrUserIneligible):
+		AbortWithError(c, http.StatusForbidden, CodeAccountUnavailable,
+			"The account is not available.")
+	case errors.Is(err, ErrEligibilityUnavailable):
+		AbortWithError(c, http.StatusServiceUnavailable, CodeEligibilityFailed,
+			"User eligibility cannot be verified at this time.")
 	case errors.Is(err, ErrUnauthorized), errors.Is(err, ErrForbidden):
 		AbortWithError(c, http.StatusForbidden, CodeForbidden,
 			"You do not have permission to perform this action.")
