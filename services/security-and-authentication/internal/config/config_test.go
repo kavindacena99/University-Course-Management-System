@@ -98,9 +98,10 @@ func TestLoadValidConfiguration(t *testing.T) {
 	if cfg.TokenDelivery != "both" {
 		t.Errorf("TokenDelivery = %q", cfg.TokenDelivery)
 	}
-	if len(cfg.AllowedInternalCallers) != 2 ||
+	if len(cfg.AllowedInternalCallers) != 3 ||
 		cfg.AllowedInternalCallers[0] != "user-service" ||
-		cfg.AllowedInternalCallers[1] != "course-service" {
+		cfg.AllowedInternalCallers[1] != "course-service" ||
+		cfg.AllowedInternalCallers[2] != "enrollment-service" {
 		t.Errorf("AllowedInternalCallers = %v", cfg.AllowedInternalCallers)
 	}
 	if cfg.Argon2MemoryKiB != 65536 {

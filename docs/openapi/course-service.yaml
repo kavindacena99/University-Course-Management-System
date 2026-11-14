@@ -246,6 +246,43 @@ paths:
       responses:
         '200': { $ref: '#/components/responses/Offering' }
         default: { $ref: '#/components/responses/Error' }
+  /internal/offerings/{id}:
+    servers:
+      - url: http://localhost:8083
+    parameters:
+      - $ref: '#/components/parameters/ID'
+      - name: X-Service-Id
+        in: header
+        required: true
+        schema: { type: string, enum: [enrollment-service] }
+      - name: X-Service-Timestamp
+        in: header
+        required: true
+        schema: { type: string, format: date-time }
+      - name: X-Service-Nonce
+        in: header
+        required: true
+        schema: { type: string }
+      - name: X-Service-Signature
+        in: header
+        required: true
+        schema: { type: string }
+    get:
+      operationId: internalGetOfferingFacts
+      security: []
+      summary: Signed Offering facts for Enrollment Service
+      description: Restricted to enrollment-service; not routed through NGINX.
+      responses:
+        '200':
+          description: Minimal Offering configuration and Course-owned lecturer assignment
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [offering]
+                properties:
+                  offering: { $ref: '#/components/schemas/OfferingFacts' }
+        default: { $ref: '#/components/responses/Error' }
   /health:
     servers:
       - url: http://localhost:8083
@@ -362,6 +399,17 @@ components:
         application/json:
           schema: { $ref: '#/components/schemas/OfferingList' }
   schemas:
+    OfferingFacts:
+      type: object
+      required: [id, status, version]
+      properties:
+        id: { type: string, format: uuid }
+        status: { $ref: '#/components/schemas/OfferingStatus' }
+        enrollment_opens_at: { type: string, format: date-time, nullable: true }
+        enrollment_closes_at: { type: string, format: date-time, nullable: true }
+        enrollment_capacity: { type: integer, minimum: 1, maximum: 100000, nullable: true }
+        lecturer_user_id: { type: string, format: uuid, nullable: true }
+        version: { type: integer, format: int64, minimum: 1 }
     CourseStatus: { type: string, enum: [draft, active, archived] }
     OfferingStatus: { type: string, enum: [draft, published, closed, archived] }
     Course:

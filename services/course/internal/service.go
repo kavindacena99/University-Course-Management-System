@@ -340,6 +340,24 @@ func (s *Service) GetOffering(
 	return item, nil
 }
 
+// GetOfferingFacts serves only the HMAC-authenticated Enrollment integration.
+func (s *Service) GetOfferingFacts(
+	ctx context.Context, offeringID uuid.UUID,
+) (*OfferingFacts, error) {
+	item, err := s.store.GetOffering(ctx, offeringID)
+	if err != nil {
+		return nil, err
+	}
+	return &OfferingFacts{
+		ID: item.ID, Status: item.Status,
+		EnrollmentOpensAt:  item.EnrollmentOpensAt,
+		EnrollmentClosesAt: item.EnrollmentClosesAt,
+		EnrollmentCapacity: item.EnrollmentCapacity,
+		LecturerUserID:     item.LecturerUserID,
+		Version:            item.Version,
+	}, nil
+}
+
 func (s *Service) ListCourseOfferings(
 	ctx context.Context,
 	claims *AccessClaims,

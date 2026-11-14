@@ -92,12 +92,15 @@ Permissions:
 | `sessions:revoke` | Revoke user sessions |
 | `account:unlock` | Unlock locked accounts |
 | `audit:read` | View security audit events |
+| `courses:manage`, `offerings:manage` | Manage Course definitions and Offerings |
+| `enrollments:read` | Read authorized enrollment records |
+| `enrollments:manage` | Create and cancel student enrollments |
 
-Default mappings (migration `000002`):
+Default mappings (migrations `000002`, `000003`, and `000004`):
 
 - `ADMIN`: all permissions
 - `STAFF`: `users:read`, `sessions:read`, `sessions:revoke`, `account:unlock`
-- `LECTURER`: `users:read`
+- `LECTURER`: `users:read`, `offerings:manage`, `enrollments:read`
 - `STUDENT`: none
 
 Changing a role's permissions revokes all active sessions belonging to users

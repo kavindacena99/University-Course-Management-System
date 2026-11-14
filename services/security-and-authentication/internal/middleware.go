@@ -313,10 +313,17 @@ func InternalCallerFromContext(c *gin.Context) (string, bool) {
 // RequireInternalCaller narrows the global HMAC allowlist for a particular
 // internal endpoint. Possession of the shared secret alone is not sufficient
 // to invoke a different service's administrative integration.
-func RequireInternalCaller(allowed string) gin.HandlerFunc {
+func RequireInternalCaller(allowed ...string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		caller, ok := InternalCallerFromContext(c)
-		if !ok || caller != allowed {
+		permitted := false
+		for _, candidate := range allowed {
+			if caller == candidate {
+				permitted = true
+				break
+			}
+		}
+		if !ok || !permitted {
 			AbortWithError(c, http.StatusForbidden, CodeForbidden,
 				"The internal caller is not authorized for this endpoint.")
 			return

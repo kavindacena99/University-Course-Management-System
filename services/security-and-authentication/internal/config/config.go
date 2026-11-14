@@ -142,7 +142,7 @@ func Load() (*Config, error) {
 		LogLevel:               getEnv("LOG_LEVEL", "info"),
 	}
 
-	cfg.AllowedInternalCallers = splitCSV(getEnv("INTERNAL_ALLOWED_CALLERS", "user-service,course-service"))
+	cfg.AllowedInternalCallers = splitCSV(getEnv("INTERNAL_ALLOWED_CALLERS", "user-service,course-service,enrollment-service"))
 	cfg.CORSAllowedOrigins = splitCSV(os.Getenv("CORS_ALLOWED_ORIGINS"))
 	cfg.TrustedProxies = splitCSV(getEnv("TRUSTED_PROXIES", "127.0.0.1,::1"))
 

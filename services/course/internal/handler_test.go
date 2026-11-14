@@ -21,6 +21,7 @@ type fakeCourseService struct {
 	changeCourseStatusFn   func(context.Context, *AccessClaims, uuid.UUID, string, int64) (*Course, error)
 	createOfferingFn       func(context.Context, *AccessClaims, CreateOfferingInput) (*CourseOffering, error)
 	getOfferingFn          func(context.Context, *AccessClaims, uuid.UUID) (*CourseOffering, error)
+	getOfferingFactsFn     func(context.Context, uuid.UUID) (*OfferingFacts, error)
 	listCourseOfferingsFn  func(context.Context, *AccessClaims, uuid.UUID, OfferingFilter) (*OfferingList, error)
 	listOfferingsFn        func(context.Context, *AccessClaims, OfferingFilter) (*OfferingList, error)
 	updateOfferingFn       func(context.Context, *AccessClaims, uuid.UUID, UpdateOfferingInput) (*CourseOffering, error)
@@ -77,6 +78,13 @@ func (f *fakeCourseService) GetOffering(ctx context.Context, claims *AccessClaim
 	return f.getOfferingFn(ctx, claims, id)
 }
 
+func (f *fakeCourseService) GetOfferingFacts(ctx context.Context, id uuid.UUID) (*OfferingFacts, error) {
+	if f.getOfferingFactsFn == nil {
+		return nil, errors.New("unexpected GetOfferingFacts call")
+	}
+	return f.getOfferingFactsFn(ctx, id)
+}
+
 func (f *fakeCourseService) ListCourseOfferings(ctx context.Context, claims *AccessClaims, id uuid.UUID, filter OfferingFilter) (*OfferingList, error) {
 	if f.listCourseOfferingsFn == nil {
 		return nil, errors.New("unexpected ListCourseOfferings call")
@@ -123,7 +131,7 @@ func newHandlerTestRouter(service courseService, claims *AccessClaims) *gin.Engi
 		}
 		c.Next()
 	}
-	NewHandler(service, nil).RegisterRoutes(router, auth)
+	NewHandler(service, nil).RegisterRoutes(router, auth, func(c *gin.Context) { c.Next() })
 	return router
 }
 

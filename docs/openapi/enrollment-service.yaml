@@ -1,0 +1,296 @@
+openapi: 3.0.3
+info:
+  title: University Enrollment Service API
+  version: 1.0.0
+  description: Student enrollment in CourseOfferings. Course Service remains the authority for lecturer assignment. Public cookie-authenticated writes require the CSRF header.
+servers:
+  - url: http://localhost:8080
+security:
+  - bearerAuth: []
+  - cookieAuth: []
+paths:
+  /api/v1/enrollments:
+    post:
+      operationId: createEnrollment
+      summary: Enroll the authenticated student or an Admin-selected student
+      tags: [Enrollments]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateEnrollment' }
+      responses:
+        '201': { $ref: '#/components/responses/Enrollment' }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '503': { $ref: '#/components/responses/Error' }
+  /api/v1/enrollments/{id}:
+    parameters:
+      - $ref: '#/components/parameters/EnrollmentId'
+    get:
+      operationId: getEnrollment
+      summary: Read an enrollment as Admin, its student, or the assigned lecturer
+      tags: [Enrollments]
+      responses:
+        '200': { $ref: '#/components/responses/Enrollment' }
+        default: { $ref: '#/components/responses/Error' }
+  /api/v1/enrollments/{id}/cancel:
+    parameters:
+      - $ref: '#/components/parameters/EnrollmentId'
+    post:
+      operationId: cancelEnrollment
+      summary: Cancel an active enrollment as Admin or its student
+      tags: [Enrollments]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [version]
+              properties:
+                version: { type: integer, format: int64, minimum: 1 }
+      responses:
+        '200': { $ref: '#/components/responses/Enrollment' }
+        default: { $ref: '#/components/responses/Error' }
+  /api/v1/students/{id}/enrollments:
+    parameters:
+      - $ref: '#/components/parameters/StudentId'
+    get:
+      operationId: listStudentEnrollments
+      summary: List a student's history as Admin or that student
+      tags: [Enrollments]
+      parameters:
+        - $ref: '#/components/parameters/Status'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Offset'
+      responses:
+        '200': { $ref: '#/components/responses/EnrollmentList' }
+        default: { $ref: '#/components/responses/Error' }
+  /api/v1/offerings/{id}/enrollments:
+    parameters:
+      - $ref: '#/components/parameters/OfferingId'
+    get:
+      operationId: listOfferingEnrollments
+      summary: List an Offering's enrollments as Admin or its eligible assigned lecturer
+      tags: [Enrollments]
+      parameters:
+        - $ref: '#/components/parameters/Status'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Offset'
+      responses:
+        '200': { $ref: '#/components/responses/EnrollmentList' }
+        default: { $ref: '#/components/responses/Error' }
+  /internal/offerings/{id}/enrollments/{student_id}/active:
+    servers:
+      - url: http://localhost:8084
+    parameters:
+      - $ref: '#/components/parameters/OfferingId'
+      - $ref: '#/components/parameters/StudentIdNamed'
+      - $ref: '#/components/parameters/ServiceId'
+      - $ref: '#/components/parameters/ServiceTimestamp'
+      - $ref: '#/components/parameters/ServiceNonce'
+      - $ref: '#/components/parameters/ServiceSignature'
+    get:
+      operationId: verifyActiveEnrollment
+      summary: Assessment-only active enrollment and live student eligibility check
+      description: HMAC-authenticated; only assessment-service may call. The result is false for absent or ineligible membership and 503 when a dependency cannot be verified.
+      security: []
+      tags: [Internal]
+      responses:
+        '200':
+          description: Membership result
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [student_user_id, offering_id, active]
+                properties:
+                  student_user_id: { type: string, format: uuid }
+                  offering_id: { type: string, format: uuid }
+                  active: { type: boolean }
+        default: { $ref: '#/components/responses/Error' }
+  /internal/offerings/{id}/lecturers/{lecturer_id}/active:
+    servers:
+      - url: http://localhost:8084
+    parameters:
+      - $ref: '#/components/parameters/OfferingId'
+      - $ref: '#/components/parameters/LecturerId'
+      - $ref: '#/components/parameters/ServiceId'
+      - $ref: '#/components/parameters/ServiceTimestamp'
+      - $ref: '#/components/parameters/ServiceNonce'
+      - $ref: '#/components/parameters/ServiceSignature'
+    get:
+      operationId: verifyActiveLecturer
+      summary: Assessment-only Course-owned lecturer assignment and live eligibility check
+      description: HMAC-authenticated; only assessment-service may call. Enrollment does not store lecturer assignments.
+      security: []
+      tags: [Internal]
+      responses:
+        '200':
+          description: Assignment result
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [lecturer_user_id, offering_id, active]
+                properties:
+                  lecturer_user_id: { type: string, format: uuid }
+                  offering_id: { type: string, format: uuid }
+                  active: { type: boolean }
+        default: { $ref: '#/components/responses/Error' }
+  /health:
+    servers:
+      - url: http://localhost:8084
+    get:
+      operationId: enrollmentHealth
+      security: []
+      summary: Liveness
+      responses:
+        '200': { description: Service is live }
+  /health/ready:
+    servers:
+      - url: http://localhost:8084
+    get:
+      operationId: enrollmentReady
+      security: []
+      summary: Database and migration readiness
+      responses:
+        '200': { description: Database is connected and migration version 1 is clean }
+        '503': { description: Database or schema is unavailable }
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+    cookieAuth: { type: apiKey, in: cookie, name: access_token }
+  parameters:
+    EnrollmentId:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    OfferingId:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    StudentId:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    StudentIdNamed:
+      name: student_id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    LecturerId:
+      name: lecturer_id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    Status:
+      name: status
+      in: query
+      schema: { type: string, enum: [active, cancelled] }
+    Limit:
+      name: limit
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+    Offset:
+      name: offset
+      in: query
+      schema: { type: integer, minimum: 0, maximum: 1000000, default: 0 }
+    ServiceId:
+      name: X-Service-Id
+      in: header
+      required: true
+      schema: { type: string, enum: [assessment-service] }
+    ServiceTimestamp:
+      name: X-Service-Timestamp
+      in: header
+      required: true
+      schema: { type: string, format: date-time }
+    ServiceNonce:
+      name: X-Service-Nonce
+      in: header
+      required: true
+      schema: { type: string }
+    ServiceSignature:
+      name: X-Service-Signature
+      in: header
+      required: true
+      schema: { type: string }
+  schemas:
+    CreateEnrollment:
+      type: object
+      additionalProperties: false
+      required: [offering_id]
+      properties:
+        student_user_id:
+          type: string
+          format: uuid
+          description: Required for Admin; students may only supply their own ID.
+        offering_id:
+          type: string
+          format: uuid
+          description: CourseOffering ID, not Course ID.
+    Enrollment:
+      type: object
+      required: [id, student_user_id, offering_id, status, version, enrolled_at, created_by_user_id, created_at, updated_at]
+      properties:
+        id: { type: string, format: uuid }
+        student_user_id: { type: string, format: uuid }
+        offering_id: { type: string, format: uuid }
+        status: { type: string, enum: [active, cancelled] }
+        version: { type: integer, format: int64, minimum: 1 }
+        enrolled_at: { type: string, format: date-time }
+        ended_at: { type: string, format: date-time }
+        created_by_user_id: { type: string, format: uuid }
+        ended_by_user_id: { type: string, format: uuid }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    EnrollmentList:
+      type: object
+      required: [enrollments, total, limit, offset]
+      properties:
+        enrollments:
+          type: array
+          items: { $ref: '#/components/schemas/Enrollment' }
+        total: { type: integer, format: int64 }
+        limit: { type: integer }
+        offset: { type: integer }
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code: { type: string }
+            message: { type: string }
+            request_id: { type: string }
+  responses:
+    Enrollment:
+      description: Enrollment resource
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [enrollment]
+            properties:
+              enrollment: { $ref: '#/components/schemas/Enrollment' }
+    EnrollmentList:
+      description: Paginated enrollment history
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/EnrollmentList' }
+    Error:
+      description: Error response
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }

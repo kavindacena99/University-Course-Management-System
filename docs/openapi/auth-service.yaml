@@ -534,8 +534,36 @@ paths:
           $ref: '#/components/responses/Unauthorized'
   /internal/users/{id}/lecturer-eligibility:
     get:
-      summary: Check active lecturer role for Course Service
-      description: Internal HMAC-authenticated endpoint restricted to course-service. Course Service separately checks live registration approval with User Service.
+      summary: Check active lecturer role for Course or Enrollment Service
+      description: Internal HMAC-authenticated endpoint restricted to course-service and enrollment-service. Callers separately check live registration approval with User Service.
+      security: []
+      tags: [Internal]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/ServiceId'
+        - $ref: '#/components/parameters/ServiceTimestamp'
+        - $ref: '#/components/parameters/ServiceNonce'
+        - $ref: '#/components/parameters/ServiceSignature'
+      responses:
+        '200':
+          description: Role and activation result
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [user_id, eligible]
+                properties:
+                  user_id: { type: string, format: uuid }
+                  eligible: { type: boolean }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /internal/users/{id}/student-eligibility:
+    get:
+      summary: Check active student role for Enrollment Service
+      description: Internal HMAC-authenticated endpoint restricted to enrollment-service. Enrollment separately checks live registration approval with User Service.
       security: []
       tags: [Internal]
       parameters:

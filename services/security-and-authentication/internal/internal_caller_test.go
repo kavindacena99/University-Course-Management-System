@@ -18,6 +18,8 @@ func TestInternalEndpointCallerIsolation(t *testing.T) {
 		{"course-service", "course-service", http.StatusNoContent},
 		{"course-service", "user-service", http.StatusForbidden},
 		{"user-service", "course-service", http.StatusForbidden},
+		{"enrollment-service", "enrollment-service", http.StatusNoContent},
+		{"course-service", "enrollment-service", http.StatusForbidden},
 	} {
 		router := gin.New()
 		router.GET("/internal/test", func(c *gin.Context) {

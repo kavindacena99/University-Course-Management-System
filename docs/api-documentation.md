@@ -5,6 +5,7 @@ Machine-readable OpenAPI 3 specifications:
 - [Authentication Service](openapi/auth-service.yaml)
 - [User Service](openapi/user-service.yaml)
 - [Course Service](openapi/course-service.yaml)
+- [Enrollment Service](openapi/enrollment-service.yaml)
 
 All public routes are available through the gateway at `http://localhost:8080`
 with the same paths.
@@ -100,9 +101,24 @@ Not exposed by the gateway. They require HMAC service authentication; see
 - `GET /internal/users/{id}`
 - `GET /internal/users/{id}/eligibility`
 - `POST /internal/bootstrap`
+- `GET /internal/users/{id}/student-eligibility` (Auth, Enrollment caller)
+- `GET /internal/offerings/{id}` (Course, Enrollment caller)
+- `GET /internal/offerings/{id}/enrollments/{student_id}/active` (Enrollment, Assessment caller)
+- `GET /internal/offerings/{id}/lecturers/{lecturer_id}/active` (Enrollment, Assessment caller)
+
+## Enrollment endpoints
+
+| Method | Path | Access |
+| --- | --- | --- |
+| POST | `/api/v1/enrollments` | Student self or Admin with `enrollments:manage` |
+| GET | `/api/v1/enrollments/{id}` | Admin/lecturer with `enrollments:read`, or its student |
+| POST | `/api/v1/enrollments/{id}/cancel` | Admin with `enrollments:manage`, or its student |
+| GET | `/api/v1/students/{id}/enrollments` | Admin with `enrollments:read`, or that student |
+| GET | `/api/v1/offerings/{id}/enrollments` | Admin/eligible assigned lecturer with `enrollments:read` |
 
 ## Health
 
 - Gateway: `GET http://localhost:8080/health`
 - Auth Service: `GET http://localhost:8081/health`, `/health/ready`
 - User Service: `GET http://localhost:8082/health`, `/health/ready`
+- Enrollment Service: `GET http://localhost:8084/health`, `/health/ready`

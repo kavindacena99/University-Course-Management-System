@@ -109,6 +109,7 @@ published offerings even if a different status is requested.
 | POST | `/api/v1/admin/offerings` | Create offering |
 | PUT | `/api/v1/admin/offerings/{id}/lecturer` | Assign or reassign lecturer |
 | POST | `/api/v1/admin/offerings/{id}/restore` | Restore to draft |
+| GET | `/internal/offerings/{id}` | HMAC-only Offering facts for Enrollment |
 
 Errors follow the repository envelope:
 `{"error":{"code":"validation_failed","message":"...","request_id":"..."}}`.
@@ -157,9 +158,11 @@ variables and defaults. Important settings:
 | `HTTP_*_TIMEOUT`, `SHUTDOWN_TIMEOUT`, `MAX_REQUEST_BYTES` | HTTP operation limits |
 | `CORS_*`, `TRUSTED_PROXIES`, `AUTH_COOKIE_ENABLED` | Edge and browser security |
 
-Set `INTERNAL_ALLOWED_CALLERS=auth-service,course-service` on User Service and
-`INTERNAL_ALLOWED_CALLERS=user-service,course-service` on Auth Service. All
-three services must share the same HMAC secret. No internal endpoint is routed
+Set `INTERNAL_ALLOWED_CALLERS=auth-service,course-service,enrollment-service`
+on User Service and
+`INTERNAL_ALLOWED_CALLERS=user-service,course-service,enrollment-service`
+on Auth Service. Course permits `enrollment-service` on its signed Offering
+facts endpoint. All four services must share the same HMAC secret. No internal endpoint is routed
 through NGINX. In Docker, set `BIND_HOST=0.0.0.0` and use service DNS names for
 internal URLs and `DB_HOST`; the Dockerfile is in `services/course`. Build from
 the repository root with `docker build -f services/course/Dockerfile

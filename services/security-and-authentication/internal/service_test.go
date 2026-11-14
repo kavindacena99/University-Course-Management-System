@@ -39,6 +39,34 @@ func TestLecturerEligibilityUsesActiveRoleState(t *testing.T) {
 	}
 }
 
+func TestStudentEligibilityUsesActiveRoleState(t *testing.T) {
+	service, _, pool, _ := newTestAuthService(t)
+	ctx := context.Background()
+	user, err := service.ProvisionUser(ctx, ProvisionUserInput{
+		UserID: uuid.New(), Email: uniqueTestEmail(), FirstName: "Student", LastName: "Check",
+		Version: 1, Password: testPassword, Roles: []string{RoleStudent},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { cleanupAuthUser(t, pool, user.UserID) })
+	eligible, err := service.StudentEligibility(ctx, user.UserID)
+	if err != nil || !eligible {
+		t.Fatalf("active student: %v, %v", eligible, err)
+	}
+	if _, err := pool.Exec(ctx, `UPDATE auth_users SET disabled = TRUE WHERE user_id = $1`, user.UserID); err != nil {
+		t.Fatal(err)
+	}
+	eligible, err = service.StudentEligibility(ctx, user.UserID)
+	if err != nil || eligible {
+		t.Fatalf("disabled student: %v, %v", eligible, err)
+	}
+	eligible, err = service.StudentEligibility(ctx, uuid.New())
+	if err != nil || eligible {
+		t.Fatalf("missing student: %v, %v", eligible, err)
+	}
+}
+
 func TestServiceLoginAndRefreshRotatesTokens(t *testing.T) {
 	service, _, pool, _ := newTestAuthService(t)
 	ctx := context.Background()
