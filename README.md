@@ -14,6 +14,13 @@ The codebase currently includes:
 
 This is not a complete university course-management application. The repository does not include a frontend UI, course-domain models, or a full academic workflow beyond identity and access management.
 
+## Documentation
+
+Detailed project documentation is available in the `docs/` directory:
+
+- [System Architecture (v1.1.0)](docs/System_Architecture_v1.1.0.pdf)
+- [Solution Security (v1.0.0)](docs/Solution_Security_v1.0.0.pdf)
+
 ## Repository structure
 
 ```text
@@ -21,6 +28,9 @@ This is not a complete university course-management application. The repository 
 ├── LICENSE
 ├── README.md
 ├── consider.txt
+├── docs/
+│   ├── Solution_Security_v1.0.0.pdf
+│   └── System_Architecture_v1.1.0.pdf
 ├── infrastructure/
 │   └── nginx/
 ├── services/
