@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -29,9 +30,13 @@ type authService interface {
 	ProvisionUser(ctx context.Context, input ProvisionUserInput) (*AuthUser, error)
 	ProcessUserEvent(ctx context.Context, event UserEvent) (InboxResult, error)
 	ListRoles(ctx context.Context) ([]Role, error)
-	SetUserRoles(ctx context.Context, userID uuid.UUID, roles []string) (*AuthUser, error)
+	ListPermissions(ctx context.Context) ([]Permission, error)
+	GetRolePermissions(ctx context.Context, roleCode string) ([]string, error)
+	SetRolePermissions(ctx context.Context, claims *AccessClaims, roleCode string, permissions []string) ([]Permission, error)
+	SetUserRoles(ctx context.Context, claims *AccessClaims, userID uuid.UUID, roles []string) (*AuthUser, error)
 	UnlockUser(ctx context.Context, userID uuid.UUID) (*AuthUser, error)
 	RevokeUserSessions(ctx context.Context, userID uuid.UUID) error
+	ListAuditEvents(ctx context.Context, limit, offset int) ([]AuditEvent, int64, error)
 }
 
 type Handler struct {
@@ -53,7 +58,6 @@ func NewHandler(
 
 type RouteDependencies struct {
 	Auth            gin.HandlerFunc
-	Admin           gin.HandlerFunc
 	Internal        gin.HandlerFunc
 	LoginRateLimit  gin.HandlerFunc
 	ForgotRateLimit gin.HandlerFunc
@@ -83,16 +87,26 @@ func (h *Handler) RegisterRoutes(router gin.IRouter, deps RouteDependencies) {
 		withMiddleware([]gin.HandlerFunc{deps.ForgotRateLimit}, h.ForgotPassword)...)
 	auth.POST("/password/reset", h.ResetPassword)
 
-	admin := []gin.HandlerFunc{deps.Auth, deps.Admin}
+	withPermission := func(permission string) []gin.HandlerFunc {
+		return []gin.HandlerFunc{deps.Auth, RequirePermissions(permission)}
+	}
 
 	api.GET("/admin/auth/roles",
-		withMiddleware(admin, h.ListRoles)...)
+		withMiddleware(withPermission(PermRolesManage), h.ListRoles)...)
+	api.GET("/admin/auth/permissions",
+		withMiddleware(withPermission(PermRolesManage), h.ListPermissions)...)
+	api.GET("/admin/auth/roles/:code/permissions",
+		withMiddleware(withPermission(PermRolesManage), h.GetRolePermissions)...)
+	api.PUT("/admin/auth/roles/:code/permissions",
+		withMiddleware(withPermission(PermRolesManage), h.SetRolePermissions)...)
 	api.PUT("/admin/auth/users/:id/roles",
-		withMiddleware(admin, h.SetUserRoles)...)
+		withMiddleware(withPermission(PermRolesManage), h.SetUserRoles)...)
 	api.POST("/admin/auth/users/:id/unlock",
-		withMiddleware(admin, h.UnlockUser)...)
+		withMiddleware(withPermission(PermAccountUnlock), h.UnlockUser)...)
 	api.DELETE("/admin/auth/users/:id/sessions",
-		withMiddleware(admin, h.RevokeUserSessions)...)
+		withMiddleware(withPermission(PermSessionsRevoke), h.RevokeUserSessions)...)
+	api.GET("/admin/auth/audit",
+		withMiddleware(withPermission(PermAuditRead), h.ListAuditEvents)...)
 
 	internal := []gin.HandlerFunc{deps.Internal}
 
@@ -425,11 +439,72 @@ func (h *Handler) ListRoles(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"roles": roles})
 }
 
+func (h *Handler) ListPermissions(c *gin.Context) {
+	permissions, err := h.service.ListPermissions(c.Request.Context())
+	if err != nil {
+		h.respondError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"permissions": permissions})
+}
+
+func (h *Handler) GetRolePermissions(c *gin.Context) {
+	permissions, err := h.service.GetRolePermissions(
+		c.Request.Context(), c.Param("code"),
+	)
+	if err != nil {
+		h.respondError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"role":        c.Param("code"),
+		"permissions": permissions,
+	})
+}
+
+type setRolePermissionsRequest struct {
+	Permissions []string `json:"permissions"`
+}
+
+func (h *Handler) SetRolePermissions(c *gin.Context) {
+	claims, ok := ClaimsFromContext(c)
+	if !ok {
+		AbortWithError(c, http.StatusUnauthorized, CodeUnauthorized,
+			"Authentication is required.")
+		return
+	}
+
+	var req setRolePermissionsRequest
+	if !BindJSON(c, &req) {
+		return
+	}
+
+	permissions, err := h.service.SetRolePermissions(
+		c.Request.Context(), claims, c.Param("code"), req.Permissions,
+	)
+	if err != nil {
+		h.respondError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"role":        c.Param("code"),
+		"permissions": permissions,
+	})
+}
+
 type setUserRolesRequest struct {
 	Roles []string `json:"roles"`
 }
 
 func (h *Handler) SetUserRoles(c *gin.Context) {
+	claims, ok := ClaimsFromContext(c)
+	if !ok {
+		AbortWithError(c, http.StatusUnauthorized, CodeUnauthorized,
+			"Authentication is required.")
+		return
+	}
+
 	userID, ok := parseUUIDParam(c, "id", "user id")
 	if !ok {
 		return
@@ -440,13 +515,64 @@ func (h *Handler) SetUserRoles(c *gin.Context) {
 		return
 	}
 
-	user, err := h.service.SetUserRoles(c.Request.Context(), userID, req.Roles)
+	user, err := h.service.SetUserRoles(
+		c.Request.Context(), claims, userID, req.Roles,
+	)
 	if err != nil {
 		h.respondError(c, err)
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"user": user.Summary()})
+}
+
+func (h *Handler) ListAuditEvents(c *gin.Context) {
+	limit, offset, ok := parseAuditPagination(c)
+	if !ok {
+		return
+	}
+
+	events, total, err := h.service.ListAuditEvents(
+		c.Request.Context(), limit, offset,
+	)
+	if err != nil {
+		h.respondError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"events": events,
+		"total":  total,
+		"limit":  limit,
+		"offset": offset,
+	})
+}
+
+func parseAuditPagination(c *gin.Context) (int, int, bool) {
+	limit := 50
+	offset := 0
+
+	if value := c.Query("limit"); value != "" {
+		parsed, err := strconv.Atoi(value)
+		if err != nil || parsed < 1 || parsed > 200 {
+			AbortWithError(c, http.StatusBadRequest, CodeValidationFailed,
+				"The limit parameter must be between 1 and 200.")
+			return 0, 0, false
+		}
+		limit = parsed
+	}
+
+	if value := c.Query("offset"); value != "" {
+		parsed, err := strconv.Atoi(value)
+		if err != nil || parsed < 0 {
+			AbortWithError(c, http.StatusBadRequest, CodeValidationFailed,
+				"The offset parameter must be a non-negative integer.")
+			return 0, 0, false
+		}
+		offset = parsed
+	}
+
+	return limit, offset, true
 }
 
 func (h *Handler) UnlockUser(c *gin.Context) {
@@ -635,7 +761,10 @@ func isExpectedError(err error) bool {
 		ErrLastAdmin,
 		ErrPasswordReuse,
 		ErrInvalidRole,
+		ErrInvalidPermission,
 		ErrDisabledFeature,
+		ErrUserIneligible,
+		ErrEligibilityUnavailable,
 	} {
 		if errors.Is(err, sentinel) {
 			return true

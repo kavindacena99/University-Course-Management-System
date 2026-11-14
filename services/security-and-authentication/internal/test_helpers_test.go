@@ -91,6 +91,7 @@ func newTestAuthService(t *testing.T) (
 		hasher,
 		tokens,
 		notifications,
+		&testEligibilityChecker{},
 		time.Minute,
 		time.Hour,
 		24*time.Hour,
@@ -103,6 +104,17 @@ func newTestAuthService(t *testing.T) (
 	}
 
 	return service, repo, pool, notifications
+}
+
+type testEligibilityChecker struct {
+	err error
+}
+
+func (c *testEligibilityChecker) CheckEligibility(
+	_ context.Context,
+	_ uuid.UUID,
+) error {
+	return c.err
 }
 
 type testNotificationSender struct {

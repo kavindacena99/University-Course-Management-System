@@ -208,6 +208,25 @@ func AuthMiddleware(
 	}
 }
 
+func RequirePermissions(permissions ...string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		claims, ok := ClaimsFromContext(c)
+		if !ok {
+			AbortWithError(c, http.StatusUnauthorized, CodeUnauthorized,
+				"Authentication is required.")
+			return
+		}
+
+		if !HasAnyPermission(claims, permissions...) {
+			AbortWithError(c, http.StatusForbidden, CodeForbidden,
+				"You do not have permission to perform this action.")
+			return
+		}
+
+		c.Next()
+	}
+}
+
 func RequireRoles(roles ...string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		claims, ok := ClaimsFromContext(c)

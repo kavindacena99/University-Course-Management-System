@@ -168,8 +168,8 @@ func TestServiceEventActivationFlow(t *testing.T) {
 
 	if _, err := service.Login(ctx, LoginInput{
 		Email: email, Password: testPassword,
-	}); !errors.Is(err, ErrAccountNotActivated) {
-		t.Fatalf("expected ErrAccountNotActivated, got %v", err)
+	}); !errors.Is(err, ErrInvalidCredentials) {
+		t.Fatalf("expected ErrInvalidCredentials before activation, got %v", err)
 	}
 
 	activated, err := service.Activate(ctx, token, testPassword)
@@ -387,7 +387,11 @@ func TestServiceRoleUpdatesAndLastAdminGuard(t *testing.T) {
 	}
 	t.Cleanup(func() { cleanupAuthUser(t, pool, firstAdmin.UserID) })
 
-	if _, err := service.SetUserRoles(ctx, firstAdmin.UserID, []string{RoleStudent}); !errors.Is(err, ErrLastAdmin) {
+	adminClaims := &AccessClaims{
+		Subject: firstAdmin.UserID.String(),
+		Roles:   []string{RoleAdmin},
+	}
+	if _, err := service.SetUserRoles(ctx, adminClaims, firstAdmin.UserID, []string{RoleStudent}); !errors.Is(err, ErrLastAdmin) {
 		t.Fatalf("expected ErrLastAdmin, got %v", err)
 	}
 
@@ -405,7 +409,7 @@ func TestServiceRoleUpdatesAndLastAdminGuard(t *testing.T) {
 	}
 	t.Cleanup(func() { cleanupAuthUser(t, pool, secondAdmin.UserID) })
 
-	updated, err := service.SetUserRoles(ctx, firstAdmin.UserID,
+	updated, err := service.SetUserRoles(ctx, adminClaims, firstAdmin.UserID,
 		[]string{RoleLecturer, RoleLecturer, RoleStudent})
 	if err != nil {
 		t.Fatalf("update roles: %v", err)
@@ -415,6 +419,103 @@ func TestServiceRoleUpdatesAndLastAdminGuard(t *testing.T) {
 	}
 	if updated.HasRole(RoleAdmin) {
 		t.Fatalf("expected admin role to be removed, got %v", updated.Roles)
+	}
+}
+
+func TestServicePermissionsAndAudit(t *testing.T) {
+	service, _, pool, _ := newTestAuthService(t)
+	ctx := context.Background()
+
+	admin, err := service.ProvisionUser(ctx, ProvisionUserInput{
+		UserID:    uuid.New(),
+		Email:     uniqueTestEmail(),
+		FirstName: "Audit",
+		LastName:  "Admin",
+		Version:   1,
+		Password:  testPassword,
+		Roles:     []string{RoleAdmin},
+	})
+	if err != nil {
+		t.Fatalf("provision admin: %v", err)
+	}
+	t.Cleanup(func() { cleanupAuthUser(t, pool, admin.UserID) })
+
+	permissions, err := service.ListPermissions(ctx)
+	if err != nil {
+		t.Fatalf("list permissions: %v", err)
+	}
+	if len(permissions) != len(AllPermissions) {
+		t.Fatalf("expected %d permissions, got %d", len(AllPermissions), len(permissions))
+	}
+
+	adminPermissions, err := service.GetRolePermissions(ctx, RoleAdmin)
+	if err != nil {
+		t.Fatalf("get admin permissions: %v", err)
+	}
+	if len(adminPermissions) != len(AllPermissions) {
+		t.Fatalf("expected admin to have all permissions, got %v", adminPermissions)
+	}
+
+	claims := &AccessClaims{
+		Subject: admin.UserID.String(),
+		Roles:   []string{RoleAdmin},
+	}
+	updated, err := service.SetRolePermissions(ctx, claims, RoleStudent,
+		[]string{PermUsersRead, PermUsersRead})
+	if err != nil {
+		t.Fatalf("set student permissions: %v", err)
+	}
+	if len(updated) != 1 || updated[0].Code != PermUsersRead {
+		t.Fatalf("unexpected student permissions: %v", updated)
+	}
+	t.Cleanup(func() {
+		_, _ = service.SetRolePermissions(context.Background(), claims, RoleStudent, nil)
+	})
+
+	if _, err := service.SetRolePermissions(ctx, claims, RoleStudent,
+		[]string{"not:a:permission"}); !errors.Is(err, ErrInvalidPermission) {
+		t.Fatalf("expected ErrInvalidPermission, got %v", err)
+	}
+
+	events, total, err := service.ListAuditEvents(ctx, 50, 0)
+	if err != nil {
+		t.Fatalf("list audit events: %v", err)
+	}
+	if total == 0 || len(events) == 0 {
+		t.Fatalf("expected audit events, got total=%d len=%d", total, len(events))
+	}
+}
+
+func TestServiceLoginFailsClosedWhenEligibilityUnavailable(t *testing.T) {
+	service, _, pool, _ := newTestAuthService(t)
+	ctx := context.Background()
+
+	user, err := service.ProvisionUser(ctx, ProvisionUserInput{
+		UserID:    uuid.New(),
+		Email:     uniqueTestEmail(),
+		FirstName: "Eligible",
+		LastName:  "Check",
+		Version:   1,
+		Password:  testPassword,
+		Roles:     []string{RoleStudent},
+	})
+	if err != nil {
+		t.Fatalf("provision user: %v", err)
+	}
+	t.Cleanup(func() { cleanupAuthUser(t, pool, user.UserID) })
+
+	service.eligibility = &testEligibilityChecker{err: ErrEligibilityUnavailable}
+	if _, err := service.Login(ctx, LoginInput{
+		Email: user.Email, Password: testPassword,
+	}); !errors.Is(err, ErrEligibilityUnavailable) {
+		t.Fatalf("expected ErrEligibilityUnavailable, got %v", err)
+	}
+
+	service.eligibility = &testEligibilityChecker{err: ErrUserIneligible}
+	if _, err := service.Login(ctx, LoginInput{
+		Email: user.Email, Password: testPassword,
+	}); !errors.Is(err, ErrUserIneligible) {
+		t.Fatalf("expected ErrUserIneligible, got %v", err)
 	}
 }
 

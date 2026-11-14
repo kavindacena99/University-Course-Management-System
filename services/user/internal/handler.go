@@ -38,7 +38,6 @@ func NewHandler(service userService, logger *slog.Logger) *Handler {
 
 type RouteDependencies struct {
 	Auth                  gin.HandlerFunc
-	Admin                 gin.HandlerFunc
 	Internal              gin.HandlerFunc
 	Bootstrap             gin.HandlerFunc
 	RegistrationRateLimit gin.HandlerFunc
@@ -57,22 +56,24 @@ func (h *Handler) RegisterRoutes(router gin.IRouter, deps RouteDependencies) {
 	api.GET("/users/:id",
 		withMiddleware([]gin.HandlerFunc{deps.Auth}, h.GetUser)...)
 
-	admin := []gin.HandlerFunc{deps.Auth, deps.Admin}
+	withPermission := func(permission string) []gin.HandlerFunc {
+		return []gin.HandlerFunc{deps.Auth, RequirePermissions(permission)}
+	}
 
 	api.GET("/admin/users",
-		withMiddleware(admin, h.ListUsers)...)
+		withMiddleware(withPermission(PermUsersRead), h.ListUsers)...)
 	api.GET("/admin/users/:id",
-		withMiddleware(admin, h.GetUser)...)
+		withMiddleware(withPermission(PermUsersRead), h.GetUser)...)
 	api.GET("/admin/users/:id/history",
-		withMiddleware(admin, h.GetHistory)...)
+		withMiddleware(withPermission(PermUsersRead), h.GetHistory)...)
 	api.POST("/admin/users/:id/approve",
-		withMiddleware(admin, h.ChangeStatus(ActionApprove))...)
+		withMiddleware(withPermission(PermUsersManage), h.ChangeStatus(ActionApprove))...)
 	api.POST("/admin/users/:id/reject",
-		withMiddleware(admin, h.ChangeStatus(ActionReject))...)
+		withMiddleware(withPermission(PermUsersManage), h.ChangeStatus(ActionReject))...)
 	api.POST("/admin/users/:id/suspend",
-		withMiddleware(admin, h.ChangeStatus(ActionSuspend))...)
+		withMiddleware(withPermission(PermUsersManage), h.ChangeStatus(ActionSuspend))...)
 	api.POST("/admin/users/:id/reinstate",
-		withMiddleware(admin, h.ChangeStatus(ActionReinstate))...)
+		withMiddleware(withPermission(PermUsersManage), h.ChangeStatus(ActionReinstate))...)
 
 	internal := []gin.HandlerFunc{deps.Internal}
 

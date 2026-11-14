@@ -99,10 +99,15 @@ func (f *fakeUserService) BootstrapAdmin(ctx context.Context, input BootstrapInp
 }
 
 func testClaims(role string) *AccessClaims {
+	permissions := []string{}
+	if role == RoleAdmin {
+		permissions = []string{PermUsersRead, PermUsersManage}
+	}
 	return &AccessClaims{
-		SessionID: uuid.NewString(),
-		Roles:     []string{role},
-		TokenType: "access",
+		SessionID:   uuid.NewString(),
+		Roles:       []string{role},
+		Permissions: permissions,
+		TokenType:   "access",
 		RegisteredClaims: jwt.RegisteredClaims{
 			Subject:   uuid.NewString(),
 			Issuer:    "university-auth",
@@ -134,7 +139,6 @@ func testRouter(
 
 	NewHandler(service, nil).RegisterRoutes(router, RouteDependencies{
 		Auth:      auth,
-		Admin:     RequireRoles(RoleAdmin),
 		Internal:  internal,
 		Bootstrap: BootstrapTokenMiddleware(bootstrapToken),
 	})

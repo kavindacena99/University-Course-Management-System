@@ -17,9 +17,10 @@ import (
 )
 
 type AccessClaims struct {
-	SessionID string   `json:"sid"`
-	Roles     []string `json:"roles"`
-	TokenType string   `json:"typ"`
+	SessionID   string   `json:"sid"`
+	Roles       []string `json:"roles"`
+	Permissions []string `json:"perms"`
+	TokenType   string   `json:"typ"`
 	jwt.RegisteredClaims
 }
 
@@ -83,14 +84,16 @@ func (m *TokenManager) IssueAccessToken(
 	userID uuid.UUID,
 	sessionID uuid.UUID,
 	roles []string,
+	permissions []string,
 ) (string, time.Time, error) {
 	now := m.now().UTC()
 	expiresAt := now.Add(m.accessTTL)
 
 	claims := AccessClaims{
-		SessionID: sessionID.String(),
-		Roles:     append([]string(nil), roles...),
-		TokenType: "access",
+		SessionID:   sessionID.String(),
+		Roles:       append([]string(nil), roles...),
+		Permissions: append([]string(nil), permissions...),
+		TokenType:   "access",
 		RegisteredClaims: jwt.RegisteredClaims{
 			Subject:   userID.String(),
 			Issuer:    m.issuer,
@@ -200,6 +203,20 @@ func HasAnyRole(claims *AccessClaims, allowed ...string) bool {
 		return false
 	}
 	for _, granted := range claims.Roles {
+		for _, required := range allowed {
+			if strings.EqualFold(granted, required) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func HasAnyPermission(claims *AccessClaims, allowed ...string) bool {
+	if claims == nil {
+		return false
+	}
+	for _, granted := range claims.Permissions {
 		for _, required := range allowed {
 			if strings.EqualFold(granted, required) {
 				return true

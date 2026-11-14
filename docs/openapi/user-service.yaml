@@ -1,0 +1,648 @@
+openapi: 3.0.3
+info:
+  title: University Course Management - User Service
+  version: 1.1.0
+  description: |
+    User registration, profile, lifecycle administration, status history, and
+    eligibility APIs. Internal endpoints require HMAC service authentication
+    and are not exposed by the NGINX gateway.
+servers:
+  - url: http://localhost:8080
+    description: NGINX gateway
+  - url: http://localhost:8082
+    description: Direct service (development only)
+security:
+  - bearerAuth: []
+  - cookieAuth: []
+paths:
+  /api/v1/users:
+    post:
+      summary: Register a user
+      description: Creates a user with pending status. Rate limited.
+      security: []
+      tags: [Registration]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, first_name, last_name]
+              properties:
+                email:
+                  type: string
+                  format: email
+                first_name:
+                  type: string
+                last_name:
+                  type: string
+      responses:
+        '201':
+          description: User created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+  /api/v1/users/me:
+    get:
+      summary: Get the authenticated user's profile
+      tags: [Profile]
+      responses:
+        '200':
+          description: Profile
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    patch:
+      summary: Update the authenticated user's profile
+      tags: [Profile]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [version, first_name, last_name]
+              properties:
+                version:
+                  type: integer
+                  format: int64
+                first_name:
+                  type: string
+                last_name:
+                  type: string
+      responses:
+        '200':
+          description: Updated profile
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /api/v1/users/{id}:
+    get:
+      summary: Get a user by ID
+      description: Allowed for the user themselves or callers with users:read.
+      tags: [Profile]
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      responses:
+        '200':
+          description: User
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/v1/admin/users:
+    get:
+      summary: List users
+      tags: [Administration]
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, approved, rejected, suspended]
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        '200':
+          description: User list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserList'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /api/v1/admin/users/{id}:
+    get:
+      summary: Get any user by ID
+      tags: [Administration]
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+        - $ref: '#/components/parameters/AuthorizationHeader'
+      responses:
+        '200':
+          description: User
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/v1/admin/users/{id}/history:
+    get:
+      summary: Get a user's status history
+      tags: [Administration]
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 50
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        '200':
+          description: Status history
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  history:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/StatusHistory'
+                  total:
+                    type: integer
+                    format: int64
+                  limit:
+                    type: integer
+                  offset:
+                    type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/v1/admin/users/{id}/approve:
+    post:
+      summary: Approve a pending user
+      tags: [Administration]
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+        - $ref: '#/components/parameters/AuthorizationHeader'
+      requestBody:
+        $ref: '#/components/requestBodies/StatusChange'
+      responses:
+        '200':
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /api/v1/admin/users/{id}/reject:
+    post:
+      summary: Reject a pending user
+      tags: [Administration]
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+        - $ref: '#/components/parameters/AuthorizationHeader'
+      requestBody:
+        $ref: '#/components/requestBodies/StatusChange'
+      responses:
+        '200':
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /api/v1/admin/users/{id}/suspend:
+    post:
+      summary: Suspend an approved user
+      tags: [Administration]
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+        - $ref: '#/components/parameters/AuthorizationHeader'
+      requestBody:
+        $ref: '#/components/requestBodies/StatusChange'
+      responses:
+        '200':
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /api/v1/admin/users/{id}/reinstate:
+    post:
+      summary: Reinstate a suspended user
+      tags: [Administration]
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+        - $ref: '#/components/parameters/AuthorizationHeader'
+      requestBody:
+        $ref: '#/components/requestBodies/StatusChange'
+      responses:
+        '200':
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /internal/users/{id}:
+    get:
+      summary: Get an internal user projection
+      description: HMAC-authenticated internal endpoint.
+      security: []
+      tags: [Internal]
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+        - $ref: '#/components/parameters/ServiceId'
+        - $ref: '#/components/parameters/ServiceTimestamp'
+        - $ref: '#/components/parameters/ServiceNonce'
+        - $ref: '#/components/parameters/ServiceSignature'
+      responses:
+        '200':
+          description: User
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /internal/users/{id}/eligibility:
+    get:
+      summary: Get a user's login eligibility
+      description: HMAC-authenticated internal endpoint used by the auth service.
+      security: []
+      tags: [Internal]
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+        - $ref: '#/components/parameters/ServiceId'
+        - $ref: '#/components/parameters/ServiceTimestamp'
+        - $ref: '#/components/parameters/ServiceNonce'
+        - $ref: '#/components/parameters/ServiceSignature'
+      responses:
+        '200':
+          description: Eligibility
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Eligibility'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /internal/bootstrap:
+    post:
+      summary: Create the initial administrator
+      description: |
+        Requires a valid ADMIN_BOOTSTRAP_TOKEN in X-Bootstrap-Token when the
+        token is configured.
+      security: []
+      tags: [Internal]
+      parameters:
+        - name: X-Bootstrap-Token
+          in: header
+          required: false
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, first_name, last_name, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                first_name:
+                  type: string
+                last_name:
+                  type: string
+                password:
+                  type: string
+                  format: password
+      responses:
+        '201':
+          description: Administrator created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: access_token
+  parameters:
+    AuthorizationHeader:
+      name: Authorization
+      in: header
+      required: false
+      schema:
+        type: string
+    UserId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    ServiceId:
+      name: X-Service-Id
+      in: header
+      required: true
+      schema:
+        type: string
+    ServiceTimestamp:
+      name: X-Service-Timestamp
+      in: header
+      required: true
+      schema:
+        type: string
+    ServiceNonce:
+      name: X-Service-Nonce
+      in: header
+      required: true
+      schema:
+        type: string
+    ServiceSignature:
+      name: X-Service-Signature
+      in: header
+      required: true
+      schema:
+        type: string
+  requestBodies:
+    StatusChange:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [version]
+            properties:
+              version:
+                type: integer
+                format: int64
+              reason:
+                type: string
+  responses:
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Unauthorized:
+      description: Authentication required or invalid
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Forbidden:
+      description: Permission denied
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Conflict:
+      description: Version conflict or duplicate user
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    RateLimited:
+      description: Too many requests
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            request_id:
+              type: string
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        first_name:
+          type: string
+        last_name:
+          type: string
+        registration_status:
+          type: string
+          enum: [pending, approved, rejected, suspended]
+        status_reason:
+          type: string
+        reviewed_by:
+          type: string
+          format: uuid
+        reviewed_at:
+          type: string
+          format: date-time
+        version:
+          type: integer
+          format: int64
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    UserList:
+      type: object
+      properties:
+        users:
+          type: array
+          items:
+            $ref: '#/components/schemas/User'
+        total:
+          type: integer
+          format: int64
+        limit:
+          type: integer
+        offset:
+          type: integer
+    StatusHistory:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        user_id:
+          type: string
+          format: uuid
+        from_status:
+          type: string
+          enum: [pending, approved, rejected, suspended]
+        to_status:
+          type: string
+          enum: [pending, approved, rejected, suspended]
+        reason:
+          type: string
+        changed_by:
+          type: string
+          format: uuid
+        version:
+          type: integer
+          format: int64
+        changed_at:
+          type: string
+          format: date-time
+    Eligibility:
+      type: object
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        eligible:
+          type: boolean
+        registration_status:
+          type: string
+          enum: [pending, approved, rejected, suspended]
+        status_reason:
+          type: string
+        version:
+          type: integer
+          format: int64

@@ -232,7 +232,6 @@ func newRouter(
 
 	handler.RegisterRoutes(router, RouteDependencies{
 		Auth:                  auth,
-		Admin:                 RequireRoles(RoleAdmin),
 		Internal:              InternalAuthMiddleware(internalVerifier, cfg.MaxRequestBytes),
 		Bootstrap:             BootstrapTokenMiddleware(cfg.AdminBootstrapToken),
 		RegistrationRateLimit: registrationRateLimit,

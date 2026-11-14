@@ -21,15 +21,19 @@ const (
 	RoleLecturer = "LECTURER"
 	RoleStudent  = "STUDENT"
 
+	PermUsersRead   = "users:read"
+	PermUsersManage = "users:manage"
+
 	maxAccessTokenLength = 16384
 )
 
 // AccessClaims is the verified claims set carried by an access token issued by
 // the Authentication Service.
 type AccessClaims struct {
-	SessionID string   `json:"sid"`
-	Roles     []string `json:"roles"`
-	TokenType string   `json:"typ"`
+	SessionID   string   `json:"sid"`
+	Roles       []string `json:"roles"`
+	Permissions []string `json:"perms"`
+	TokenType   string   `json:"typ"`
 	jwt.RegisteredClaims
 }
 
@@ -158,6 +162,22 @@ func HasAnyRole(claims *AccessClaims, allowed ...string) bool {
 	for _, granted := range claims.Roles {
 		for _, required := range allowed {
 			if strings.EqualFold(granted, required) {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
+func HasAnyPermission(claims *AccessClaims, required ...string) bool {
+	if claims == nil {
+		return false
+	}
+
+	for _, granted := range claims.Permissions {
+		for _, want := range required {
+			if granted == want {
 				return true
 			}
 		}

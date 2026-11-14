@@ -75,6 +75,22 @@ func NewApp(cfg *config.Config, logger *slog.Logger) (*App, error) {
 		return nil, err
 	}
 
+	signer, err := NewServiceSigner(cfg.InternalServiceID, cfg.InternalServiceSecret)
+	if err != nil {
+		db.Close()
+		return nil, err
+	}
+
+	eligibility, err := NewUserServiceClient(
+		cfg.UserServiceInternalURL,
+		signer,
+		cfg.EligibilityTimeout,
+	)
+	if err != nil {
+		db.Close()
+		return nil, err
+	}
+
 	repository := NewRepository(
 		db,
 		cfg.ActivationTokenTTL,
@@ -87,6 +103,7 @@ func NewApp(cfg *config.Config, logger *slog.Logger) (*App, error) {
 		hasher,
 		tokenManager,
 		notifications,
+		eligibility,
 		cfg.AccessTokenTTL,
 		cfg.RefreshTokenTTL,
 		cfg.SessionAbsoluteTTL,
@@ -240,7 +257,6 @@ func newRouter(
 
 	handler.RegisterRoutes(router, RouteDependencies{
 		Auth:            authMiddleware,
-		Admin:           RequireRoles(RoleAdmin),
 		Internal:        InternalAuthMiddleware(internalVerifier, cfg.MaxRequestBytes),
 		LoginRateLimit:  RateLimitMiddleware(loginLimiter, clientIPKey),
 		ForgotRateLimit: RateLimitMiddleware(forgotLimiter, clientIPKey),

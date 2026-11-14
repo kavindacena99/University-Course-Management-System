@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -73,20 +74,23 @@ func (r *Repository) RecordLoginFailure(
 	maxAttempts int,
 	lockedUntil time.Time,
 ) error {
-	_, err := r.db.Exec(ctx, `
-		UPDATE auth_users
-		SET failed_login_attempts = failed_login_attempts + 1,
-			locked_until = CASE
-				WHEN failed_login_attempts + 1 >= $2 THEN $3
-				ELSE locked_until
-			END,
-			updated_at = NOW()
-		WHERE user_id = $1
-	`, userID, maxAttempts, lockedUntil)
-	if err != nil {
-		return fmt.Errorf("record login failure: %w", err)
-	}
-	return nil
+	return r.withTx(ctx, func(tx pgx.Tx) error {
+		_, err := tx.Exec(ctx, `
+			UPDATE auth_users
+			SET failed_login_attempts = failed_login_attempts + 1,
+				locked_until = CASE
+					WHEN failed_login_attempts + 1 >= $2 THEN $3
+					ELSE locked_until
+				END,
+				updated_at = NOW()
+			WHERE user_id = $1
+		`, userID, maxAttempts, lockedUntil)
+		if err != nil {
+			return fmt.Errorf("record login failure: %w", err)
+		}
+
+		return insertAudit(ctx, tx, nil, &userID, "login_failed", false, nil)
+	})
 }
 
 func (r *Repository) RecordLoginSuccess(
@@ -94,19 +98,88 @@ func (r *Repository) RecordLoginSuccess(
 	userID uuid.UUID,
 	rehashedPassword string,
 ) error {
-	_, err := r.db.Exec(ctx, `
-		UPDATE auth_users
-		SET failed_login_attempts = 0,
-			locked_until = NULL,
-			password_hash = CASE WHEN $2 <> '' THEN $2 ELSE password_hash END,
-			password_updated_at = CASE WHEN $2 <> '' THEN NOW() ELSE password_updated_at END,
-			updated_at = NOW()
-		WHERE user_id = $1
-	`, userID, rehashedPassword)
+	return r.withTx(ctx, func(tx pgx.Tx) error {
+		_, err := tx.Exec(ctx, `
+			UPDATE auth_users
+			SET failed_login_attempts = 0,
+				locked_until = NULL,
+				password_hash = CASE WHEN $2 <> '' THEN $2 ELSE password_hash END,
+				password_updated_at = CASE WHEN $2 <> '' THEN NOW() ELSE password_updated_at END,
+				updated_at = NOW()
+			WHERE user_id = $1
+		`, userID, rehashedPassword)
+		if err != nil {
+			return fmt.Errorf("record login success: %w", err)
+		}
+
+		return insertAudit(ctx, tx, &userID, &userID, "login_succeeded", true, nil)
+	})
+}
+
+func (r *Repository) InspectRefreshToken(
+	ctx context.Context,
+	rawHash []byte,
+	now time.Time,
+) (*AuthUser, uuid.UUID, error) {
+	var sessionID, userID uuid.UUID
+	var tokenExpiresAt, sessionExpiresAt time.Time
+	var usedAt, tokenRevokedAt, sessionRevokedAt pgtype.Timestamptz
+
+	err := r.db.QueryRow(ctx, `
+		SELECT
+			rt.session_id,
+			rt.expires_at,
+			rt.used_at,
+			rt.revoked_at,
+			s.user_id,
+			s.absolute_expires_at,
+			s.revoked_at
+		FROM auth_refresh_tokens rt
+		JOIN auth_sessions s ON s.id = rt.session_id
+		WHERE rt.token_hash = $1
+	`, rawHash).Scan(
+		&sessionID,
+		&tokenExpiresAt,
+		&usedAt,
+		&tokenRevokedAt,
+		&userID,
+		&sessionExpiresAt,
+		&sessionRevokedAt,
+	)
 	if err != nil {
-		return fmt.Errorf("record login success: %w", err)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, uuid.Nil, ErrRefreshInvalid
+		}
+		return nil, uuid.Nil, fmt.Errorf("inspect refresh token: %w", err)
 	}
-	return nil
+
+	if usedAt.Valid {
+		if err := r.RevokeSession(ctx, sessionID, uuid.Nil,
+			"refresh token reuse detected", true); err != nil {
+			return nil, uuid.Nil, err
+		}
+		return nil, uuid.Nil, ErrRefreshReuse
+	}
+	if tokenRevokedAt.Valid || sessionRevokedAt.Valid {
+		return nil, uuid.Nil, ErrRefreshInvalid
+	}
+	if !now.Before(tokenExpiresAt) {
+		return nil, uuid.Nil, ErrRefreshInvalid
+	}
+	if !now.Before(sessionExpiresAt) {
+		if err := r.RevokeSession(ctx, sessionID, uuid.Nil,
+			"session expired", true); err != nil {
+			return nil, uuid.Nil, err
+		}
+		return nil, uuid.Nil, ErrSessionExpired
+	}
+
+	user, err := r.GetUserByID(ctx, userID)
+	if err != nil {
+		return nil, uuid.Nil, err
+	}
+
+	return user, sessionID, nil
 }
 
 type NewSession struct {
@@ -362,20 +435,18 @@ func (r *Repository) RevokeAllSessions(
 			return fmt.Errorf("iterate revoked sessions: %w", err)
 		}
 
-		if len(sessionIDs) == 0 {
-			return nil
+		if len(sessionIDs) > 0 {
+			if _, err = tx.Exec(ctx, `
+				UPDATE auth_refresh_tokens
+				SET revoked_at = NOW()
+				WHERE session_id = ANY($1) AND revoked_at IS NULL
+			`, sessionIDs); err != nil {
+				return fmt.Errorf("revoke refresh tokens: %w", err)
+			}
 		}
 
-		_, err = tx.Exec(ctx, `
-			UPDATE auth_refresh_tokens
-			SET revoked_at = NOW()
-			WHERE session_id = ANY($1) AND revoked_at IS NULL
-		`, sessionIDs)
-		if err != nil {
-			return fmt.Errorf("revoke refresh tokens: %w", err)
-		}
-
-		return nil
+		return insertAudit(ctx, tx, uuidOrNil(userID), &userID,
+			"sessions_revoked", true, map[string]any{"reason": reason})
 	})
 }
 
@@ -452,8 +523,12 @@ func (r *Repository) ChangePassword(
 			return ErrNotFound
 		}
 
-		return revokeAllSessionsTx(ctx, tx, userID, revokeSessionsExcept,
-			"password changed")
+		if err := revokeAllSessionsTx(ctx, tx, userID, revokeSessionsExcept,
+			"password changed"); err != nil {
+			return err
+		}
+
+		return insertAudit(ctx, tx, &userID, &userID, "password_changed", true, nil)
 	})
 }
 
@@ -569,6 +644,14 @@ func (r *Repository) ConsumeActionTokenAndSetPassword(
 		return nil, err
 	}
 
+	auditEvent := "password_reset_completed"
+	if purpose == ActionTokenActivation {
+		auditEvent = "account_activated"
+	}
+	if err := insertAudit(ctx, tx, &userID, &userID, auditEvent, true, nil); err != nil {
+		return nil, err
+	}
+
 	user, err = r.getUser(ctx, tx,
 		`SELECT `+authUserColumns+` FROM auth_users WHERE user_id = $1`, userID)
 	if err != nil {
@@ -644,6 +727,11 @@ func (r *Repository) ProvisionUser(
 		return nil, err
 	}
 
+	if err := insertAudit(ctx, tx, nil, &input.UserID, "account_provisioned",
+		true, map[string]any{"roles": input.Roles}); err != nil {
+		return nil, err
+	}
+
 	user, err := r.getUser(ctx, tx,
 		`SELECT `+authUserColumns+` FROM auth_users WHERE user_id = $1`, input.UserID)
 	if err != nil {
@@ -681,8 +769,231 @@ func (r *Repository) ListRoles(ctx context.Context) ([]Role, error) {
 	return roles, nil
 }
 
+func (r *Repository) ListPermissions(ctx context.Context) ([]Permission, error) {
+	rows, err := r.db.Query(ctx, `
+		SELECT code, description FROM auth_permissions ORDER BY code
+	`)
+	if err != nil {
+		return nil, fmt.Errorf("list permissions: %w", err)
+	}
+	defer rows.Close()
+
+	permissions := make([]Permission, 0, len(AllPermissions))
+	for rows.Next() {
+		var permission Permission
+		if err := rows.Scan(&permission.Code, &permission.Description); err != nil {
+			return nil, fmt.Errorf("scan permission: %w", err)
+		}
+		permissions = append(permissions, permission)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate permissions: %w", err)
+	}
+
+	return permissions, nil
+}
+
+func (r *Repository) GetRolePermissions(
+	ctx context.Context,
+	roleCode string,
+) ([]string, error) {
+	if !IsValidRole(roleCode) {
+		return nil, ErrInvalidRole
+	}
+
+	var exists bool
+	if err := r.db.QueryRow(ctx,
+		`SELECT EXISTS (SELECT 1 FROM auth_roles WHERE code = $1)`, roleCode,
+	).Scan(&exists); err != nil {
+		return nil, fmt.Errorf("check role existence: %w", err)
+	}
+	if !exists {
+		return nil, ErrNotFound
+	}
+
+	return loadRolePermissions(ctx, r.db, roleCode)
+}
+
+func (r *Repository) SetRolePermissions(
+	ctx context.Context,
+	actorID uuid.UUID,
+	roleCode string,
+	permissions []string,
+) ([]Permission, error) {
+	if !IsValidRole(roleCode) {
+		return nil, ErrInvalidRole
+	}
+	for _, permission := range permissions {
+		if !IsValidPermission(permission) {
+			return nil, fmt.Errorf("%w: %s", ErrInvalidPermission, permission)
+		}
+	}
+
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("begin role permission update: %w", err)
+	}
+	defer func() {
+		_ = tx.Rollback(ctx)
+	}()
+
+	if _, err := tx.Exec(ctx,
+		`SELECT code FROM auth_roles WHERE code = $1 FOR UPDATE`, roleCode,
+	); err != nil {
+		return nil, fmt.Errorf("lock role: %w", err)
+	}
+
+	previous, err := loadRolePermissions(ctx, tx, roleCode)
+	if err != nil {
+		return nil, err
+	}
+
+	if _, err := tx.Exec(ctx,
+		`DELETE FROM auth_role_permissions WHERE role_code = $1`, roleCode,
+	); err != nil {
+		return nil, fmt.Errorf("delete role permissions: %w", err)
+	}
+
+	normalized := normalizePermissions(permissions)
+	for _, permission := range normalized {
+		if _, err := tx.Exec(ctx, `
+			INSERT INTO auth_role_permissions (role_code, permission_code)
+			VALUES ($1, $2)
+		`, roleCode, permission); err != nil {
+			return nil, fmt.Errorf("insert role permission: %w", err)
+		}
+	}
+
+	rows, err := tx.Query(ctx, `
+		SELECT id FROM auth_sessions
+		WHERE revoked_at IS NULL
+			AND user_id IN (
+				SELECT user_id FROM auth_user_roles WHERE role_code = $1
+			)
+		FOR UPDATE
+	`, roleCode)
+	if err != nil {
+		return nil, fmt.Errorf("load affected sessions: %w", err)
+	}
+	sessionIDs := make([]uuid.UUID, 0)
+	for rows.Next() {
+		var sessionID uuid.UUID
+		if err := rows.Scan(&sessionID); err != nil {
+			rows.Close()
+			return nil, fmt.Errorf("scan affected session: %w", err)
+		}
+		sessionIDs = append(sessionIDs, sessionID)
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate affected sessions: %w", err)
+	}
+
+	if len(sessionIDs) > 0 {
+		if _, err := tx.Exec(ctx, `
+			UPDATE auth_sessions
+			SET revoked_at = NOW(), revoked_reason = 'role permissions updated'
+			WHERE id = ANY($1)
+		`, sessionIDs); err != nil {
+			return nil, fmt.Errorf("revoke affected sessions: %w", err)
+		}
+		if _, err := tx.Exec(ctx, `
+			UPDATE auth_refresh_tokens
+			SET revoked_at = NOW()
+			WHERE session_id = ANY($1) AND revoked_at IS NULL
+		`, sessionIDs); err != nil {
+			return nil, fmt.Errorf("revoke affected refresh tokens: %w", err)
+		}
+	}
+
+	if err := insertAudit(ctx, tx, uuidOrNil(actorID), nil,
+		"role_permissions_updated", true, map[string]any{
+			"role":                 roleCode,
+			"previous_permissions": previous,
+			"permissions":          normalized,
+		}); err != nil {
+		return nil, err
+	}
+
+	permissionsResult, err := loadPermissionCatalogForRole(ctx, tx, roleCode)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return nil, fmt.Errorf("commit role permission update: %w", err)
+	}
+
+	return permissionsResult, nil
+}
+
+func (r *Repository) ListAuditEvents(
+	ctx context.Context,
+	limit int,
+	offset int,
+) ([]AuditEvent, int64, error) {
+	var total int64
+	if err := r.db.QueryRow(ctx,
+		`SELECT COUNT(*) FROM auth_audit_events`,
+	).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("count audit events: %w", err)
+	}
+
+	rows, err := r.db.Query(ctx, `
+		SELECT id, actor_id, subject_id, event_type, success, details, created_at
+		FROM auth_audit_events
+		ORDER BY created_at DESC, id DESC
+		LIMIT $1 OFFSET $2
+	`, limit, offset)
+	if err != nil {
+		return nil, 0, fmt.Errorf("list audit events: %w", err)
+	}
+	defer rows.Close()
+
+	events := make([]AuditEvent, 0, limit)
+	for rows.Next() {
+		var event AuditEvent
+		var actorID, subjectID pgtype.UUID
+		var details []byte
+
+		if err := rows.Scan(
+			&event.ID,
+			&actorID,
+			&subjectID,
+			&event.EventType,
+			&event.Success,
+			&details,
+			&event.CreatedAt,
+		); err != nil {
+			return nil, 0, fmt.Errorf("scan audit event: %w", err)
+		}
+
+		if actorID.Valid {
+			id := uuid.UUID(actorID.Bytes)
+			event.ActorID = &id
+		}
+		if subjectID.Valid {
+			id := uuid.UUID(subjectID.Bytes)
+			event.SubjectID = &id
+		}
+		if len(details) > 0 {
+			if err := json.Unmarshal(details, &event.Details); err != nil {
+				return nil, 0, fmt.Errorf("decode audit details: %w", err)
+			}
+		}
+
+		events = append(events, event)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, 0, fmt.Errorf("iterate audit events: %w", err)
+	}
+
+	return events, total, nil
+}
+
 func (r *Repository) SetUserRoles(
 	ctx context.Context,
+	actorID uuid.UUID,
 	userID uuid.UUID,
 	roles []string,
 ) (*AuthUser, error) {
@@ -742,6 +1053,11 @@ func (r *Repository) SetUserRoles(
 	}
 
 	if err := revokeAllSessionsTx(ctx, tx, userID, nil, "roles updated"); err != nil {
+		return nil, err
+	}
+
+	if err := insertAudit(ctx, tx, uuidOrNil(actorID), &userID, "roles_updated",
+		true, map[string]any{"previous_roles": existing, "roles": roles}); err != nil {
 		return nil, err
 	}
 
@@ -928,6 +1244,15 @@ func (r *Repository) ProcessUserEvent(
 		}
 	}
 
+	if err := insertAudit(ctx, tx, nil, &event.User.UserID,
+		"user_event_applied", true, map[string]any{
+			"event_id":   event.EventID,
+			"event_type": event.EventType,
+			"status":     string(status),
+		}); err != nil {
+		return InboxResult{}, err
+	}
+
 	if _, err := tx.Exec(ctx, `
 		UPDATE auth_inbox_events
 		SET processed_at = NOW(), result = 'processed'
@@ -982,6 +1307,12 @@ func (r *Repository) getUser(
 		return nil, err
 	}
 	user.Roles = roles
+
+	permissions, err := loadUserPermissions(ctx, q, user.UserID)
+	if err != nil {
+		return nil, err
+	}
+	user.Permissions = permissions
 
 	return user, nil
 }
@@ -1062,6 +1393,134 @@ func loadRoles(ctx context.Context, q querier, userID uuid.UUID) ([]string, erro
 		return nil, fmt.Errorf("iterate user roles: %w", err)
 	}
 	return roles, nil
+}
+
+func loadUserPermissions(
+	ctx context.Context,
+	q querier,
+	userID uuid.UUID,
+) ([]string, error) {
+	rows, err := q.Query(ctx, `
+		SELECT DISTINCT rp.permission_code
+		FROM auth_user_roles ur
+		JOIN auth_role_permissions rp ON rp.role_code = ur.role_code
+		WHERE ur.user_id = $1
+		ORDER BY rp.permission_code
+	`, userID)
+	if err != nil {
+		return nil, fmt.Errorf("load user permissions: %w", err)
+	}
+	defer rows.Close()
+
+	permissions := make([]string, 0, len(AllPermissions))
+	for rows.Next() {
+		var permission string
+		if err := rows.Scan(&permission); err != nil {
+			return nil, fmt.Errorf("scan user permission: %w", err)
+		}
+		permissions = append(permissions, permission)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate user permissions: %w", err)
+	}
+	return permissions, nil
+}
+
+func loadRolePermissions(
+	ctx context.Context,
+	q querier,
+	roleCode string,
+) ([]string, error) {
+	rows, err := q.Query(ctx, `
+		SELECT permission_code
+		FROM auth_role_permissions
+		WHERE role_code = $1
+		ORDER BY permission_code
+	`, roleCode)
+	if err != nil {
+		return nil, fmt.Errorf("load role permissions: %w", err)
+	}
+	defer rows.Close()
+
+	permissions := make([]string, 0, len(AllPermissions))
+	for rows.Next() {
+		var permission string
+		if err := rows.Scan(&permission); err != nil {
+			return nil, fmt.Errorf("scan role permission: %w", err)
+		}
+		permissions = append(permissions, permission)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate role permissions: %w", err)
+	}
+	return permissions, nil
+}
+
+func loadPermissionCatalogForRole(
+	ctx context.Context,
+	q querier,
+	roleCode string,
+) ([]Permission, error) {
+	rows, err := q.Query(ctx, `
+		SELECT p.code, p.description
+		FROM auth_role_permissions rp
+		JOIN auth_permissions p ON p.code = rp.permission_code
+		WHERE rp.role_code = $1
+		ORDER BY p.code
+	`, roleCode)
+	if err != nil {
+		return nil, fmt.Errorf("load role permission catalog: %w", err)
+	}
+	defer rows.Close()
+
+	permissions := make([]Permission, 0, len(AllPermissions))
+	for rows.Next() {
+		var permission Permission
+		if err := rows.Scan(&permission.Code, &permission.Description); err != nil {
+			return nil, fmt.Errorf("scan role permission catalog: %w", err)
+		}
+		permissions = append(permissions, permission)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate role permission catalog: %w", err)
+	}
+	return permissions, nil
+}
+
+func insertAudit(
+	ctx context.Context,
+	q querier,
+	actorID *uuid.UUID,
+	subjectID *uuid.UUID,
+	eventType string,
+	success bool,
+	details map[string]any,
+) error {
+	if details == nil {
+		details = map[string]any{}
+	}
+	payload, err := json.Marshal(details)
+	if err != nil {
+		return fmt.Errorf("marshal audit details: %w", err)
+	}
+
+	_, err = q.Exec(ctx, `
+		INSERT INTO auth_audit_events (
+			actor_id, subject_id, event_type, success, details
+		)
+		VALUES ($1, $2, $3, $4, $5)
+	`, actorID, subjectID, eventType, success, payload)
+	if err != nil {
+		return fmt.Errorf("insert audit event: %w", err)
+	}
+	return nil
+}
+
+func uuidOrNil(value uuid.UUID) *uuid.UUID {
+	if value == uuid.Nil {
+		return nil
+	}
+	return &value
 }
 
 func ensureDefaultRole(ctx context.Context, tx pgx.Tx, userID uuid.UUID) error {
@@ -1197,6 +1656,20 @@ func mapEmailConflict(err error) error {
 
 func normalizeEmail(email string) string {
 	return strings.ToLower(strings.TrimSpace(email))
+}
+
+func normalizePermissions(permissions []string) []string {
+	seen := make(map[string]struct{}, len(permissions))
+	normalized := make([]string, 0, len(permissions))
+	for _, permission := range permissions {
+		permission = strings.TrimSpace(permission)
+		if _, exists := seen[permission]; exists {
+			continue
+		}
+		seen[permission] = struct{}{}
+		normalized = append(normalized, permission)
+	}
+	return normalized
 }
 
 func contains(values []string, target string) bool {
