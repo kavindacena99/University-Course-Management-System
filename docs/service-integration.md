@@ -115,3 +115,16 @@ The call timeout is `USER_ELIGIBILITY_TIMEOUT` (default `2s`).
 - Outbox delivery retries until success or until `OUTBOX_MAX_ATTEMPTS`, then
   marks the event `dead` for operator inspection.
 - User events are idempotent by `event_id` and ignore stale versions.
+
+## Course Service lecturer eligibility
+
+Course Service signs `GET /internal/users/{id}` to User Service to check live
+registration approval. It then signs
+`GET /internal/users/{id}/lecturer-eligibility` to Authentication Service to
+check active credentials and the `LECTURER` role. The latter returns
+`{"user_id":"uuid","eligible":true|false}`. Either dependency failure
+returns `503` from Course Service and does not assign or publish an unverified
+lecturer. Configure `course-service` in both receiver allowlists. Auth Service
+further restricts provisioning and user-event endpoints to `user-service`, and
+lecturer eligibility to `course-service`. Course Service does not access either
+service's database.

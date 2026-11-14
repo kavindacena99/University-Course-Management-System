@@ -4,6 +4,7 @@ Machine-readable OpenAPI 3 specifications:
 
 - [Authentication Service](openapi/auth-service.yaml)
 - [User Service](openapi/user-service.yaml)
+- [Course Service](openapi/course-service.yaml)
 
 All public routes are available through the gateway at `http://localhost:8080`
 with the same paths.

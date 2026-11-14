@@ -120,3 +120,38 @@ and fail-closed behavior with the User Service stopped.
   seeded only on migration.
 - No secrets, `.env` files, databases, or migration history were modified
   destructively.
+
+## Course Service extension (2026-11-14)
+
+The Course Service now owns courses, offerings, assignment, catalogue reads,
+versioned updates, lifecycle transitions, and transactional local audit. Its
+schema is migration `000001_course_schema` in a separate `courses` database.
+Auth migration `000003_course_permissions` grants Course permissions. Auth's
+new signed lecturer eligibility endpoint is restricted to `course-service`;
+provisioning and user events remain restricted to `user-service`. Course
+assignment and publication require live User and Auth eligibility checks.
+The API contract is [Course OpenAPI](openapi/course-service.yaml), with
+operational details in [Course Service](course-service.md).
+
+Verification on dedicated local databases:
+
+```text
+courses_test migration down -> none; up -> 1, dirty=false: PASS
+auth_test migration 3 -> 2 -> 3, dirty=false: PASS
+Course Service go test -count=1 ./... (courses_test): PASS
+Auth Service go test -count=1 ./... (auth_test): PASS
+User Service go test -count=1 ./... (users_test): PASS
+Course Service go vet ./...: PASS
+Course Service go build ./...: PASS
+NGINX configuration test: PASS
+Course Service Linux amd64 service and migration builds: PASS
+Course and Auth OpenAPI YAML parsing and local references: PASS
+Course runtime smoke: /health 200, /health/ready 200, unauthenticated catalogue 401
+Docker build: UNVERIFIED (Docker Desktop Linux engine stopped)
+Race test: UNAVAILABLE (CGO disabled; no C compiler installed)
+```
+
+The existing User and Auth migration histories were retained; the Course
+test database was recreated only for migration verification. No Compose or
+CI configuration exists in this repository. Capacity reductions on published
+offerings remain disallowed pending an Enrollment Service validation contract.

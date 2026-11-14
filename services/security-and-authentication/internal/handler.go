@@ -29,6 +29,7 @@ type authService interface {
 	ResetPassword(ctx context.Context, token, newPassword string) (*AuthUser, error)
 	ProvisionUser(ctx context.Context, input ProvisionUserInput) (*AuthUser, error)
 	ProcessUserEvent(ctx context.Context, event UserEvent) (InboxResult, error)
+	LecturerEligibility(ctx context.Context, userID uuid.UUID) (bool, error)
 	ListRoles(ctx context.Context) ([]Role, error)
 	ListPermissions(ctx context.Context) ([]Permission, error)
 	GetRolePermissions(ctx context.Context, roleCode string) ([]string, error)
@@ -108,12 +109,26 @@ func (h *Handler) RegisterRoutes(router gin.IRouter, deps RouteDependencies) {
 	api.GET("/admin/auth/audit",
 		withMiddleware(withPermission(PermAuditRead), h.ListAuditEvents)...)
 
-	internal := []gin.HandlerFunc{deps.Internal}
-
 	router.POST("/internal/users",
-		withMiddleware(internal, h.InternalProvisionUser)...)
+		withMiddleware([]gin.HandlerFunc{deps.Internal, RequireInternalCaller("user-service")}, h.InternalProvisionUser)...)
 	router.POST("/internal/events/users",
-		withMiddleware(internal, h.InternalUserEvent)...)
+		withMiddleware([]gin.HandlerFunc{deps.Internal, RequireInternalCaller("user-service")}, h.InternalUserEvent)...)
+	router.GET("/internal/users/:id/lecturer-eligibility",
+		withMiddleware([]gin.HandlerFunc{deps.Internal, RequireInternalCaller("course-service")}, h.InternalLecturerEligibility)...)
+}
+
+func (h *Handler) InternalLecturerEligibility(c *gin.Context) {
+	userID, err := uuid.Parse(c.Param("id"))
+	if err != nil || userID == uuid.Nil {
+		RespondValidationError(c, "id", "must be a valid UUID")
+		return
+	}
+	eligible, err := h.service.LecturerEligibility(c.Request.Context(), userID)
+	if err != nil {
+		h.respondError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"user_id": userID, "eligible": eligible})
 }
 
 type loginRequest struct {

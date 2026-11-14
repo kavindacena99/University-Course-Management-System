@@ -11,6 +11,34 @@ import (
 
 const testPassword = "StrongPass1!"
 
+func TestLecturerEligibilityUsesActiveRoleState(t *testing.T) {
+	service, _, pool, _ := newTestAuthService(t)
+	ctx := context.Background()
+	user, err := service.ProvisionUser(ctx, ProvisionUserInput{
+		UserID: uuid.New(), Email: uniqueTestEmail(), FirstName: "Role", LastName: "Check",
+		Version: 1, Password: testPassword, Roles: []string{RoleLecturer},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { cleanupAuthUser(t, pool, user.UserID) })
+	eligible, err := service.LecturerEligibility(ctx, user.UserID)
+	if err != nil || !eligible {
+		t.Fatalf("active lecturer: %v, %v", eligible, err)
+	}
+	if _, err := pool.Exec(ctx, `UPDATE auth_users SET disabled = TRUE WHERE user_id = $1`, user.UserID); err != nil {
+		t.Fatal(err)
+	}
+	eligible, err = service.LecturerEligibility(ctx, user.UserID)
+	if err != nil || eligible {
+		t.Fatalf("disabled lecturer: %v, %v", eligible, err)
+	}
+	eligible, err = service.LecturerEligibility(ctx, uuid.New())
+	if err != nil || eligible {
+		t.Fatalf("missing lecturer: %v, %v", eligible, err)
+	}
+}
+
 func TestServiceLoginAndRefreshRotatesTokens(t *testing.T) {
 	service, _, pool, _ := newTestAuthService(t)
 	ctx := context.Background()

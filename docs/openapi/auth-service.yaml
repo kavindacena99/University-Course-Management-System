@@ -474,7 +474,7 @@ paths:
   /internal/users:
     post:
       summary: Provision a user credential record
-      description: Internal HMAC-authenticated endpoint.
+      description: Internal HMAC-authenticated endpoint restricted to user-service.
       security: []
       tags: [Internal]
       parameters:
@@ -489,7 +489,7 @@ paths:
             schema:
               $ref: '#/components/schemas/ProvisionUserRequest'
       responses:
-        '201':
+        '200':
           description: Provisioned user
           content:
             application/json:
@@ -503,7 +503,7 @@ paths:
   /internal/events/users:
     post:
       summary: Apply a user lifecycle event
-      description: Internal HMAC-authenticated endpoint used by the outbox worker.
+      description: Internal HMAC-authenticated endpoint restricted to user-service.
       security: []
       tags: [Internal]
       parameters:
@@ -525,13 +525,41 @@ paths:
               schema:
                 type: object
                 properties:
-                  result:
+                  status:
                     type: string
                     enum: [processed, duplicate, stale]
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+  /internal/users/{id}/lecturer-eligibility:
+    get:
+      summary: Check active lecturer role for Course Service
+      description: Internal HMAC-authenticated endpoint restricted to course-service. Course Service separately checks live registration approval with User Service.
+      security: []
+      tags: [Internal]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/ServiceId'
+        - $ref: '#/components/parameters/ServiceTimestamp'
+        - $ref: '#/components/parameters/ServiceNonce'
+        - $ref: '#/components/parameters/ServiceSignature'
+      responses:
+        '200':
+          description: Role and activation result
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [user_id, eligible]
+                properties:
+                  user_id: { type: string, format: uuid }
+                  eligible: { type: boolean }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
 components:
   securitySchemes:
     bearerAuth:

@@ -2,7 +2,7 @@
 
 ## Overview
 
-The backend is split into two independently deployable Go services behind an
+The backend is split into three independently deployable Go services behind an
 NGINX gateway:
 
 ```text
@@ -12,6 +12,7 @@ Client
 NGINX :8080
   |-- /api/v1/auth/*, /api/v1/admin/auth/* ------> Authentication Service :8081
   |-- /api/v1/users/*, /api/v1/admin/users/* -----> User Service :8082
+  |-- /api/v1/courses/*, /api/v1/offerings/* ------> Course Service :8083
                                                         |
                                                         | signed internal HTTP
                                                         v
@@ -22,6 +23,7 @@ Each service owns its PostgreSQL database. There are no shared tables.
 
 - User Service database: `users` (`user_app`)
 - Authentication Service database: `authentication_and_security` (`auth_app`)
+- Course Service database: `courses` (`course_app`)
 
 ## Components
 

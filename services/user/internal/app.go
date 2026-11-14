@@ -206,11 +206,23 @@ func newRouter(
 			})
 			return
 		}
+		var schemaVersion int64
+		var schemaDirty bool
+		if err := db.QueryRow(ctx, `SELECT version, dirty FROM schema_migrations LIMIT 1`).Scan(
+			&schemaVersion, &schemaDirty,
+		); err != nil || schemaDirty || schemaVersion < 4 {
+			c.JSON(http.StatusServiceUnavailable, gin.H{
+				"service": cfg.ServiceName, "status": "not_ready",
+				"database": "connected", "schema": "unavailable",
+			})
+			return
+		}
 
 		c.JSON(http.StatusOK, gin.H{
 			"service":  cfg.ServiceName,
 			"status":   "ready",
 			"database": "connected",
+			"schema":   "ready",
 		})
 	})
 

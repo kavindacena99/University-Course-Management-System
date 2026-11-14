@@ -1,6 +1,6 @@
 # Database
 
-Two PostgreSQL databases are used. Each service owns its schema and migrations.
+Three PostgreSQL databases are used. Each service owns its schema and migrations.
 
 ## User Service database
 
@@ -57,6 +57,18 @@ Migrations: `services/security-and-authentication/migrations`
 - `auth_inbox_events` - deduplication of user events by `event_id`.
 - `auth_audit_events` - security audit trail with JSON details.
 
+## Course Service database
+
+Migrations: `services/course/migrations`
+
+- `courses` - unique code, definition, status, version, audit actor IDs, and
+  archive timestamp.
+- `course_offerings` - local course foreign key, period and enrollment
+  configuration, one optional lecturer UUID, status, version, and timestamps.
+- `course_audit_events` - changes written in the same transaction as the
+  course or offering. See [Course Service](course-service.md) for constraints,
+  indexes, and lifecycle rules.
+
 ## Migrations
 
 Run migrations with each service's migration command:
@@ -66,6 +78,9 @@ cd services/security-and-authentication
 go run ./cmd/migrate -direction up
 
 cd services/user
+go run ./cmd/migrate -direction up
+
+cd services/course
 go run ./cmd/migrate -direction up
 ```
 

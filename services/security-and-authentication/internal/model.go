@@ -25,13 +25,15 @@ func IsValidRole(role string) bool {
 }
 
 const (
-	PermUsersRead      = "users:read"
-	PermUsersManage    = "users:manage"
-	PermRolesManage    = "roles:manage"
-	PermSessionsRead   = "sessions:read"
-	PermSessionsRevoke = "sessions:revoke"
-	PermAccountUnlock  = "account:unlock"
-	PermAuditRead      = "audit:read"
+	PermUsersRead       = "users:read"
+	PermUsersManage     = "users:manage"
+	PermRolesManage     = "roles:manage"
+	PermSessionsRead    = "sessions:read"
+	PermSessionsRevoke  = "sessions:revoke"
+	PermAccountUnlock   = "account:unlock"
+	PermAuditRead       = "audit:read"
+	PermCoursesManage   = "courses:manage"
+	PermOfferingsManage = "offerings:manage"
 )
 
 var AllPermissions = []string{
@@ -42,6 +44,8 @@ var AllPermissions = []string{
 	PermSessionsRevoke,
 	PermAccountUnlock,
 	PermAuditRead,
+	PermCoursesManage,
+	PermOfferingsManage,
 }
 
 func IsValidPermission(permission string) bool {
