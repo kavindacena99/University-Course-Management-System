@@ -4,15 +4,16 @@ Group 5 · COSC 52083
 
 ## Overview
 
-This repository contains the current backend implementation of the project as it exists today: a Go-based microservice system focused on identity, authentication, and user lifecycle management.
+This repository contains the current Go backend for identity, users, and academic courses.
 
 The codebase currently includes:
 
 - `services/security-and-authentication` for login, session management, role handling, activation, and password flows
 - `services/user` for registration, profile management, and admin approval workflows
+- `services/course` for course definitions, offerings, lecturer assignment, and catalogue APIs
 - `infrastructure/nginx` as a basic reverse proxy in front of the services
 
-This is not a complete university course-management application. The repository does not include a frontend UI, course-domain models, or a full academic workflow beyond identity and access management.
+The repository does not yet include a frontend UI or enrollment and assessment workflows.
 
 ## Documentation
 
@@ -20,6 +21,7 @@ Detailed project documentation is available in the `docs/` directory:
 
 - [System Architecture](docs/architecture.md)
 - [User Service](docs/user-service.md)
+- [Course Service](docs/course-service.md)
 - [Authentication Service](docs/authentication-service.md)
 - [Service Integration](docs/service-integration.md)
 - [Security](docs/security.md)
@@ -29,6 +31,7 @@ Detailed project documentation is available in the `docs/` directory:
 - [Implementation Report](docs/implementation-report.md)
 - [OpenAPI: Authentication Service](docs/openapi/auth-service.yaml)
 - [OpenAPI: User Service](docs/openapi/user-service.yaml)
+- [OpenAPI: Course Service](docs/openapi/course-service.yaml)
 
 Original design documents:
 
@@ -57,11 +60,19 @@ Original design documents:
 │   │   ├── migrations/
 │   │   ├── go.mod
 │   │   └── main.go
-│   └── user/
+│   ├── user/
+│   │   ├── cmd/
+│   │   ├── database/
+│   │   ├── internal/
+│   │   ├── migrations/
+│   │   ├── go.mod
+│   │   └── main.go
+│   └── course/
 │       ├── cmd/
 │       ├── database/
 │       ├── internal/
 │       ├── migrations/
+│       ├── Dockerfile
 │       ├── go.mod
 │       └── main.go
 ```
@@ -83,10 +94,12 @@ NGINX (port 8080)
   ├── /api/v1/auth/         -> auth service (127.0.0.1:8081)
   ├── /api/v1/admin/auth/   -> auth service (127.0.0.1:8081)
   ├── /api/v1/users/        -> user service (127.0.0.1:8082)
-  └── /api/v1/admin/users/  -> user service (127.0.0.1:8082)
+  ├── /api/v1/admin/users/  -> user service (127.0.0.1:8082)
+  ├── /api/v1/courses/, /api/v1/admin/courses/ -> course service (127.0.0.1:8083)
+  └── /api/v1/offerings/, /api/v1/admin/offerings/ -> course service (127.0.0.1:8083)
 ```
 
-The authentication and user services are implemented as separate Go applications and communicate using signed internal HTTP requests.
+The three services are separate Go applications and use signed internal HTTP requests.
 
 ## Service responsibilities
 
@@ -116,6 +129,12 @@ Implements:
 - outbox-based user-event delivery to the auth service
 - bootstrap of an initial admin user
 
+### Course service
+
+- course and offering lifecycle, catalogue, lecturer assignment, and local audit records
+- JWT authorization with resource-level checks for assigned lecturers
+- signed eligibility checks against User and Authentication services
+
 ## Data model
 
 The current implementation persists data in PostgreSQL.
@@ -137,7 +156,12 @@ The current implementation persists data in PostgreSQL.
 - `auth_inbox_events`
 - `auth_audit_events`
 
-The domain model is centered on identity, account state, permissions, and approval workflows rather than academic course operations.
+### Course service
+- `courses`
+- `course_offerings`
+- `course_audit_events`
+
+Enrollment and assessment records are not stored in the Course Service.
 
 ## Security model
 
@@ -145,7 +169,8 @@ The current implementation includes:
 - JWT access tokens signed with Ed25519
 - roles `ADMIN`, `STAFF`, `LECTURER`, and `STUDENT`
 - permission claims (`users:read`, `users:manage`, `roles:manage`,
-  `sessions:read`, `sessions:revoke`, `account:unlock`, `audit:read`)
+  `sessions:read`, `sessions:revoke`, `account:unlock`, `audit:read`,
+  `courses:manage`, `offerings:manage`)
 - CSRF validation support for cookie-based tokens
 - HMAC-signed internal service requests with timestamp and nonce protection
 - fail-closed login and refresh eligibility verification via the user service
@@ -166,6 +191,7 @@ The current implementation includes:
 ```bash
 cp services/security-and-authentication/.env.example services/security-and-authentication/.env
 cp services/user/.env.example services/user/.env
+cp services/course/.env.example services/course/.env
 ```
 
 Set the database credentials, a shared `INTERNAL_SERVICE_SECRET` (32+
@@ -191,6 +217,11 @@ cd services/user
 go run ./cmd/migrate -direction up
 ```
 
+```bash
+cd services/course
+go run ./cmd/migrate -direction up
+```
+
 ### 4. Start the services
 
 ```bash
@@ -200,6 +231,11 @@ go run .
 
 ```bash
 cd services/user
+go run .
+```
+
+```bash
+cd services/course
 go run .
 ```
 
@@ -230,11 +266,17 @@ go test ./...
 TEST_DATABASE_URL='postgres://user_app:password@127.0.0.1:5432/users_test?sslmode=disable' go test ./internal/...
 ```
 
+```bash
+cd services/course
+go test ./...
+TEST_DATABASE_URL='postgres://course_app:password@127.0.0.1:5432/courses_test?sslmode=disable' go test ./internal/...
+```
+
 ## Known gaps
 
 The repository does not yet include:
 - a frontend or browser application
-- course, enrollment, timetable, result, or academic-domain models
+- enrollment, timetable, result, and assessment workflows
 - Docker/Compose deployment files
 - CI/CD workflow configuration
 - production deployment manifests

@@ -350,6 +350,20 @@ func (s *Service) Me(ctx context.Context, claims *AccessClaims) (*UserSummary, e
 	return &summary, nil
 }
 
+// LecturerEligibility is used only by trusted services assigning a lecturer.
+// Auth owns role membership and account activation; User Service separately
+// owns registration approval and remains the source for that live check.
+func (s *Service) LecturerEligibility(ctx context.Context, userID uuid.UUID) (bool, error) {
+	user, err := s.store.GetUserByID(ctx, userID)
+	if errors.Is(err, ErrNotFound) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return user.IsActive() && user.HasRole(RoleLecturer), nil
+}
+
 func (s *Service) Activate(ctx context.Context, token, password string) (*AuthUser, error) {
 	token = strings.TrimSpace(token)
 	if token == "" || len(token) > 512 {

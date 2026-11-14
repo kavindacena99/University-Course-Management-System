@@ -310,6 +310,21 @@ func InternalCallerFromContext(c *gin.Context) (string, bool) {
 	return caller, ok
 }
 
+// RequireInternalCaller narrows the global HMAC allowlist for a particular
+// internal endpoint. Possession of the shared secret alone is not sufficient
+// to invoke a different service's administrative integration.
+func RequireInternalCaller(allowed string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		caller, ok := InternalCallerFromContext(c)
+		if !ok || caller != allowed {
+			AbortWithError(c, http.StatusForbidden, CodeForbidden,
+				"The internal caller is not authorized for this endpoint.")
+			return
+		}
+		c.Next()
+	}
+}
+
 func validCSRF(c *gin.Context, cookieName, headerName string) bool {
 	cookie, err := c.Cookie(cookieName)
 	header := c.GetHeader(headerName)

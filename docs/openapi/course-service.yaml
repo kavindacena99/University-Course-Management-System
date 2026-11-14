@@ -1,0 +1,487 @@
+openapi: 3.0.3
+info:
+  title: University Course Service API
+  version: 1.0.0
+  description: Authenticated course catalogue and academic offering management. Cookie-authenticated writes require X-CSRF-Token matching the csrf_token cookie.
+servers:
+  - url: http://localhost:8080
+security:
+  - bearerAuth: []
+  - cookieAuth: []
+paths:
+  /api/v1/courses:
+    get:
+      operationId: listCourses
+      summary: List and search courses
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Offset'
+        - $ref: '#/components/parameters/Search'
+        - name: status
+          in: query
+          schema: { $ref: '#/components/schemas/CourseStatus' }
+        - name: sort
+          in: query
+          schema: { type: string, enum: [code, title, created_at, updated_at] }
+        - $ref: '#/components/parameters/Order'
+      responses:
+        '200':
+          description: Paginated courses. Non-admin users see only active courses.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CourseList' }
+        default: { $ref: '#/components/responses/Error' }
+  /api/v1/courses/{id}:
+    parameters:
+      - $ref: '#/components/parameters/ID'
+    get:
+      operationId: getCourse
+      summary: Get a course
+      responses:
+        '200':
+          description: Course
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  course: { $ref: '#/components/schemas/Course' }
+                required: [course]
+        default: { $ref: '#/components/responses/Error' }
+  /api/v1/courses/{id}/offerings:
+    parameters:
+      - $ref: '#/components/parameters/ID'
+    get:
+      operationId: listCourseOfferings
+      summary: List offerings for a course
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Offset'
+        - $ref: '#/components/parameters/OfferingStatusFilter'
+        - $ref: '#/components/parameters/AcademicYear'
+        - $ref: '#/components/parameters/Semester'
+        - $ref: '#/components/parameters/LecturerID'
+        - $ref: '#/components/parameters/AssignedToMe'
+        - $ref: '#/components/parameters/Search'
+        - $ref: '#/components/parameters/OfferingSort'
+        - $ref: '#/components/parameters/Order'
+      responses:
+        '200': { $ref: '#/components/responses/OfferingList' }
+        default: { $ref: '#/components/responses/Error' }
+  /api/v1/admin/courses:
+    post:
+      operationId: createCourse
+      summary: Create a draft course (ADMIN)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateCourse' }
+      responses:
+        '201': { $ref: '#/components/responses/Course' }
+        default: { $ref: '#/components/responses/Error' }
+  /api/v1/admin/courses/{id}:
+    parameters:
+      - $ref: '#/components/parameters/ID'
+    put:
+      operationId: updateCourse
+      summary: Replace course editable fields (ADMIN)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateCourse' }
+      responses:
+        '200': { $ref: '#/components/responses/Course' }
+        default: { $ref: '#/components/responses/Error' }
+  /api/v1/admin/courses/{id}/publish:
+    parameters:
+      - $ref: '#/components/parameters/ID'
+    post:
+      operationId: publishCourse
+      summary: Move draft course to active (ADMIN)
+      requestBody: { $ref: '#/components/requestBodies/Version' }
+      responses:
+        '200': { $ref: '#/components/responses/Course' }
+        default: { $ref: '#/components/responses/Error' }
+  /api/v1/admin/courses/{id}/archive:
+    parameters:
+      - $ref: '#/components/parameters/ID'
+    post:
+      operationId: archiveCourse
+      summary: Archive course without cascading offerings (ADMIN)
+      requestBody: { $ref: '#/components/requestBodies/Version' }
+      responses:
+        '200': { $ref: '#/components/responses/Course' }
+        default: { $ref: '#/components/responses/Error' }
+  /api/v1/admin/courses/{id}/restore:
+    parameters:
+      - $ref: '#/components/parameters/ID'
+    post:
+      operationId: restoreCourse
+      summary: Restore archived course to active (ADMIN)
+      requestBody: { $ref: '#/components/requestBodies/Version' }
+      responses:
+        '200': { $ref: '#/components/responses/Course' }
+        default: { $ref: '#/components/responses/Error' }
+  /api/v1/offerings:
+    get:
+      operationId: listOfferings
+      summary: List and search offerings
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Offset'
+        - $ref: '#/components/parameters/OfferingStatusFilter'
+        - $ref: '#/components/parameters/AcademicYear'
+        - $ref: '#/components/parameters/Semester'
+        - $ref: '#/components/parameters/LecturerID'
+        - $ref: '#/components/parameters/AssignedToMe'
+        - $ref: '#/components/parameters/Search'
+        - $ref: '#/components/parameters/OfferingSort'
+        - $ref: '#/components/parameters/Order'
+      responses:
+        '200': { $ref: '#/components/responses/OfferingList' }
+        default: { $ref: '#/components/responses/Error' }
+  /api/v1/offerings/assigned:
+    get:
+      operationId: listAssignedOfferings
+      summary: List offerings assigned to the authenticated lecturer
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Offset'
+        - $ref: '#/components/parameters/OfferingStatusFilter'
+        - $ref: '#/components/parameters/AcademicYear'
+        - $ref: '#/components/parameters/Semester'
+        - $ref: '#/components/parameters/LecturerID'
+        - $ref: '#/components/parameters/AssignedToMe'
+        - $ref: '#/components/parameters/Search'
+        - $ref: '#/components/parameters/OfferingSort'
+        - $ref: '#/components/parameters/Order'
+      responses:
+        '200': { $ref: '#/components/responses/OfferingList' }
+        default: { $ref: '#/components/responses/Error' }
+  /api/v1/offerings/{id}:
+    parameters:
+      - $ref: '#/components/parameters/ID'
+    get:
+      operationId: getOffering
+      summary: Get an offering
+      responses:
+        '200': { $ref: '#/components/responses/Offering' }
+        default: { $ref: '#/components/responses/Error' }
+    put:
+      operationId: updateOffering
+      summary: Replace editable offering fields (ADMIN or assigned LECTURER)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateOffering' }
+      responses:
+        '200': { $ref: '#/components/responses/Offering' }
+        default: { $ref: '#/components/responses/Error' }
+  /api/v1/offerings/{id}/publish:
+    parameters:
+      - $ref: '#/components/parameters/ID'
+    post:
+      operationId: publishOffering
+      summary: Publish draft offering (ADMIN or assigned LECTURER)
+      requestBody: { $ref: '#/components/requestBodies/Version' }
+      responses:
+        '200': { $ref: '#/components/responses/Offering' }
+        default: { $ref: '#/components/responses/Error' }
+  /api/v1/offerings/{id}/close:
+    parameters:
+      - $ref: '#/components/parameters/ID'
+    post:
+      operationId: closeOffering
+      summary: Close published offering (ADMIN or assigned LECTURER)
+      requestBody: { $ref: '#/components/requestBodies/Version' }
+      responses:
+        '200': { $ref: '#/components/responses/Offering' }
+        default: { $ref: '#/components/responses/Error' }
+  /api/v1/offerings/{id}/archive:
+    parameters:
+      - $ref: '#/components/parameters/ID'
+    post:
+      operationId: archiveOffering
+      summary: Archive offering (ADMIN or assigned LECTURER)
+      requestBody: { $ref: '#/components/requestBodies/Version' }
+      responses:
+        '200': { $ref: '#/components/responses/Offering' }
+        default: { $ref: '#/components/responses/Error' }
+  /api/v1/admin/offerings:
+    post:
+      operationId: createOffering
+      summary: Create draft offering (ADMIN)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateOffering' }
+      responses:
+        '201': { $ref: '#/components/responses/Offering' }
+        default: { $ref: '#/components/responses/Error' }
+  /api/v1/admin/offerings/{id}/lecturer:
+    parameters:
+      - $ref: '#/components/parameters/ID'
+    put:
+      operationId: assignLecturer
+      summary: Assign or reassign primary lecturer (ADMIN)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AssignLecturer' }
+      responses:
+        '200': { $ref: '#/components/responses/Offering' }
+        default: { $ref: '#/components/responses/Error' }
+  /api/v1/admin/offerings/{id}/restore:
+    parameters:
+      - $ref: '#/components/parameters/ID'
+    post:
+      operationId: restoreOffering
+      summary: Restore archived offering to draft (ADMIN)
+      requestBody: { $ref: '#/components/requestBodies/Version' }
+      responses:
+        '200': { $ref: '#/components/responses/Offering' }
+        default: { $ref: '#/components/responses/Error' }
+  /health:
+    servers:
+      - url: http://localhost:8083
+    get:
+      operationId: courseHealth
+      security: []
+      summary: Liveness
+      responses:
+        '200': { description: Service is live }
+  /health/ready:
+    servers:
+      - url: http://localhost:8083
+    get:
+      operationId: courseReady
+      security: []
+      summary: Database and migration readiness
+      responses:
+        '200': { description: Database is reachable and the required schema migration is clean }
+        '503': { description: Database is unavailable or the schema is missing, old, or dirty }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: access_token
+  parameters:
+    ID:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    Limit:
+      name: limit
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+    Offset:
+      name: offset
+      in: query
+      schema: { type: integer, minimum: 0, default: 0 }
+    Search:
+      name: search
+      in: query
+      schema: { type: string, maxLength: 100 }
+    Order:
+      name: order
+      in: query
+      schema: { type: string, enum: [asc, desc], default: asc }
+    OfferingStatusFilter:
+      name: status
+      in: query
+      schema: { $ref: '#/components/schemas/OfferingStatus' }
+    AcademicYear:
+      name: academic_year
+      in: query
+      schema: { type: string, maxLength: 20 }
+    Semester:
+      name: semester
+      in: query
+      schema: { type: string, maxLength: 20 }
+    LecturerID:
+      name: lecturer_user_id
+      in: query
+      schema: { type: string, format: uuid }
+    AssignedToMe:
+      name: assigned_to_me
+      in: query
+      schema: { type: boolean }
+    OfferingSort:
+      name: sort
+      in: query
+      schema: { type: string, enum: [start_date, created_at, updated_at, academic_year, course_code] }
+  requestBodies:
+    Version:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties: false
+            required: [version]
+            properties:
+              version: { type: integer, format: int64, minimum: 1 }
+  responses:
+    Error:
+      description: Error envelope; status is 400, 401, 403, 404, 409, 422, 500, or 503.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Course:
+      description: Course
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              course: { $ref: '#/components/schemas/Course' }
+            required: [course]
+    Offering:
+      description: Course offering
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              offering: { $ref: '#/components/schemas/Offering' }
+            required: [offering]
+    OfferingList:
+      description: Paginated offerings; non-admin users see only published offerings.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/OfferingList' }
+  schemas:
+    CourseStatus: { type: string, enum: [draft, active, archived] }
+    OfferingStatus: { type: string, enum: [draft, published, closed, archived] }
+    Course:
+      type: object
+      required: [id, code, title, description, credits, status, version, created_by, updated_by, created_at, updated_at]
+      properties:
+        id: { type: string, format: uuid }
+        code: { type: string }
+        title: { type: string }
+        description: { type: string }
+        credits: { type: integer }
+        status: { $ref: '#/components/schemas/CourseStatus' }
+        version: { type: integer, format: int64 }
+        created_by: { type: string, format: uuid }
+        updated_by: { type: string, format: uuid }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+        archived_at: { type: string, format: date-time }
+    Offering:
+      type: object
+      required: [id, course_id, course_code, course_title, academic_year, semester, start_date, end_date, status, version, created_by, updated_by, created_at, updated_at]
+      properties:
+        id: { type: string, format: uuid }
+        course_id: { type: string, format: uuid }
+        course_code: { type: string }
+        course_title: { type: string }
+        academic_year: { type: string }
+        semester: { type: string }
+        start_date: { type: string, format: date }
+        end_date: { type: string, format: date }
+        enrollment_opens_at: { type: string, format: date-time }
+        enrollment_closes_at: { type: string, format: date-time }
+        enrollment_capacity: { type: integer }
+        lecturer_user_id: { type: string, format: uuid }
+        lecturer_assigned_by: { type: string, format: uuid }
+        lecturer_assigned_at: { type: string, format: date-time }
+        status: { $ref: '#/components/schemas/OfferingStatus' }
+        version: { type: integer, format: int64 }
+        created_by: { type: string, format: uuid }
+        updated_by: { type: string, format: uuid }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+        archived_at: { type: string, format: date-time }
+    CreateCourse:
+      type: object
+      additionalProperties: false
+      required: [code, title, credits]
+      properties:
+        code: { type: string, minLength: 2, maxLength: 32 }
+        title: { type: string, minLength: 1, maxLength: 200 }
+        description: { type: string, maxLength: 5000 }
+        credits: { type: integer, minimum: 1, maximum: 30 }
+    UpdateCourse:
+      type: object
+      additionalProperties: false
+      required: [version, code, title, credits]
+      properties:
+        version: { type: integer, format: int64, minimum: 1 }
+        code: { type: string, minLength: 2, maxLength: 32 }
+        title: { type: string, minLength: 1, maxLength: 200 }
+        description: { type: string, maxLength: 5000 }
+        credits: { type: integer, minimum: 1, maximum: 30 }
+    CreateOffering:
+      type: object
+      additionalProperties: false
+      required: [course_id, academic_year, semester, start_date, end_date]
+      properties:
+        course_id: { type: string, format: uuid }
+        academic_year: { type: string, minLength: 1, maxLength: 20 }
+        semester: { type: string, minLength: 1, maxLength: 20 }
+        start_date: { type: string, format: date }
+        end_date: { type: string, format: date }
+        enrollment_opens_at: { type: string, format: date-time, nullable: true }
+        enrollment_closes_at: { type: string, format: date-time, nullable: true }
+        enrollment_capacity: { type: integer, minimum: 1, maximum: 100000, nullable: true }
+        lecturer_user_id: { type: string, format: uuid, nullable: true }
+    UpdateOffering:
+      type: object
+      additionalProperties: false
+      required: [version, academic_year, semester, start_date, end_date]
+      properties:
+        version: { type: integer, format: int64, minimum: 1 }
+        academic_year: { type: string, minLength: 1, maxLength: 20 }
+        semester: { type: string, minLength: 1, maxLength: 20 }
+        start_date: { type: string, format: date }
+        end_date: { type: string, format: date }
+        enrollment_opens_at: { type: string, format: date-time, nullable: true }
+        enrollment_closes_at: { type: string, format: date-time, nullable: true }
+        enrollment_capacity: { type: integer, minimum: 1, maximum: 100000, nullable: true }
+    AssignLecturer:
+      type: object
+      additionalProperties: false
+      required: [version, lecturer_user_id]
+      properties:
+        version: { type: integer, format: int64, minimum: 1 }
+        lecturer_user_id: { type: string, format: uuid }
+    CourseList:
+      type: object
+      required: [courses, total, limit, offset]
+      properties:
+        courses: { type: array, items: { $ref: '#/components/schemas/Course' } }
+        total: { type: integer, format: int64 }
+        limit: { type: integer }
+        offset: { type: integer }
+    OfferingList:
+      type: object
+      required: [offerings, total, limit, offset]
+      properties:
+        offerings: { type: array, items: { $ref: '#/components/schemas/Offering' } }
+        total: { type: integer, format: int64 }
+        limit: { type: integer }
+        offset: { type: integer }
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code: { type: string }
+            message: { type: string }
+            request_id: { type: string }

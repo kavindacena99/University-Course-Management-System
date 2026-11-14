@@ -14,10 +14,13 @@ Create separate databases and least-privilege users:
 ```sql
 CREATE USER user_app WITH PASSWORD 'change-me';
 CREATE USER auth_app WITH PASSWORD 'change-me';
+CREATE USER course_app WITH PASSWORD 'change-me';
 CREATE DATABASE users OWNER user_app;
 CREATE DATABASE authentication_and_security OWNER auth_app;
 CREATE DATABASE users_test OWNER user_app;
 CREATE DATABASE auth_test OWNER auth_app;
+CREATE DATABASE courses OWNER course_app;
+CREATE DATABASE courses_test OWNER course_app;
 ```
 
 Do not reuse production credentials in development.
@@ -27,6 +30,7 @@ Do not reuse production credentials in development.
 ```bash
 cp services/security-and-authentication/.env.example services/security-and-authentication/.env
 cp services/user/.env.example services/user/.env
+cp services/course/.env.example services/course/.env
 ```
 
 Set at minimum:
@@ -34,7 +38,8 @@ Set at minimum:
 - database host, port, name, user, and password for each service
 - a shared `INTERNAL_SERVICE_SECRET` of at least 32 characters
 - `AUTH_JWT_KEY_ID` and the auth service private key path
-- `AUTH_JWT_PUBLIC_KEYS_JSON` in the user service with the matching public key
+- `AUTH_JWT_PUBLIC_KEYS_JSON` in the user and course services with the matching public key
+- `course-service` in the Auth and User `INTERNAL_ALLOWED_CALLERS` lists
 - `ADMIN_BOOTSTRAP_TOKEN` if you plan to bootstrap an administrator
 
 `.env` files are gitignored and must never be committed.
@@ -47,7 +52,7 @@ go run ./cmd/keygen --out-dir ./var/keys
 ```
 
 The command writes an Ed25519 private key and public key. Keep the private key
-server-side and put the public key into the user service configuration. Newlines
+server-side and put the public key into the user and course service configurations. Newlines
 can be escaped as `\n` inside the JSON value.
 
 ## 4. Run migrations
@@ -58,9 +63,12 @@ go run ./cmd/migrate -direction up
 
 cd ../user
 go run ./cmd/migrate -direction up
+
+cd ../course
+go run ./cmd/migrate -direction up
 ```
 
-Apply the same migrations to `auth_test` and `users_test` before running
+Apply the same migrations to `auth_test`, `users_test`, and `courses_test` before running
 integration tests.
 
 ## 5. Start the services
@@ -77,7 +85,13 @@ cd services/user
 go run .
 ```
 
-The services bind to `127.0.0.1:8081` and `127.0.0.1:8082` by default.
+```bash
+cd services/course
+go run .
+```
+
+The services bind to `127.0.0.1:8081`, `127.0.0.1:8082`, and
+`127.0.0.1:8083` by default.
 
 ## 6. Start the gateway
 
@@ -122,6 +136,9 @@ go test ./...
 
 cd ../user
 go test ./...
+
+cd ../course
+go test ./...
 ```
 
 Integration tests use `TEST_DATABASE_URL` and skip when it is unset:
@@ -133,6 +150,11 @@ go test ./internal/...
 
 ```powershell
 $env:TEST_DATABASE_URL='postgres://user_app:password@127.0.0.1:5432/users_test?sslmode=disable'
+go test ./internal/...
+```
+
+```powershell
+$env:TEST_DATABASE_URL='postgres://course_app:password@127.0.0.1:5432/courses_test?sslmode=disable'
 go test ./internal/...
 ```
 
