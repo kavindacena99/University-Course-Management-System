@@ -107,7 +107,8 @@ Important environment values:
 In Docker, set `BIND_HOST=0.0.0.0` and use service DNS names, not localhost,
 for dependencies. `../../compose.yaml` is a local integration stack with
 private service and database ports; it requires configured ignored `.env`
-files, Auth's mounted Ed25519 key, and four exported DB passwords. An isolated
+files, Auth's mounted Ed25519 key, MinIO root credentials, scoped Assessment
+object-store credentials, and five exported DB passwords. An isolated
 Compose stack built and reached readiness on 2026-11-14; production deployment
 readiness has not been established.
 

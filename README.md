@@ -4,7 +4,7 @@ Group 5 · COSC 52083
 
 ## Overview
 
-This repository contains the current Go backend for identity, users, academic courses, and student enrollment.
+This repository contains the current Go backend for identity, users, academic courses, student enrollment, and assessment.
 
 The codebase currently includes:
 
@@ -12,9 +12,10 @@ The codebase currently includes:
 - `services/user` for registration, profile management, and admin approval workflows
 - `services/course` for course definitions, offerings, lecturer assignment, and catalogue APIs
 - `services/enrollment` for student enrollment, capacity enforcement, and Assessment-facing eligibility checks
+- `services/assessment` for component assessments, private submissions, grading, and approved final-result imports
 - `infrastructure/nginx` as a basic reverse proxy in front of the services
 
-The repository does not yet include a frontend UI or Assessment Service. Course remains the authority for lecturer assignment.
+The repository does not yet include a frontend UI or Analytics Service. Course remains the authority for lecturer assignment.
 
 ## Documentation
 
@@ -24,6 +25,7 @@ Detailed project documentation is available in the `docs/` directory:
 - [User Service](docs/user-service.md)
 - [Course Service](docs/course-service.md)
 - [Enrollment Service](services/enrollment/README.md)
+- [Assessment Service](services/assessment/README.md)
 - [Enrollment discovery](docs/enrollment-discovery.md)
 - [Authentication Service](docs/authentication-service.md)
 - [Service Integration](docs/service-integration.md)
@@ -36,6 +38,7 @@ Detailed project documentation is available in the `docs/` directory:
 - [OpenAPI: User Service](docs/openapi/user-service.yaml)
 - [OpenAPI: Course Service](docs/openapi/course-service.yaml)
 - [OpenAPI: Enrollment Service](docs/openapi/enrollment-service.yaml)
+- [OpenAPI: Assessment Service](docs/openapi/assessment-service.yaml)
 
 Original design documents:
 
@@ -79,7 +82,15 @@ Original design documents:
 │   │   ├── Dockerfile
 │   │   ├── go.mod
 │   │   └── main.go
-│   └── enrollment/
+│   ├── enrollment/
+│       ├── cmd/
+│       ├── database/
+│       ├── internal/
+│       ├── migrations/
+│       ├── Dockerfile
+│       ├── go.mod
+│       └── main.go
+│   └── assessment/
 │       ├── cmd/
 │       ├── database/
 │       ├── internal/
@@ -109,10 +120,11 @@ NGINX (port 8080)
   ├── /api/v1/admin/users/  -> user service (127.0.0.1:8082)
   ├── /api/v1/courses/, /api/v1/admin/courses/ -> course service (127.0.0.1:8083)
   ├── /api/v1/offerings/, /api/v1/admin/offerings/ -> course service (127.0.0.1:8083)
-  └── /api/v1/enrollments/, student/Offering enrollment routes -> enrollment service (127.0.0.1:8084)
+  ├── /api/v1/enrollments/, student/Offering enrollment routes -> enrollment service (127.0.0.1:8084)
+  └── assessment, submission, and result routes -> assessment service (127.0.0.1:8085)
 ```
 
-The four services are separate Go applications and use signed internal HTTP requests.
+The five services are separate Go applications. Internal eligibility calls use signed HTTP; released grades and imported final results are written to an Assessment outbox for signed delivery to Analytics when it is deployed.
 
 ## Service responsibilities
 
@@ -153,8 +165,16 @@ Implements:
 - student enrollment in CourseOfferings with historical cancellation records
 - transactional capacity enforcement and active-enrollment uniqueness
 - signed User, Auth, and Course eligibility checks
-- HMAC-protected student and lecturer verification for future Assessment Service
+- HMAC-protected student and lecturer verification for Assessment Service
 - no lecturer assignment records; Course owns those assignments
+
+### Assessment service
+
+- offering assessments, per-student deadline extensions, and attempt-limited submissions in private MinIO storage
+- component grades with versioned changes, release, and revision history
+- permission-gated imports of approved raw final marks, with batch idempotency and audit history
+- transactional outbox events for released component grades and imported final results
+- no local copies of Enrollment membership or Course lecturer assignments
 
 ## Data model
 
@@ -186,8 +206,19 @@ The current implementation persists data in PostgreSQL.
 - `enrollments`
 - `enrollment_offering_guards`
 
-Enrollment records are stored only in Enrollment Service. Assessment records
-are not implemented.
+### Assessment service
+- `assessments`
+- `submissions`
+- `grades`
+- `grade_revisions`
+- `final_course_results`
+- `final_result_import_batches`
+- `final_result_revisions`
+- `assessment_outbox_events`
+
+Enrollment records remain only in Enrollment Service. Assessment persists
+eligibility-independent facts locally and verifies current membership or lecturer
+assignment through Enrollment's signed internal endpoints.
 
 ## Security model
 

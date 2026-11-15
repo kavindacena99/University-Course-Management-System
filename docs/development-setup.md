@@ -16,6 +16,7 @@ CREATE USER user_app WITH PASSWORD 'change-me';
 CREATE USER auth_app WITH PASSWORD 'change-me';
 CREATE USER course_app WITH PASSWORD 'change-me';
 CREATE USER enrollment_app WITH PASSWORD 'change-me';
+CREATE USER assessment_app WITH PASSWORD 'change-me';
 CREATE DATABASE users OWNER user_app;
 CREATE DATABASE authentication_and_security OWNER auth_app;
 CREATE DATABASE users_test OWNER user_app;
@@ -24,6 +25,7 @@ CREATE DATABASE courses OWNER course_app;
 CREATE DATABASE courses_test OWNER course_app;
 CREATE DATABASE enrollments OWNER enrollment_app;
 CREATE DATABASE enrollments_test OWNER enrollment_app;
+CREATE DATABASE assessments OWNER assessment_app;
 ```
 
 Do not reuse production credentials in development.
@@ -35,6 +37,7 @@ cp services/security-and-authentication/.env.example services/security-and-authe
 cp services/user/.env.example services/user/.env
 cp services/course/.env.example services/course/.env
 cp services/enrollment/.env.example services/enrollment/.env
+cp services/assessment/.env.example services/assessment/.env
 ```
 
 Set at minimum:
@@ -42,9 +45,9 @@ Set at minimum:
 - database host, port, name, user, and password for each service
 - a shared `INTERNAL_SERVICE_SECRET` of at least 32 characters
 - `AUTH_JWT_KEY_ID` and the auth service private key path
-- `AUTH_JWT_PUBLIC_KEYS_JSON` in User, Course, and Enrollment with the matching public key
+- `AUTH_JWT_PUBLIC_KEYS_JSON` in User, Course, Enrollment, and Assessment with the matching public key
 - `enrollment-service` in Auth and User `INTERNAL_ALLOWED_CALLERS`; Course allows it on the signed Offering facts route
-- Enrollment `INTERNAL_ALLOWED_CALLERS=assessment-service` for future Assessment verification
+- Enrollment `INTERNAL_ALLOWED_CALLERS=assessment-service` for Assessment eligibility verification
 - `ADMIN_BOOTSTRAP_TOKEN` if you plan to bootstrap an administrator
 
 `.env` files are gitignored and must never be committed.
@@ -181,13 +184,15 @@ go test ./internal/...
 
 ## Local Docker Compose
 
-`compose.yaml` runs four separate PostgreSQL containers, one migration job
-per service, the four services, and an NGINX gateway. Only gateway port 8080
-is published. Configure all four ignored service `.env` files and set Auth's
+`compose.yaml` runs five separate PostgreSQL containers, a private MinIO
+service, one migration job per service, the five services, and an NGINX
+gateway. Only gateway port 8080 is published. Configure all five ignored
+service `.env` files and set Auth's
 `AUTH_JWT_PRIVATE_KEY_FILE` to the generated file under `./var/keys`. Export
 `AUTH_DB_PASSWORD`, `USER_DB_PASSWORD`, `COURSE_DB_PASSWORD`, and
-`ENROLLMENT_DB_PASSWORD` with the values for the local database containers,
-then run:
+`ENROLLMENT_DB_PASSWORD`, `ASSESSMENT_DB_PASSWORD`, `MINIO_ROOT_USER`, `MINIO_ROOT_PASSWORD`,
+`ASSESSMENT_OBJECT_USER`, and `ASSESSMENT_OBJECT_PASSWORD` for the local
+containers, then run:
 
 ```sh
 docker compose config --quiet

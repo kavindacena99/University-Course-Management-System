@@ -150,5 +150,8 @@ Only `assessment-service` may call Enrollment's signed
 `GET /internal/offerings/{id}/enrollments/{student_id}/active` and
 `GET /internal/offerings/{id}/lecturers/{lecturer_id}/active`. The gateway
 does not expose these paths. Enrollment returns an explicit `active` boolean
-and no user profile. The Assessment Service does not exist yet; these are
-producer contracts, not a tested Assessment integration.
+and no user profile. The Assessment Service uses these contracts for student
+submissions and assigned-lecturer actions. Released grades and imported final
+results are written transactionally to the Assessment outbox; when configured,
+Assessment delivers each event using signed HTTP to Analytics at
+`POST /internal/events`. The Analytics receiver must deduplicate by `event_id`.

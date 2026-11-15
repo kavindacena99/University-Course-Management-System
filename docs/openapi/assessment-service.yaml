@@ -1,0 +1,333 @@
+openapi: 3.1.0
+info:
+  title: Assessment Service API
+  version: 1.0.0
+  description: Assessments, submissions, grading, and approved final-result imports.
+servers:
+  - url: /
+security:
+  - bearerAuth: []
+paths:
+  /api/v1/offerings/{offering_id}/assessments:
+    parameters:
+      - $ref: "#/components/parameters/OfferingId"
+    get:
+      operationId: listOfferingAssessments
+      parameters:
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Offset"
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [draft, published, closed]
+      responses:
+        "200":
+          description: Paginated assessments
+    post:
+      operationId: createAssessment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAssessment"
+      responses:
+        "201":
+          description: Draft assessment created
+        "400":
+          $ref: "#/components/responses/Error"
+  /api/v1/assessments/{id}:
+    get:
+      operationId: getAssessment
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: Assessment
+  /api/v1/assessments/{id}/publish:
+    post:
+      operationId: publishAssessment
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Version"
+      responses:
+        "200":
+          description: Published assessment
+  /api/v1/assessments/{id}/close:
+    post:
+      operationId: closeAssessment
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Version"
+      responses:
+        "200":
+          description: Closed assessment
+  /api/v1/assessments/{id}/extensions:
+    post:
+      operationId: createAssessmentExtension
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [student_user_id, revised_due_at, reason]
+              properties:
+                student_user_id:
+                  type: string
+                  format: uuid
+                revised_due_at:
+                  type: string
+                  format: date-time
+                reason:
+                  type: string
+      responses:
+        "201":
+          description: Extension created
+  /api/v1/assessments/{id}/submissions:
+    get:
+      operationId: listAssessmentSubmissions
+      parameters:
+        - $ref: "#/components/parameters/Id"
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Offset"
+      responses:
+        "200":
+          description: Paginated submissions
+    post:
+      operationId: submitAssessment
+      parameters:
+        - $ref: "#/components/parameters/Id"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        "201":
+          description: Submission stored
+        "409":
+          $ref: "#/components/responses/Error"
+  /api/v1/submissions/{id}:
+    get:
+      operationId: getSubmission
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: Submission and grade (students see released grades only)
+  /api/v1/submissions/{id}/file:
+    get:
+      operationId: downloadSubmission
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: Private submission file
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+  /api/v1/submissions/{id}/grade:
+    put:
+      operationId: saveGrade
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [version, mark]
+              properties:
+                version:
+                  type: integer
+                  minimum: 0
+                mark:
+                  type: number
+                feedback:
+                  type: string
+      responses:
+        "200":
+          description: Draft grade saved
+  /api/v1/submissions/{id}/release:
+    post:
+      operationId: releaseGrade
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Version"
+      responses:
+        "200":
+          description: Grade released and outbox event committed
+  /api/v1/offerings/{offering_id}/results:
+    parameters:
+      - $ref: "#/components/parameters/OfferingId"
+    get:
+      operationId: listFinalResults
+      parameters:
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Offset"
+      responses:
+        "200":
+          description: Paginated authorized final results
+  /api/v1/offerings/{offering_id}/results/import:
+    post:
+      operationId: importFinalResults
+      parameters:
+        - $ref: "#/components/parameters/OfferingId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: CSV with student_user_id,final_mark,max_mark columns.
+      responses:
+        "201":
+          description: Import batch committed
+        "409":
+          $ref: "#/components/responses/Error"
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    OfferingId:
+      name: offering_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    Id:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    Limit:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+    Offset:
+      name: offset
+      in: query
+      schema:
+        type: integer
+        minimum: 0
+        maximum: 1000000
+        default: 0
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema:
+        type: string
+        minLength: 8
+        maxLength: 128
+  schemas:
+    CreateAssessment:
+      type: object
+      required: [title, component_kind, due_at, max_mark, weight_percent, max_attempts, late_policy]
+      properties:
+        title:
+          type: string
+          maxLength: 200
+        description:
+          type: string
+          maxLength: 10000
+        component_kind:
+          type: string
+          enum: [ca, final_exam, other]
+        due_at:
+          type: string
+          format: date-time
+        max_mark:
+          type: number
+          exclusiveMinimum: 0
+        weight_percent:
+          type: number
+          exclusiveMinimum: 0
+          maximum: 100
+        max_attempts:
+          type: integer
+          minimum: 1
+          maximum: 100
+        late_policy:
+          type: string
+          enum: [accept, reject]
+        allowed_file_types:
+          type: array
+          items:
+            type: object
+            required: [extension, media_type]
+            properties:
+              extension:
+                type: string
+              media_type:
+                type: string
+    Version:
+      type: object
+      required: [version]
+      properties:
+        version:
+          type: integer
+          minimum: 1
+  responses:
+    Error:
+      description: Error response
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: object
+                required: [code, message]
+                properties:
+                  code:
+                    type: string
+                  message:
+                    type: string
+                  request_id:
+                    type: string

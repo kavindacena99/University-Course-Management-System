@@ -1,6 +1,6 @@
 # Local integration stack. Copy each service .env.example to an ignored .env,
-# generate Auth's Ed25519 keys at the path in Auth's .env, and export the four
-# DB password variables.
+# generate Auth's Ed25519 keys at the path in Auth's .env, and export the five
+# DB passwords, MinIO root credentials, and the scoped Assessment object-store account.
 # Only the NGINX gateway is published to the host.
 services:
   auth-db:
@@ -58,6 +58,44 @@ services:
       interval: 5s
       timeout: 3s
       retries: 12
+
+  assessment-db:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_DB: assessments
+      POSTGRES_USER: assessment_app
+      POSTGRES_PASSWORD: ${ASSESSMENT_DB_PASSWORD:?set ASSESSMENT_DB_PASSWORD}
+    volumes:
+      - assessment-db-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U assessment_app -d assessments"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  minio:
+    image: minio/minio:RELEASE.2025-02-07T23-21-09Z
+    command: ["server", "/data"]
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?set MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?set MINIO_ROOT_PASSWORD}
+    volumes:
+      - minio-data:/data
+
+  assessment-minio-init:
+    build:
+      context: ./services/assessment
+      dockerfile: MinIOInit.Dockerfile
+    image: ucm-assessment-minio-init:local
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?set MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?set MINIO_ROOT_PASSWORD}
+      ASSESSMENT_OBJECT_USER: ${ASSESSMENT_OBJECT_USER:?set ASSESSMENT_OBJECT_USER}
+      ASSESSMENT_OBJECT_PASSWORD: ${ASSESSMENT_OBJECT_PASSWORD:?set ASSESSMENT_OBJECT_PASSWORD}
+    depends_on:
+      minio:
+        condition: service_started
+    restart: "no"
 
   auth-migrate:
     build: ./services/security-and-authentication
@@ -120,6 +158,22 @@ services:
     command: ["-path", "/app/migrations", "-direction", "up"]
     depends_on:
       enrollment-db:
+        condition: service_healthy
+    restart: "no"
+
+  assessment-migrate:
+    build: ./services/assessment
+    image: ucm-assessment:local
+    env_file: ./services/assessment/.env
+    environment:
+      DB_HOST: assessment-db
+      DB_NAME: assessments
+      DB_USER: assessment_app
+      DB_PASSWORD: ${ASSESSMENT_DB_PASSWORD:?set ASSESSMENT_DB_PASSWORD}
+    entrypoint: /app/assessment-migrate
+    command: ["-path", "/app/migrations", "-direction", "up"]
+    depends_on:
+      assessment-db:
         condition: service_healthy
     restart: "no"
 
@@ -215,6 +269,33 @@ services:
       timeout: 3s
       retries: 12
 
+  assessment:
+    image: ucm-assessment:local
+    env_file: ./services/assessment/.env
+    environment:
+      BIND_HOST: 0.0.0.0
+      DB_HOST: assessment-db
+      DB_NAME: assessments
+      DB_USER: assessment_app
+      DB_PASSWORD: ${ASSESSMENT_DB_PASSWORD:?set ASSESSMENT_DB_PASSWORD}
+      ENROLLMENT_SERVICE_INTERNAL_URL: http://enrollment:8084
+      OBJECT_STORAGE_ENDPOINT: minio:9000
+      OBJECT_STORAGE_BUCKET: submissions
+      OBJECT_STORAGE_ACCESS_KEY: ${ASSESSMENT_OBJECT_USER:?set ASSESSMENT_OBJECT_USER}
+      OBJECT_STORAGE_SECRET_KEY: ${ASSESSMENT_OBJECT_PASSWORD:?set ASSESSMENT_OBJECT_PASSWORD}
+    depends_on:
+      assessment-migrate:
+        condition: service_completed_successfully
+      enrollment:
+        condition: service_healthy
+      assessment-minio-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8085/health/ready"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
   gateway:
     image: nginx:stable-alpine
     ports:
@@ -231,9 +312,13 @@ services:
         condition: service_healthy
       enrollment:
         condition: service_healthy
+      assessment:
+        condition: service_healthy
 
 volumes:
   auth-db-data:
   user-db-data:
   course-db-data:
   enrollment-db-data:
+  assessment-db-data:
+  minio-data:

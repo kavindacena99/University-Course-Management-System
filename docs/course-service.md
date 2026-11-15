@@ -162,8 +162,9 @@ Set `INTERNAL_ALLOWED_CALLERS=auth-service,course-service,enrollment-service`
 on User Service and
 `INTERNAL_ALLOWED_CALLERS=user-service,course-service,enrollment-service`
 on Auth Service. Course permits `enrollment-service` on its signed Offering
-facts endpoint. All four services must share the same HMAC secret. No internal endpoint is routed
-through NGINX. In Docker, set `BIND_HOST=0.0.0.0` and use service DNS names for
+facts endpoint. Services participating in signed internal calls must use
+matching shared secrets. No internal endpoint is routed through NGINX. In
+Docker, set `BIND_HOST=0.0.0.0` and use service DNS names for
 internal URLs and `DB_HOST`; the Dockerfile is in `services/course`. Build from
 the repository root with `docker build -f services/course/Dockerfile
 -t university-course-service services/course`. The image contains both the
