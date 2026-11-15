@@ -42,6 +42,7 @@ type Config struct {
 	InternalServiceID             string
 	InternalServiceSecret         string
 	InternalServiceSecretPrevious string
+	InternalAllowedCallers        []string
 	InternalAuthMaxSkew           time.Duration
 
 	EnrollmentServiceInternalURL string
@@ -104,6 +105,7 @@ func Load() (*Config, error) {
 		InternalServiceID:             getEnv("INTERNAL_SERVICE_ID", "assessment-service"),
 		InternalServiceSecret:         os.Getenv("INTERNAL_SERVICE_SECRET"),
 		InternalServiceSecretPrevious: os.Getenv("INTERNAL_SERVICE_SECRET_PREVIOUS"),
+		InternalAllowedCallers:        splitCSV(getEnv("INTERNAL_ALLOWED_CALLERS", "")),
 		EnrollmentServiceInternalURL:  getEnv("ENROLLMENT_SERVICE_INTERNAL_URL", "http://127.0.0.1:8084"),
 		AnalyticsServiceInternalURL:   strings.TrimSpace(os.Getenv("ANALYTICS_SERVICE_INTERNAL_URL")),
 

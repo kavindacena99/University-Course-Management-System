@@ -4,7 +4,7 @@ Group 5 · COSC 52083
 
 ## Overview
 
-This repository contains the current Go backend for identity, users, academic courses, student enrollment, and assessment.
+This repository contains the current Go backend for identity, users, academic courses, student enrollment, assessment, and analytics.
 
 The codebase currently includes:
 
@@ -13,9 +13,10 @@ The codebase currently includes:
 - `services/course` for course definitions, offerings, lecturer assignment, and catalogue APIs
 - `services/enrollment` for student enrollment, capacity enforcement, and Assessment-facing eligibility checks
 - `services/assessment` for component assessments, private submissions, grading, and approved final-result imports
+- `services/analytics` for rebuildable academic reporting projections and GPA analytics
 - `infrastructure/nginx` as a basic reverse proxy in front of the services
 
-The repository does not yet include a frontend UI or Analytics Service. Course remains the authority for lecturer assignment.
+The repository does not yet include a frontend UI. Course remains the authority for lecturer assignment; Assessment remains the authority for grades and final results.
 
 ## Documentation
 
@@ -26,6 +27,7 @@ Detailed project documentation is available in the `docs/` directory:
 - [Course Service](docs/course-service.md)
 - [Enrollment Service](services/enrollment/README.md)
 - [Assessment Service](services/assessment/README.md)
+- [Analytics Service](services/analytics/README.md)
 - [Enrollment discovery](docs/enrollment-discovery.md)
 - [Authentication Service](docs/authentication-service.md)
 - [Service Integration](docs/service-integration.md)
@@ -39,6 +41,7 @@ Detailed project documentation is available in the `docs/` directory:
 - [OpenAPI: Course Service](docs/openapi/course-service.yaml)
 - [OpenAPI: Enrollment Service](docs/openapi/enrollment-service.yaml)
 - [OpenAPI: Assessment Service](docs/openapi/assessment-service.yaml)
+- [OpenAPI: Analytics Service](docs/openapi/analytics-service.yaml)
 
 Original design documents:
 
@@ -83,14 +86,22 @@ Original design documents:
 │   │   ├── go.mod
 │   │   └── main.go
 │   ├── enrollment/
-│       ├── cmd/
-│       ├── database/
-│       ├── internal/
-│       ├── migrations/
-│       ├── Dockerfile
-│       ├── go.mod
-│       └── main.go
-│   └── assessment/
+│   │   ├── cmd/
+│   │   ├── database/
+│   │   ├── internal/
+│   │   ├── migrations/
+│   │   ├── Dockerfile
+│   │   ├── go.mod
+│   │   └── main.go
+│   ├── assessment/
+│   │   ├── cmd/
+│   │   ├── database/
+│   │   ├── internal/
+│   │   ├── migrations/
+│   │   ├── Dockerfile
+│   │   ├── go.mod
+│   │   └── main.go
+│   └── analytics/
 │       ├── cmd/
 │       ├── database/
 │       ├── internal/
@@ -121,10 +132,11 @@ NGINX (port 8080)
   ├── /api/v1/courses/, /api/v1/admin/courses/ -> course service (127.0.0.1:8083)
   ├── /api/v1/offerings/, /api/v1/admin/offerings/ -> course service (127.0.0.1:8083)
   ├── /api/v1/enrollments/, student/Offering enrollment routes -> enrollment service (127.0.0.1:8084)
-  └── assessment, submission, and result routes -> assessment service (127.0.0.1:8085)
+  ├── assessment, submission, and result routes -> assessment service (127.0.0.1:8085)
+  └── /api/v1/analytics/ -> analytics service (127.0.0.1:8086)
 ```
 
-The five services are separate Go applications. Internal eligibility calls use signed HTTP; released grades and imported final results are written to an Assessment outbox for signed delivery to Analytics when it is deployed.
+The six domain services are separate Go applications. Internal integrations use signed HTTP; released grades and imported final results are transactionally written to Assessment's outbox and projected by Analytics.
 
 ## Service responsibilities
 
@@ -175,6 +187,13 @@ Implements:
 - permission-gated imports of approved raw final marks, with batch idempotency and audit history
 - transactional outbox events for released component grades and imported final results
 - no local copies of Enrollment membership or Course lecturer assignments
+
+### Analytics service
+
+- rebuildable projections of Assessment's released component grades and imported final results
+- credit-weighted term and cumulative GPA using configurable grade bands and programme policies
+- self-only student reports, currently-assigned lecturer reports, and aggregate admin reporting
+- no ownership of grades, Course facts, enrollment, or student identities
 
 ## Data model
 

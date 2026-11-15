@@ -1,0 +1,207 @@
+openapi: 3.0.3
+info:
+  title: Analytics Service API
+  version: 1.0.0
+  description: Rebuildable academic reporting projections and GPA analytics.
+servers:
+  - url: http://localhost:8080
+security:
+  - bearerAuth: []
+paths:
+  /api/v1/analytics/students/me:
+    get:
+      summary: Read the authenticated student's academic report
+      responses:
+        "200":
+          description: Student results, component grades, and GPA report
+        "401":
+          description: Authentication required
+        "403":
+          description: Student report permission required
+        "503":
+          description: Projection unavailable during a rebuild or Course facts unavailable
+  /api/v1/analytics/lecturer/offerings/{id}:
+    get:
+      summary: Read analytics for an offering assigned to the lecturer
+      parameters:
+        - $ref: "#/components/parameters/UUID"
+      responses:
+        "200":
+          description: Offering results and released component grades
+        "403":
+          description: Lecturer report permission required
+        "404":
+          description: Offering not found or not assigned to the lecturer
+        "503":
+          description: Projection unavailable during a rebuild or Course facts unavailable
+  /api/v1/analytics/admin/summary:
+    get:
+      summary: Read aggregate academic analytics
+      responses:
+        "200":
+          description: Aggregate score, grade, and programme summaries
+        "403":
+          description: Aggregate admin permission required
+        "503":
+          description: Projection unavailable during or after a failed rebuild
+  /api/v1/analytics/admin/grade-bands:
+    get:
+      summary: List configured grade bands
+      responses:
+        "200":
+          description: Configured grade bands
+        "403":
+          description: Analytics management permission required
+    put:
+      summary: Replace the grade-to-point scale
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [grade_bands]
+              properties:
+                grade_bands:
+                  type: array
+                  maxItems: 20
+                  items:
+                    $ref: "#/components/schemas/GradeBand"
+      responses:
+        "200":
+          description: Grade scale updated
+        "422":
+          description: Invalid or overlapping grade bands
+  /api/v1/analytics/admin/programmes:
+    get:
+      summary: List configured programmes
+      responses:
+        "200":
+          description: Programme and GPA policy list
+    post:
+      summary: Create a programme and its GPA policies
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProgrammeInput"
+      responses:
+        "201":
+          description: Programme created
+        "422":
+          description: Invalid programme or GPA policy
+  /api/v1/analytics/admin/programmes/{id}:
+    put:
+      summary: Update programme metadata and GPA policies
+      parameters:
+        - $ref: "#/components/parameters/UUID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProgrammeInput"
+      responses:
+        "200":
+          description: Programme updated
+        "404":
+          description: Programme not found
+  /api/v1/analytics/admin/students/{id}/programme:
+    put:
+      summary: Assign a programme to a student
+      parameters:
+        - $ref: "#/components/parameters/UUID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [programme_id]
+              properties:
+                programme_id:
+                  type: string
+                  format: uuid
+      responses:
+        "200":
+          description: Programme assigned
+  /api/v1/analytics/admin/students/{id}:
+    get:
+      summary: Read an individual student's report
+      description: Requires the explicit analytics:admin:student:read permission.
+      parameters:
+        - $ref: "#/components/parameters/UUID"
+      responses:
+        "200":
+          description: Student report
+        "403":
+          description: Explicit student-level admin permission required
+        "503":
+          description: Projection unavailable during or after a failed rebuild
+  /api/v1/analytics/admin/rebuild:
+    post:
+      summary: Rebuild Analytics projections from Assessment event history
+      responses:
+        "200":
+          description: Projection rebuilt
+        "409":
+          description: A rebuild is already running
+        "500":
+          description: Rebuild failed; reports remain unavailable until retried
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    UUID:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  schemas:
+    GradeBand:
+      type: object
+      required: [grade_code, minimum_percent, maximum_percent, grade_points, display_order]
+      properties:
+        grade_code:
+          type: string
+        minimum_percent:
+          type: number
+          minimum: 0
+          maximum: 100
+        maximum_percent:
+          type: number
+          minimum: 0
+          maximum: 100
+        grade_points:
+          type: number
+          minimum: 0
+          maximum: 4
+        display_order:
+          type: integer
+          minimum: 1
+    ProgrammeInput:
+      type: object
+      required: [code, name, category, repeat_policy, failed_result_policy, pass_grade_points]
+      properties:
+        code:
+          type: string
+        name:
+          type: string
+        category:
+          type: string
+        repeat_policy:
+          type: string
+          enum: [best, latest, all]
+        failed_result_policy:
+          type: string
+          enum: [include, exclude]
+        pass_grade_points:
+          type: number
+          minimum: 0
+          maximum: 4

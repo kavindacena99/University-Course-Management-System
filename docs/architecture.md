@@ -2,7 +2,7 @@
 
 ## Overview
 
-The backend is split into four independently deployable Go services behind an
+The backend is split into six independently deployable Go services behind an
 NGINX gateway:
 
 ```text
@@ -18,6 +18,11 @@ NGINX :8080
                                                         | signed internal HTTP
                                                         v
                                                   Authentication Service
+  |-- /api/v1/offerings/*/assessments, /api/v1/assessments/* -> Assessment :8085
+  |-- /api/v1/analytics/* -------------------------------> Analytics :8086
+
+Assessment -- transactional outbox / signed HTTP --> Analytics
+Analytics -- signed Course offering facts -----------> Course
 ```
 
 Each service owns its PostgreSQL database. There are no shared tables.
@@ -26,6 +31,8 @@ Each service owns its PostgreSQL database. There are no shared tables.
 - Authentication Service database: `authentication_and_security` (`auth_app`)
 - Course Service database: `courses` (`course_app`)
 - Enrollment Service database: `enrollments` (`enrollment_app`)
+- Assessment Service database: `assessments` (`assessment_app`)
+- Analytics Service database: `analytics` (`analytics_app`)
 
 ## Components
 
@@ -67,6 +74,21 @@ Each service owns its PostgreSQL database. There are no shared tables.
 - Exposes HMAC-protected active student and lecturer checks for Assessment.
   Lecturer assignment remains owned by Course; Enrollment does not duplicate
   its assignment records.
+
+### Assessment Service
+
+- Owns component assessments, submissions, marks, and imported final results.
+- Writes grade/result events to a transactional outbox and exposes the retained
+  event history to Analytics through signed internal HTTP.
+
+### Analytics Service
+
+- Owns rebuildable read projections, configurable grade bands/programme
+  policies, and report APIs.
+- Reads Assessment events from its outbox and current Course offering facts
+  through signed internal HTTP; it does not read other service databases.
+- Enforces self-only student reports, assigned-offering lecturer reports,
+  aggregate admin reports, and separate permission for admin student details.
 
 ## Primary flows
 
@@ -115,6 +137,8 @@ the outbox so the Authentication Service keeps its user projection in sync.
 
 - Outbox writes and domain writes are in one transaction. Delivery is
   at-least-once with retries and a dead-letter status.
+- Analytics deduplicates Assessment events by `event_id` and can rebuild its
+  projection from Assessment's retained outbox history.
 - The Authentication Service inbox deduplicates events by `event_id` and
   ignores stale events using the user version.
 - Sessions have an absolute lifetime; refresh tokens rotate on every use.

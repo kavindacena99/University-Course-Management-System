@@ -141,6 +141,13 @@ responses are identity-checked; malformed or unavailable responses fail
 closed. Add `enrollment-service` to Auth and User caller allowlists. Course
 allows that caller on its Offering facts endpoint.
 
+Analytics uses a separate Course endpoint,
+`GET /internal/analytics/offerings/{id}`, restricted to `analytics-service`.
+It returns Course ID, course credits, academic year, semester, current status,
+and assigned lecturer ID. Analytics checks the current lecturer assignment
+through this signed endpoint and uses current offering facts for GPA; it never
+queries Course's database.
+
 Course remains the authority for lecturer assignment. Enrollment's
 Assessment-facing lecturer check reads the Course assignment and verifies
 live User approval and Auth lecturer role; Auth's existing lecturer eligibility
@@ -155,3 +162,8 @@ submissions and assigned-lecturer actions. Released grades and imported final
 results are written transactionally to the Assessment outbox; when configured,
 Assessment delivers each event using signed HTTP to Analytics at
 `POST /internal/events`. The Analytics receiver must deduplicate by `event_id`.
+The retained Assessment outbox is also exposed to `analytics-service` through
+the signed, cursor-paginated `GET /internal/analytics/events` endpoint so that
+Analytics can rebuild after losing its projection database. The gateway does
+not expose this route. Analytics archives events and projections transactionally
+and blocks reports while a rebuild is in progress.

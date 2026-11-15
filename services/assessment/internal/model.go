@@ -2,6 +2,7 @@ package assessment
 
 import (
 	"context"
+	"encoding/json"
 	"io"
 	"time"
 
@@ -186,6 +187,19 @@ type FinalResultList struct {
 	Offset  int           `json:"offset"`
 }
 
+type AnalyticsEventRecord struct {
+	EventID    uuid.UUID       `json:"event_id"`
+	OccurredAt time.Time       `json:"occurred_at"`
+	Payload    json.RawMessage `json:"payload"`
+}
+
+type AnalyticsEventPage struct {
+	Events          []AnalyticsEventRecord `json:"events"`
+	HasMore         bool                   `json:"has_more"`
+	NextOccurredAt  *time.Time             `json:"next_occurred_at,omitempty"`
+	NextEventID     *uuid.UUID             `json:"next_event_id,omitempty"`
+}
+
 type Grade struct {
 	ID            uuid.UUID  `json:"id"`
 	SubmissionID  uuid.UUID  `json:"submission_id"`
@@ -214,6 +228,7 @@ type AssessmentStore interface {
 	GetGrade(context.Context, uuid.UUID) (*Grade, error)
 	SaveGrade(context.Context, *Grade, int64) (*Grade, error)
 	ReleaseGrade(context.Context, uuid.UUID, int64, uuid.UUID, string) (*Grade, error)
+	ListAnalyticsEvents(context.Context, time.Time, uuid.UUID, int) (*AnalyticsEventPage, error)
 }
 
 type EnrollmentReader interface {

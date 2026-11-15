@@ -202,7 +202,8 @@ func newRouter(
 	})
 	auth := AuthMiddleware(verifier, cfg.AuthCookieEnabled, cfg.AccessTokenCookieName,
 		cfg.CSRFCookieName, cfg.CSRFHeaderName)
-	handler.RegisterRoutes(router, auth)
+	handler.RegisterRoutes(router, auth,
+		InternalAuthMiddleware(db, cfg, cfg.MaxRequestBytes))
 	router.NoRoute(func(c *gin.Context) {
 		AbortWithError(c, http.StatusNotFound, "not_found", "The requested resource was not found.")
 	})

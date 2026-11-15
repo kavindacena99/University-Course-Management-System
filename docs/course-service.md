@@ -200,8 +200,8 @@ transactionally. No Enrollment Service API exists yet, so Course Service
 cannot validate a capacity decrease against current enrollments. There is no
 established Course event consumer or message broker contract; domain changes
 are recorded atomically in the local audit table and no event delivery is
-claimed. Assessment, Notification, and Analytics integrations remain future
-contracts.
+claimed. Assessment and Analytics use signed internal Course facts endpoints; neither
+service reads the Course database directly.
 
 ## Assumptions and open policy
 

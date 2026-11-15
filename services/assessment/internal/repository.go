@@ -890,6 +890,44 @@ func (r *Repository) ListPendingOutboxEvents(
 	return events, nil
 }
 
+func (r *Repository) ListAnalyticsEvents(
+	ctx context.Context, after time.Time, afterID uuid.UUID, limit int,
+) (*AnalyticsEventPage, error) {
+	rows, err := r.db.Query(ctx, `
+		SELECT event_id, occurred_at, payload
+		  FROM assessment_outbox_events
+		 WHERE (occurred_at, event_id) > ($1, $2)
+		   AND event_type IN ('GradePublished', 'FinalResultImported')
+		 ORDER BY occurred_at, event_id
+		 LIMIT $3
+	`, after, afterID, limit+1)
+	if err != nil {
+		return nil, fmt.Errorf("list Analytics source events: %w", err)
+	}
+	defer rows.Close()
+	page := &AnalyticsEventPage{Events: make([]AnalyticsEventRecord, 0, limit)}
+	for rows.Next() {
+		var event AnalyticsEventRecord
+		if err := rows.Scan(&event.EventID, &event.OccurredAt, &event.Payload); err != nil {
+			return nil, fmt.Errorf("scan Analytics source event: %w", err)
+		}
+		if len(page.Events) == limit {
+			page.HasMore = true
+			break
+		}
+		page.Events = append(page.Events, event)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate Analytics source events: %w", err)
+	}
+	if page.HasMore && len(page.Events) > 0 {
+		last := page.Events[len(page.Events)-1]
+		page.NextOccurredAt = &last.OccurredAt
+		page.NextEventID = &last.EventID
+	}
+	return page, nil
+}
+
 func (r *Repository) RecordOutboxFailure(
 	ctx context.Context,
 	eventID uuid.UUID,

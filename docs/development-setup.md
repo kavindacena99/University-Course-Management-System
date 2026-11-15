@@ -17,6 +17,7 @@ CREATE USER auth_app WITH PASSWORD 'change-me';
 CREATE USER course_app WITH PASSWORD 'change-me';
 CREATE USER enrollment_app WITH PASSWORD 'change-me';
 CREATE USER assessment_app WITH PASSWORD 'change-me';
+CREATE USER analytics_app WITH PASSWORD 'change-me';
 CREATE DATABASE users OWNER user_app;
 CREATE DATABASE authentication_and_security OWNER auth_app;
 CREATE DATABASE users_test OWNER user_app;
@@ -26,6 +27,7 @@ CREATE DATABASE courses_test OWNER course_app;
 CREATE DATABASE enrollments OWNER enrollment_app;
 CREATE DATABASE enrollments_test OWNER enrollment_app;
 CREATE DATABASE assessments OWNER assessment_app;
+CREATE DATABASE analytics OWNER analytics_app;
 ```
 
 Do not reuse production credentials in development.
@@ -38,6 +40,7 @@ cp services/user/.env.example services/user/.env
 cp services/course/.env.example services/course/.env
 cp services/enrollment/.env.example services/enrollment/.env
 cp services/assessment/.env.example services/assessment/.env
+cp services/analytics/.env.example services/analytics/.env
 ```
 
 Set at minimum:
@@ -45,9 +48,10 @@ Set at minimum:
 - database host, port, name, user, and password for each service
 - a shared `INTERNAL_SERVICE_SECRET` of at least 32 characters
 - `AUTH_JWT_KEY_ID` and the auth service private key path
-- `AUTH_JWT_PUBLIC_KEYS_JSON` in User, Course, Enrollment, and Assessment with the matching public key
+- `AUTH_JWT_PUBLIC_KEYS_JSON` in User, Course, Enrollment, Assessment, and Analytics with the matching public key
 - `enrollment-service` in Auth and User `INTERNAL_ALLOWED_CALLERS`; Course allows it on the signed Offering facts route
 - Enrollment `INTERNAL_ALLOWED_CALLERS=assessment-service` for Assessment eligibility verification
+- Course `INTERNAL_ALLOWED_CALLERS` includes `analytics-service`; Analytics allows `assessment-service`; Assessment allows `analytics-service`
 - `ADMIN_BOOTSTRAP_TOKEN` if you plan to bootstrap an administrator
 
 `.env` files are gitignored and must never be committed.
@@ -60,7 +64,8 @@ go run ./cmd/keygen --out-dir ./var/keys --key-id dev-1
 ```
 
 The command writes an Ed25519 private key and public key. Keep the private key
-server-side and put the public key into the User, Course, and Enrollment configurations. Newlines
+server-side and put the public key into User, Course, Enrollment, Assessment,
+and Analytics configurations. Newlines
 can be escaped as `\n` inside the JSON value.
 
 ## 4. Run migrations
@@ -76,6 +81,12 @@ cd ../course
 go run ./cmd/migrate -direction up
 
 cd ../enrollment
+go run ./cmd/migrate -direction up
+
+cd ../assessment
+go run ./cmd/migrate -direction up
+
+cd ../analytics
 go run ./cmd/migrate -direction up
 ```
 
@@ -106,8 +117,17 @@ cd services/enrollment
 go run .
 ```
 
-The services bind to loopback ports `8081`, `8082`, `8083`, and `8084`
-by default.
+```bash
+cd services/assessment
+go run .
+```
+
+```bash
+cd services/analytics
+go run .
+```
+
+The services bind to loopback ports `8081` through `8086` by default.
 
 ## 6. Start the gateway
 
@@ -158,6 +178,12 @@ go test ./...
 
 cd ../enrollment
 go test ./...
+
+cd ../assessment
+go test ./...
+
+cd ../analytics
+go test ./...
 ```
 
 Integration tests use `TEST_DATABASE_URL` and skip when it is unset:
@@ -184,14 +210,15 @@ go test ./internal/...
 
 ## Local Docker Compose
 
-`compose.yaml` runs five separate PostgreSQL containers, a private MinIO
-service, one migration job per service, the five services, and an NGINX
-gateway. Only gateway port 8080 is published. Configure all five ignored
+`compose.yaml` runs six separate PostgreSQL containers, a private MinIO
+service, one migration job per service, the six services, and an NGINX
+gateway. Only gateway port 8080 is published. Configure all six ignored
 service `.env` files and set Auth's
 `AUTH_JWT_PRIVATE_KEY_FILE` to the generated file under `./var/keys`. Export
-`AUTH_DB_PASSWORD`, `USER_DB_PASSWORD`, `COURSE_DB_PASSWORD`, and
-`ENROLLMENT_DB_PASSWORD`, `ASSESSMENT_DB_PASSWORD`, `MINIO_ROOT_USER`, `MINIO_ROOT_PASSWORD`,
-`ASSESSMENT_OBJECT_USER`, and `ASSESSMENT_OBJECT_PASSWORD` for the local
+`AUTH_DB_PASSWORD`, `USER_DB_PASSWORD`, `COURSE_DB_PASSWORD`,
+`ENROLLMENT_DB_PASSWORD`, `ASSESSMENT_DB_PASSWORD`, `ANALYTICS_DB_PASSWORD`,
+`MINIO_ROOT_USER`, `MINIO_ROOT_PASSWORD`, `ASSESSMENT_OBJECT_USER`, and
+`ASSESSMENT_OBJECT_PASSWORD` for the local
 containers, then run:
 
 ```sh

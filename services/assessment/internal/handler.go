@@ -41,7 +41,9 @@ func NewHandler(
 	return &Handler{service: service, logger: logger, maxUploadBytes: maxUploadBytes, allowedFiles: types}
 }
 
-func (h *Handler) RegisterRoutes(router gin.IRouter, auth gin.HandlerFunc) {
+func (h *Handler) RegisterRoutes(
+	router gin.IRouter, auth, internal gin.HandlerFunc,
+) {
 	api := router.Group("/api/v1")
 	api.POST("/offerings/:offering_id/assessments", auth, h.Create)
 	api.GET("/offerings/:offering_id/assessments", auth, h.ListForOffering)
@@ -57,6 +59,52 @@ func (h *Handler) RegisterRoutes(router gin.IRouter, auth gin.HandlerFunc) {
 	api.GET("/submissions/:id/file", auth, h.DownloadSubmission)
 	api.PUT("/submissions/:id/grade", auth, h.SaveGrade)
 	api.POST("/submissions/:id/release", auth, h.ReleaseGrade)
+	router.GET("/internal/analytics/events",
+		internal, RequireInternalCaller("analytics-service"), h.ListAnalyticsEvents)
+}
+
+func (h *Handler) ListAnalyticsEvents(c *gin.Context) {
+	after := time.Unix(0, 0).UTC()
+	if value := strings.TrimSpace(c.Query("after_occurred_at")); value != "" {
+		parsed, err := time.Parse(time.RFC3339Nano, value)
+		if err != nil {
+			respondError(c, h.logger, newValidationError(
+				"after_occurred_at", "must be a valid RFC3339 timestamp",
+			))
+			return
+		}
+		after = parsed
+	}
+	afterID := uuid.Nil
+	if value := strings.TrimSpace(c.Query("after_event_id")); value != "" {
+		parsed, err := uuid.Parse(value)
+		if err != nil || parsed == uuid.Nil {
+			respondError(c, h.logger, newValidationError(
+				"after_event_id", "must be a valid UUID",
+			))
+			return
+		}
+		afterID = parsed
+	}
+	limit := 250
+	if value := strings.TrimSpace(c.Query("limit")); value != "" {
+		parsed, err := strconv.Atoi(value)
+		if err != nil || parsed < 1 || parsed > 500 {
+			respondError(c, h.logger, newValidationError(
+				"limit", "must be between 1 and 500",
+			))
+			return
+		}
+		limit = parsed
+	}
+	page, err := h.service.ListAnalyticsEvents(
+		c.Request.Context(), after, afterID, limit,
+	)
+	if err != nil {
+		respondError(c, h.logger, err)
+		return
+	}
+	c.JSON(http.StatusOK, page)
 }
 
 type createAssessmentRequest struct {

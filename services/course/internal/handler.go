@@ -88,6 +88,8 @@ func (h *Handler) RegisterRoutes(router gin.IRouter, auth, internal gin.HandlerF
 
 	router.GET("/internal/offerings/:id",
 		withMiddleware([]gin.HandlerFunc{internal, RequireInternalCaller("enrollment-service")}, h.InternalGetOffering)...)
+	router.GET("/internal/analytics/offerings/:id",
+		withMiddleware([]gin.HandlerFunc{internal, RequireInternalCaller("analytics-service")}, h.InternalGetOffering)...)
 }
 
 func (h *Handler) InternalGetOffering(c *gin.Context) {

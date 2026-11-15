@@ -85,6 +85,15 @@ func (s *AssessmentService) Create(
 	return item, nil
 }
 
+func (s *AssessmentService) ListAnalyticsEvents(
+	ctx context.Context, after time.Time, afterID uuid.UUID, limit int,
+) (*AnalyticsEventPage, error) {
+	if limit < 1 || limit > 500 {
+		return nil, newValidationError("limit", "must be between 1 and 500")
+	}
+	return s.store.ListAnalyticsEvents(ctx, after, afterID, limit)
+}
+
 func (s *AssessmentService) Get(
 	ctx context.Context,
 	actor Actor,

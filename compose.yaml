@@ -1,5 +1,5 @@
 # Local integration stack. Copy each service .env.example to an ignored .env,
-# generate Auth's Ed25519 keys at the path in Auth's .env, and export the five
+# generate Auth's Ed25519 keys at the path in Auth's .env, and export the six
 # DB passwords, MinIO root credentials, and the scoped Assessment object-store account.
 # Only the NGINX gateway is published to the host.
 services:
@@ -69,6 +69,20 @@ services:
       - assessment-db-data:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U assessment_app -d assessments"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  analytics-db:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_DB: analytics
+      POSTGRES_USER: analytics_app
+      POSTGRES_PASSWORD: ${ANALYTICS_DB_PASSWORD:?set ANALYTICS_DB_PASSWORD}
+    volumes:
+      - analytics-db-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U analytics_app -d analytics"]
       interval: 5s
       timeout: 3s
       retries: 12
@@ -177,6 +191,22 @@ services:
         condition: service_healthy
     restart: "no"
 
+  analytics-migrate:
+    build: ./services/analytics
+    image: ucm-analytics:local
+    env_file: ./services/analytics/.env
+    environment:
+      DB_HOST: analytics-db
+      DB_NAME: analytics
+      DB_USER: analytics_app
+      DB_PASSWORD: ${ANALYTICS_DB_PASSWORD:?set ANALYTICS_DB_PASSWORD}
+    entrypoint: /app/analytics-migrate
+    command: ["-path", "/app/migrations", "-direction", "up"]
+    depends_on:
+      analytics-db:
+        condition: service_healthy
+    restart: "no"
+
   auth:
     image: ucm-auth:local
     env_file: ./services/security-and-authentication/.env
@@ -231,7 +261,7 @@ services:
       DB_PASSWORD: ${COURSE_DB_PASSWORD:?set COURSE_DB_PASSWORD}
       USER_SERVICE_INTERNAL_URL: http://user:8082
       AUTH_SERVICE_INTERNAL_URL: http://auth:8081
-      INTERNAL_ALLOWED_CALLERS: enrollment-service
+      INTERNAL_ALLOWED_CALLERS: enrollment-service,analytics-service
     depends_on:
       course-migrate:
         condition: service_completed_successfully
@@ -283,6 +313,8 @@ services:
       OBJECT_STORAGE_BUCKET: submissions
       OBJECT_STORAGE_ACCESS_KEY: ${ASSESSMENT_OBJECT_USER:?set ASSESSMENT_OBJECT_USER}
       OBJECT_STORAGE_SECRET_KEY: ${ASSESSMENT_OBJECT_PASSWORD:?set ASSESSMENT_OBJECT_PASSWORD}
+      ANALYTICS_SERVICE_INTERNAL_URL: http://analytics:8086
+      INTERNAL_ALLOWED_CALLERS: analytics-service
     depends_on:
       assessment-migrate:
         condition: service_completed_successfully
@@ -292,6 +324,31 @@ services:
         condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8085/health/ready"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  analytics:
+    image: ucm-analytics:local
+    env_file: ./services/analytics/.env
+    environment:
+      BIND_HOST: 0.0.0.0
+      DB_HOST: analytics-db
+      DB_NAME: analytics
+      DB_USER: analytics_app
+      DB_PASSWORD: ${ANALYTICS_DB_PASSWORD:?set ANALYTICS_DB_PASSWORD}
+      COURSE_SERVICE_INTERNAL_URL: http://course:8083
+      ASSESSMENT_SERVICE_INTERNAL_URL: http://assessment:8085
+      INTERNAL_ALLOWED_CALLERS: assessment-service
+    depends_on:
+      analytics-migrate:
+        condition: service_completed_successfully
+      course:
+        condition: service_healthy
+      assessment:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8086/health/ready"]
       interval: 5s
       timeout: 3s
       retries: 12
@@ -314,6 +371,8 @@ services:
         condition: service_healthy
       assessment:
         condition: service_healthy
+      analytics:
+        condition: service_healthy
 
 volumes:
   auth-db-data:
@@ -321,4 +380,5 @@ volumes:
   course-db-data:
   enrollment-db-data:
   assessment-db-data:
+  analytics-db-data:
   minio-data:
