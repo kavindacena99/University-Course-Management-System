@@ -1,0 +1,488 @@
+@import "tailwindcss";
+
+@font-face {
+  font-family: "Inter:Bold Italic";
+  src: url("https://static.figma.com/font/Inter_1") format("woff2");
+  font-style: italic;
+  font-weight: 700;
+}
+
+@font-face {
+  font-family: "Inter:Bold";
+  src: url("https://static.figma.com/font/Inter_1") format("woff2");
+  font-style: normal;
+  font-weight: 700;
+}
+
+@font-face {
+  font-family: "Inter:Medium";
+  src: url("https://static.figma.com/font/Inter_1") format("woff2");
+  font-style: normal;
+  font-weight: 500;
+}
+
+@font-face {
+  font-family: "Inter:Regular";
+  src: url("https://static.figma.com/font/Inter_1") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+}
+
+@font-face {
+  font-family: "Inter:Semi Bold Italic";
+  src: url("https://static.figma.com/font/Inter_1") format("woff2");
+  font-style: italic;
+  font-weight: 600;
+}
+
+@font-face {
+  font-family: "Inter:Semi Bold";
+  src: url("https://static.figma.com/font/Inter_1") format("woff2");
+  font-style: normal;
+  font-weight: 600;
+}
+
+@layer base {
+  html {
+    min-width: 320px;
+    background: #88b6d7;
+  }
+
+  body {
+    min-width: 320px;
+    min-height: 100vh;
+    color: #272643;
+    font-family: "Inter:Regular", Arial, sans-serif;
+  }
+
+  button,
+  input {
+    font: inherit;
+  }
+
+  button {
+    cursor: pointer;
+  }
+}
+
+.login-page {
+  display: flex;
+  min-height: 100dvh;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(32px, 8vh, 96px) clamp(20px, 8vw, 138px);
+  background-color: #88b6d7;
+  background-image: url("/assets/818dd.png");
+  background-position: center;
+  background-size: cover;
+}
+
+.login-card {
+  position: relative;
+  display: grid;
+  width: min(1040px, 100%);
+  min-height: 656px;
+  grid-template-columns: 60.5% 39.5%;
+  grid-template-rows: 128px 1fr;
+  overflow: hidden;
+  border-radius: 23px;
+  background: #fbf7f7;
+}
+
+.brand {
+  z-index: 2;
+  grid-column: 1;
+  padding: 42px 34px 0;
+  text-align: center;
+}
+
+.brand h1 {
+  font-family: "Inter:Bold", Arial, sans-serif;
+  font-size: 26px;
+  font-weight: 700;
+  line-height: normal;
+}
+
+.brand p {
+  margin-top: 5px;
+  color: #2c698d;
+  font-family: "Inter:Semi Bold Italic", Arial, sans-serif;
+  font-size: 20px;
+  font-style: italic;
+  font-weight: 600;
+  line-height: normal;
+}
+
+.illustration-panel {
+  position: relative;
+  grid-column: 1;
+  grid-row: 2;
+  min-height: 486px;
+}
+
+.illustration-backdrop {
+  position: absolute;
+  width: min(568px, calc(100% - 72px));
+  height: 486px;
+  top: 8px;
+  left: 36px;
+}
+
+.illustration {
+  position: absolute;
+  width: min(709px, 113%);
+  max-width: none;
+  top: -56px;
+  left: -56px;
+  object-fit: contain;
+}
+
+.form-panel {
+  display: flex;
+  grid-column: 2;
+  grid-row: 1 / 3;
+  flex-direction: column;
+  padding: 100px 51px 52px 8px;
+}
+
+.welcome-copy {
+  text-align: center;
+}
+
+.welcome-copy h2 {
+  color: #2c698d;
+  font-family: "Inter:Bold", Arial, sans-serif;
+  font-size: 40px;
+  font-weight: 700;
+  line-height: normal;
+}
+
+.welcome-copy p {
+  margin-top: 19px;
+  font-size: 11px;
+  line-height: normal;
+}
+
+.form-panel form {
+  margin-top: 33px;
+}
+
+.field-group + .field-group {
+  margin-top: 18px;
+}
+
+.field-group label {
+  display: block;
+  margin-bottom: 8px;
+  margin-left: 54px;
+  font-family: "Inter:Bold", Arial, sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: normal;
+}
+
+.field-row {
+  display: grid;
+  grid-template-columns: 44px 1fr;
+  align-items: center;
+  gap: 9px;
+}
+
+.field-row img {
+  width: 38px;
+  height: 38px;
+  object-fit: contain;
+}
+
+.field-group:nth-child(2) .field-row img {
+  width: 30px;
+  height: 30px;
+  margin-left: 4px;
+}
+
+.field-row input {
+  width: 100%;
+  height: 42px;
+  border: 0;
+  border-radius: 10px;
+  outline: 2px solid transparent;
+  background: #f3f3f3;
+  padding: 0 14px;
+  box-shadow: 0 4px 4px rgb(0 0 0 / 25%);
+  color: #272643;
+  font-family: "Inter:Medium", Arial, sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  transition:
+    outline-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.field-row input::placeholder {
+  color: rgb(0 0 0 / 18%);
+  font-family: "Inter:Bold", Arial, sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.field-row input:focus {
+  outline-color: #2c698d;
+  box-shadow: 0 4px 9px rgb(44 105 141 / 26%);
+}
+
+.form-options {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 18px 0 50px 53px;
+}
+
+.remember {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: "Inter:Bold", Arial, sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.remember input {
+  width: 15px;
+  height: 15px;
+  accent-color: #2c698d;
+}
+
+.text-button {
+  border: 0;
+  background: transparent;
+  color: #272643;
+  font-family: "Inter:Semi Bold", Arial, sans-serif;
+  font-size: inherit;
+  font-weight: 600;
+  padding: 0;
+}
+
+.text-button:hover,
+.text-button:focus-visible {
+  color: #2c698d;
+  text-decoration: underline;
+}
+
+.forgot {
+  font-family: "Inter:Bold Italic", Arial, sans-serif;
+  font-size: 10px;
+  font-style: italic;
+  font-weight: 700;
+}
+
+.primary-button,
+.google-button {
+  position: relative;
+  display: flex;
+  width: calc(100% - 53px);
+  height: 30px;
+  align-items: center;
+  justify-content: center;
+  margin-left: 53px;
+  border: 0;
+  border-radius: 8px;
+  font-family: "Inter:Medium", Arial, sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  transition:
+    filter 150ms ease,
+    transform 150ms ease;
+}
+
+.primary-button {
+  background: #2c698d url("/assets/a424e.svg") center / 100% 100% no-repeat;
+  color: #fff;
+}
+
+.google-button {
+  gap: 4px;
+  margin-top: 17px;
+  background: #e3e3e3 url("/assets/ecc44.svg") center / 100% 100% no-repeat;
+  color: #272643;
+}
+
+.google-button img {
+  width: 13px;
+  height: 13px;
+  object-fit: contain;
+}
+
+.primary-button:hover,
+.google-button:hover {
+  filter: brightness(0.97);
+  transform: translateY(-1px);
+}
+
+.primary-button:focus-visible,
+.google-button:focus-visible,
+.text-button:focus-visible {
+  outline: 2px solid #2c698d;
+  outline-offset: 3px;
+}
+
+.notice {
+  min-height: 29px;
+  margin: 10px 0 0 53px;
+  font-size: 10px;
+  line-height: 1.35;
+  text-align: center;
+}
+
+.notice-error {
+  color: #a22727;
+}
+
+.notice-success {
+  color: #276340;
+}
+
+.notice-info {
+  color: #2c698d;
+}
+
+.signup-copy {
+  margin: auto 0 0 53px;
+  color: #898989;
+  font-size: 14px;
+  line-height: normal;
+  text-align: center;
+}
+
+.signup-copy .text-button {
+  color: #272643;
+  font-size: 14px;
+}
+
+@media (max-width: 900px) {
+  .login-page {
+    padding: 32px 20px;
+  }
+
+  .login-card {
+    min-height: 0;
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto;
+  }
+
+  .brand {
+    grid-column: 1;
+    grid-row: 1;
+    padding: 36px 24px 0;
+  }
+
+  .illustration-panel {
+    grid-column: 1;
+    grid-row: 2;
+    min-height: clamp(250px, 52vw, 410px);
+  }
+
+  .illustration-backdrop {
+    width: calc(100% - 48px);
+    height: calc(100% - 10px);
+    left: 24px;
+  }
+
+  .illustration {
+    width: min(650px, 100%);
+    top: -8%;
+    left: 0;
+  }
+
+  .form-panel {
+    grid-column: 1;
+    grid-row: 3;
+    padding: 36px clamp(28px, 9vw, 80px) 48px;
+  }
+
+  .form-panel form {
+    width: min(100%, 440px);
+    margin-right: auto;
+    margin-left: auto;
+  }
+
+  .signup-copy {
+    margin-top: 30px;
+  }
+}
+
+@media (max-width: 520px) {
+  .login-page {
+    align-items: flex-start;
+    padding: 16px;
+  }
+
+  .login-card {
+    border-radius: 18px;
+  }
+
+  .brand {
+    padding: 28px 20px 0;
+  }
+
+  .brand h1 {
+    font-size: 20px;
+  }
+
+  .brand p {
+    font-size: 15px;
+  }
+
+  .illustration-panel {
+    min-height: 240px;
+  }
+
+  .form-panel {
+    padding: 24px 20px 36px;
+  }
+
+  .welcome-copy h2 {
+    font-size: 32px;
+  }
+
+  .field-row {
+    grid-template-columns: 35px 1fr;
+    gap: 6px;
+  }
+
+  .field-row img {
+    width: 32px;
+    height: 32px;
+  }
+
+  .field-group:nth-child(2) .field-row img {
+    width: 27px;
+    height: 27px;
+    margin-left: 2px;
+  }
+
+  .field-group label,
+  .form-options,
+  .primary-button,
+  .google-button,
+  .notice,
+  .signup-copy {
+    margin-left: 41px;
+  }
+
+  .primary-button,
+  .google-button {
+    width: calc(100% - 41px);
+  }
+
+  .form-options {
+    margin-bottom: 34px;
+  }
+
+  .signup-copy {
+    font-size: 12px;
+  }
+
+  .signup-copy .text-button {
+    font-size: 12px;
+  }
+}
