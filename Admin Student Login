@@ -1,0 +1,177 @@
+import React, { useState, useMemo } from 'react';
+import {
+  Eye,
+  EyeOff,
+  CheckCircle2,
+  AlertCircle,
+  X,
+  ArrowLeft,
+  Search,
+  Menu,
+  Users,
+  Bell,
+  BookOpen,
+  TrendingUp,
+  Award,
+  AlertTriangle,
+  Check,
+  Filter,
+  Calendar,
+  Mail,
+  ChevronRight,
+} from 'lucide-react';
+
+/**
+ * Custom SVG Illustration for the Login Page:
+ * - Soft organic light-blue backdrop shape
+ * - Student/instructor character with dark bob haircut, yellow glasses, orange blazer,
+ *   white shirt, dark tie, and confident thumbs-up gesture
+ * - Modern angled blue-slate desktop monitor with stand
+ * - Floating blue unlocked padlock icon above the monitor
+ */
+const UniversityIllustration = () => (
+  <div className="relative w-full max-w-[380px] mx-auto bg-white rounded-[28px] p-4 sm:p-6 shadow-[0_8px_30px_rgba(37,102,137,0.06)] flex items-center justify-center overflow-visible">
+    <svg
+      viewBox="0 0 420 340"
+      className="w-full h-auto overflow-visible select-none"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      role="img"
+      aria-label="Illustration of a student giving a thumbs up in front of a computer with an unlocked security padlock"
+    >
+      <defs>
+        <linearGradient id="blobGrad" x1="40" y1="140" x2="380" y2="300" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#e5f0f9" />
+          <stop offset="55%" stopColor="#eff6fc" />
+          <stop offset="100%" stopColor="#e2eef8" />
+        </linearGradient>
+
+        <linearGradient id="lockBodyGrad" x1="255" y1="68" x2="315" y2="122" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#84a8dc" />
+          <stop offset="60%" stopColor="#567db9" />
+          <stop offset="100%" stopColor="#3b5d96" />
+        </linearGradient>
+        <linearGradient id="lockShackleGrad" x1="265" y1="26" x2="295" y2="75" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#d4e4f7" />
+          <stop offset="100%" stopColor="#8fb2e3" />
+        </linearGradient>
+
+        <linearGradient id="hairGrad" x1="115" y1="120" x2="205" y2="235" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#1b2056" />
+          <stop offset="100%" stopColor="#0f1238" />
+        </linearGradient>
+
+        <linearGradient id="skinGrad" x1="125" y1="145" x2="185" y2="215" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#f69c93" />
+          <stop offset="55%" stopColor="#ec7d74" />
+          <stop offset="100%" stopColor="#dc6159" />
+        </linearGradient>
+        <linearGradient id="handGrad" x1="80" y1="205" x2="125" y2="275" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#f9b5ad" />
+          <stop offset="60%" stopColor="#f08980" />
+          <stop offset="100%" stopColor="#e36d64" />
+        </linearGradient>
+
+        <linearGradient id="blazerGrad" x1="75" y1="235" x2="225" y2="335" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#f26b3a" />
+          <stop offset="55%" stopColor="#e35224" />
+          <stop offset="100%" stopColor="#c93c14" />
+        </linearGradient>
+        <linearGradient id="lapelGrad" x1="115" y1="230" x2="195" y2="310" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#ff8856" />
+          <stop offset="100%" stopColor="#e65828" />
+        </linearGradient>
+
+        <linearGradient id="monitorBackGrad" x1="255" y1="175" x2="385" y2="310" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#3d5e94" />
+          <stop offset="50%" stopColor="#6589c2" />
+          <stop offset="100%" stopColor="#8eb2e5" />
+        </linearGradient>
+        <linearGradient id="monitorSideGrad" x1="220" y1="180" x2="265" y2="315" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#f7fbff" />
+          <stop offset="55%" stopColor="#c7daf2" />
+          <stop offset="100%" stopColor="#88aad9" />
+        </linearGradient>
+        <linearGradient id="standGrad" x1="255" y1="255" x2="335" y2="338" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#4c70a8" />
+          <stop offset="65%" stopColor="#87addf" />
+          <stop offset="100%" stopColor="#b9d4f5" />
+        </linearGradient>
+      </defs>
+
+      {/* Organic Light-Blue Backdrop Blob */}
+      <path
+        d="M52 288C16 276 -8 242 12 204C32 166 84 156 126 146C168 136 205 130 232 154C259 178 260 222 292 214C324 206 346 184 378 202C410 220 416 266 382 292C348 318 282 316 210 318C138 320 88 300 52 288Z"
+        fill="url(#blobGrad)"
+      />
+
+      {/* Soft Aura behind Padlock */}
+      <ellipse cx="288" cy="112" rx="38" ry="26" fill="#edf4fb" />
+
+      {/* Floating Unlocked Padlock */}
+      <g transform="translate(254, 28) rotate(-14)">
+        <line x1="56" y1="14" x2="64" y2="9" stroke="#9ebce6" strokeWidth="2.2" strokeLinecap="round" />
+        <line x1="60" y1="22" x2="69" y2="20" stroke="#9ebce6" strokeWidth="2.2" strokeLinecap="round" />
+        <line x1="52" y1="8" x2="56" y2="2" stroke="#9ebce6" strokeWidth="2.2" strokeLinecap="round" />
+
+        <path
+          d="M14 44V24C14 11.8 23.8 2 36 2C47.5 2 56.8 10.8 57.8 22"
+          stroke="url(#lockShackleGrad)"
+          strokeWidth="8.5"
+          strokeLinecap="round"
+        />
+        <rect x="4" y="40" width="54" height="44" rx="11" fill="url(#lockBodyGrad)" />
+        <path
+          d="M47 40H49C54.5 40 58 44.5 58 50V74C58 79.5 54.5 84 49 84H47V40Z"
+          fill="#35558a"
+          opacity="0.45"
+        />
+        <circle cx="29" cy="59" r="4.5" fill="#182a4e" />
+        <path d="M27.2 61L26.2 71H31.8L30.8 61H27.2Z" fill="#182a4e" />
+      </g>
+
+      {/* Character Back Hair */}
+      <path
+        d="M110 185C106 144 132 115 168 117C204 119 226 148 224 190C222 222 210 242 192 246L116 242C111 226 112 204 110 185Z"
+        fill="url(#hairGrad)"
+      />
+
+      {/* Character Neck */}
+      <path d="M144 198H168V236H144V198Z" fill="#df6860" />
+      <path d="M144 198C150 205 160 207 168 204V218C158 219 149 214 144 207V198Z" fill="#c74e47" opacity="0.55" />
+
+      {/* Character Face */}
+      <path
+        d="M132 156C132 136 148 124 168 126C188 128 200 144 198 168C196 190 183 206 165 206C146 206 132 188 132 156Z"
+        fill="url(#skinGrad)"
+      />
+
+      {/* Ear */}
+      <ellipse cx="128" cy="171" rx="6.5" ry="9.5" transform="rotate(-10 128 171)" fill="#ee8178" />
+      <path d="M127 167C125 170 126 174 129 175" stroke="#c8534b" strokeWidth="1.6" strokeLinecap="round" />
+
+      {/* Front Hair & Bangs */}
+      <path
+        d="M126 164C125 136 143 116 170 117C195 118 210 137 208 163C201 162 195 156 192 146C189 156 183 161 175 161C171 156 169 151 168 146C164 156 156 161 146 160C143 156 141 152 140 148C136 157 131 162 126 164Z"
+        fill="#1e2463"
+      />
+      <path
+        d="M145 127C156 122 172 122 184 128"
+        stroke="#4652a8"
+        strokeWidth="3.5"
+        strokeLinecap="round"
+        opacity="0.75"
+      />
+
+      {/* Eyes & Eyebrows */}
+      <path d="M148 159C152 157 157 157 161 159" stroke="#181d52" strokeWidth="2.2" strokeLinecap="round" />
+      <path d="M176 159C180 157 185 157 189 159" stroke="#181d52" strokeWidth="2.2" strokeLinecap="round" />
+      <circle cx="155" cy="167" r="2.6" fill="#181d52" />
+      <circle cx="182" cy="167" r="2.6" fill="#181d52" />
+
+      {/* Nose & Cheerful Smile */}
+      <path d="M169 167L172 176L167 178" stroke="#c9524a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path
+        d="M157 184C163 187 174 187 180 183C179 191 173 195 167 195C161 195 157 190 157 184Z"
+        fill="#ffffff"
+      />
