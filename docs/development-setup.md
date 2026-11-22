@@ -131,9 +131,11 @@ The services bind to loopback ports `8081` through `8086` by default.
 
 ## 6. Start the gateway
 
-From the repository root, run NGINX with this configuration. On Windows:
+From the repository root, validate and then run NGINX with this
+configuration. On Windows:
 
 ```powershell
+nginx -t -p infrastructure/nginx/ -c nginx.conf
 nginx -p infrastructure/nginx/ -c nginx.conf
 ```
 
@@ -225,6 +227,11 @@ containers, then run:
 docker compose config --quiet
 docker compose up --build
 ```
+
+The gateway image is built from `infrastructure/nginx`; it uses Compose
+service-name upstreams and re-resolves Docker DNS every 10 seconds. Scale a
+stateless service with `docker compose up --scale auth=3`; the gateway picks
+up new replicas without a restart. Do not publish individual service ports.
 
 This is a development integration stack, not a production TLS deployment.
 An isolated stack was built and reached readiness on 2026-11-14; that does not

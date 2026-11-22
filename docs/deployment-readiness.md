@@ -34,10 +34,11 @@ from the lecturer workflow were removed by the later migration rollback.
   implemented. Choose and implement a delivery contract before production
   onboarding. The file notification mode used in local testing writes
   activation tokens to a sensitive file and must remain development-only.
-- The checked-in NGINX configuration listens on HTTP port 8080 and routes to
-  `127.0.0.1:8081/8082/8083`. It is a host-local gateway configuration.
-  It does not provide TLS termination or container DNS upstreams. A reviewed
-  production ingress/gateway configuration is required.
+- The checked-in host NGINX configuration listens on HTTP port 8080 and routes
+  to loopback service ports 8081 through 8086. The Docker gateway image uses
+  Compose service-name upstreams with dynamic DNS re-resolution and the same
+  routing policy. Neither provides TLS termination; a reviewed production
+  ingress/TLS configuration is still required.
 - A repository-wide `gofmt -l` lists pre-existing files in Auth and User.
   This audit did not reformat unrelated working code. The Go files modified by
   this audit are formatted.
@@ -48,8 +49,8 @@ Docker Desktop's Linux engine was not running. `docker info` failed because
 `//./pipe/dockerDesktopLinuxEngine` did not exist. Therefore **no service image
 was built or run**, and container startup, networking, image contents, mounted
 key paths, container health/restart, and graceful container shutdown are
-unverified. Base image availability is also unverified. No Compose or CI
-deployment definition exists in the repository.
+unverified. Base image availability is also unverified. `compose.yaml` is a
+local integration stack; no CI deployment definition exists in the repository.
 
 ## Required runtime configuration
 
@@ -89,9 +90,10 @@ timestamp checks, and protect the shared HMAC secret and Auth private key.
    caller, restart, shutdown, and log checks against the actual containers and
    TLS gateway. Only then make a deployment-readiness decision.
 
-The current repository has no Compose file; these are operator steps, not a
-claim that a runnable container deployment already exists. Local host
-development commands are in [development-setup.md](development-setup.md).
+The repository's `compose.yaml` is a local integration stack; these are
+operator steps for a real deployment, not a claim that a production container
+deployment already exists. Local host development commands are in
+[development-setup.md](development-setup.md).
 
 ## Integration risks and remaining work
 

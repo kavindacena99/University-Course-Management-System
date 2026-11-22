@@ -44,6 +44,12 @@ Each service owns its PostgreSQL database. There are no shared tables.
 - Does not expose `/internal/*` endpoints; only the service paths above are
   proxied, and all other paths return `404`.
 - Exposes `GET /health` for gateway liveness.
+- Host development uses loopback upstreams. The Docker Compose gateway uses
+  service-name upstreams with dynamic Docker DNS re-resolution. Each service
+  has its own `least_conn` upstream group, so replicas are load balanced and
+  failing peers are marked down by passive health checks.
+- Only the gateway port is published; service ports stay on the Compose
+  network.
 
 ### User Service
 
