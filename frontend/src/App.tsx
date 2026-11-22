@@ -153,6 +153,7 @@ import LecAssignmentSubmission from './Pages/LecAssignmentSubmission';
 import LecViewCourse from './Pages/LecViewCourse';
 import LecCreateCourse from './Pages/LecCreateCourse';
 import LecMyCourses from './Pages/LecMyCourses';
+import AssignmentSubmissionSetting from './Pages/AssignmentSubmissionSetting';
 
 export default function App() {
   return (
@@ -178,6 +179,10 @@ export default function App() {
 
         {/* Lecturer My Courses Page */}
         <Route path="/LecMyCourses" element={<LecMyCourses />} />
+
+        { /* AssignmentSubmissionSetting */}
+        <Route path="/AssignmentSubmissionSetting" element={<AssignmentSubmissionSetting /> } />
+
       </Routes>
     </Router>
   );
