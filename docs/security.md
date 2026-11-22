@@ -91,6 +91,10 @@ Authentication Service:
   threshold.
 - The gateway also applies rate limits to login, registration, and general API
   traffic.
+- The gateway overwrites `X-Forwarded-For` at the edge. Services trust
+  forwarding headers only from `TRUSTED_PROXIES`; in Compose this is the Docker
+  address pool. Behind a cloud load balancer, configure `set_real_ip_from` and
+  `real_ip_header` in the gateway before trusting the forwarded client address.
 
 ## Audit trail
 

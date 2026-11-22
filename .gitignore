@@ -6,3 +6,8 @@ bin/
 dist/
 services/*/var/
 .go-cache/
+
+# NGINX host-run runtime files
+infrastructure/nginx/logs/*
+!infrastructure/nginx/logs/.gitkeep
+infrastructure/nginx/temp/
