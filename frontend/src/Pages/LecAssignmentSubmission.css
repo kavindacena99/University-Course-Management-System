@@ -1,0 +1,480 @@
+@import "tailwindcss";
+
+@font-face {
+  font-family: "Inter:Bold";
+  src: url("https://static.figma.com/font/Inter_1") format("woff2");
+  font-style: normal;
+  font-weight: 700;
+}
+
+@font-face {
+  font-family: "Inter:Medium";
+  src: url("https://static.figma.com/font/Inter_1") format("woff2");
+  font-style: normal;
+  font-weight: 500;
+}
+
+@layer base {
+  :root {
+    color: #000;
+    background: #bae8e8;
+    font-family: "Inter:Medium", Inter, sans-serif;
+    font-synthesis: none;
+  }
+
+  body {
+    min-width: 320px;
+    min-height: 100vh;
+  }
+
+  button {
+    cursor: pointer;
+  }
+
+  button:focus-visible {
+    outline: 3px solid rgba(14, 110, 220, 0.45);
+    outline-offset: 2px;
+  }
+}
+
+.app-shell {
+  min-height: 100dvh;
+  background: #bae8e8;
+}
+
+.sidebar {
+  position: fixed;
+  z-index: 20;
+  inset: 0 auto 0 0;
+  display: flex;
+  width: 314px;
+  flex-direction: column;
+  background: #fff;
+}
+
+.brand {
+  padding-top: 61px;
+  text-align: center;
+}
+
+.brand img {
+  width: 104px;
+  height: 104px;
+  margin: 0 auto 15px;
+  object-fit: cover;
+}
+
+.brand p {
+  color: #0e6edc;
+  font-family: "Inter:Bold", Inter, sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.05;
+}
+
+.brand p span {
+  display: block;
+  font-size: 17px;
+}
+
+.sidebar nav {
+  display: grid;
+  gap: 9px;
+  margin-top: 88px;
+  padding: 0 31px;
+}
+
+.sidebar nav button {
+  display: flex;
+  min-height: 53px;
+  align-items: center;
+  gap: 27px;
+  border-radius: 9px;
+  color: rgba(39, 38, 67, 0.3);
+  font-family: "Inter:Bold", Inter, sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  text-align: left;
+  transition:
+    color 160ms ease,
+    background 160ms ease,
+    transform 160ms ease;
+}
+
+.sidebar nav button:hover {
+  background: rgba(186, 232, 232, 0.28);
+  color: rgba(39, 38, 67, 0.65);
+  transform: translateX(2px);
+}
+
+.sidebar nav button img {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  object-fit: contain;
+  opacity: 0.3;
+}
+
+.sidebar nav button:not(:first-child) img {
+  width: 36px;
+  height: 36px;
+  margin: 4px;
+  flex-basis: 36px;
+}
+
+.sidebar nav button.nav-active {
+  color: #272643;
+}
+
+.sidebar nav button.nav-active img {
+  opacity: 1;
+}
+
+.logout {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin: auto 0 59px 73px;
+  font-family: "Inter:Bold", Inter, sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.logout img {
+  width: 54px;
+  height: 51px;
+}
+
+main {
+  min-height: 100dvh;
+  padding: 67px 6.55vw 67px calc(314px + 4.1vw);
+}
+
+.course-card {
+  width: min(100%, 1000px);
+  min-height: 826px;
+  margin: 0 auto;
+  padding: 45px 58px 56px 59px;
+  border-radius: 15px;
+  background: #fff;
+  box-shadow: 0 4px 4px rgba(0, 0, 0, 0.25);
+}
+
+.course-header {
+  display: flex;
+  min-height: 73px;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 32px;
+}
+
+.breadcrumb,
+.course-header h1,
+.tabs button,
+.section-heading,
+.add-section,
+.edit-toggle {
+  font-family: "Inter:Bold", Inter, sans-serif;
+  font-weight: 700;
+}
+
+.breadcrumb {
+  font-size: 16px;
+  line-height: 1.2;
+}
+
+.course-header h1 {
+  margin-top: 7px;
+  color: #22577a;
+  font-size: 32px;
+  line-height: 1.12;
+}
+
+.edit-toggle {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
+  margin-top: 20px;
+  font-size: 16px;
+}
+
+.edit-toggle img {
+  width: 45px;
+  height: 45px;
+  object-fit: cover;
+  transition:
+    filter 180ms ease,
+    opacity 180ms ease;
+}
+
+.edit-toggle:not(.is-on) img {
+  filter: grayscale(1);
+  opacity: 0.45;
+}
+
+.tabs {
+  display: flex;
+  gap: 42px;
+  height: 43px;
+  align-items: start;
+  border-bottom: 3px solid transparent;
+  border-image: url("/assets/5b43a.svg") 5 stretch;
+}
+
+.tabs button {
+  position: relative;
+  padding: 2px 0 13px;
+  font-size: 16px;
+}
+
+.tabs button::after {
+  position: absolute;
+  right: 50%;
+  bottom: 4px;
+  left: 50%;
+  height: 2px;
+  background: #2c698d;
+  content: "";
+  transition:
+    right 160ms ease,
+    left 160ms ease;
+}
+
+.tabs button.tab-active::after {
+  right: 0;
+  left: 0;
+}
+
+.section-list {
+  display: grid;
+  gap: 16px;
+  margin: 36px 10px 0;
+}
+
+.course-section {
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.25);
+  border-radius: 10px;
+  background: rgba(196, 196, 196, 0.02);
+}
+
+.section-heading {
+  display: flex;
+  width: 100%;
+  min-height: 47px;
+  align-items: center;
+  gap: 33px;
+  padding: 6px 17px;
+  font-size: 24px;
+  text-align: left;
+}
+
+.section-heading img {
+  width: 30px;
+  height: 30px;
+  flex: 0 0 30px;
+  object-fit: cover;
+  transition: transform 180ms ease;
+}
+
+.course-section:not(.section-open) .section-heading img {
+  transform: rotate(-90deg);
+}
+
+.section-content {
+  padding: 17px 66px 48px;
+}
+
+.section-content button {
+  display: flex;
+  width: 100%;
+  min-height: 42px;
+  align-items: center;
+  gap: 12px;
+  border-radius: 6px;
+  font-family: "Inter:Medium", Inter, sans-serif;
+  font-size: 16px;
+  font-weight: 500;
+  text-align: left;
+  transition:
+    background 150ms ease,
+    color 150ms ease;
+}
+
+.section-content button:hover,
+.section-content button.assignment-selected {
+  color: #22577a;
+  background: rgba(186, 232, 232, 0.35);
+}
+
+.section-content button img {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 20px;
+  object-fit: cover;
+}
+
+.section-content p {
+  padding: 2px 0 6px;
+  color: #5d6470;
+  font-size: 14px;
+}
+
+.add-section {
+  display: block;
+  width: calc(100% - 28px);
+  min-height: 56px;
+  margin: 16px auto 0;
+  border-radius: 20px;
+  background: #2c698d;
+  color: #fff;
+  font-size: 24px;
+  transition:
+    background 150ms ease,
+    transform 150ms ease,
+    opacity 150ms ease;
+}
+
+.add-section:hover:not(:disabled) {
+  background: #22577a;
+  transform: translateY(-1px);
+}
+
+.add-section:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.mobile-menu,
+.scrim {
+  display: none;
+}
+
+@media (max-width: 1100px) {
+  .sidebar {
+    width: 260px;
+  }
+
+  .sidebar nav {
+    gap: 4px;
+    padding-inline: 20px;
+  }
+
+  .sidebar nav button {
+    gap: 16px;
+    font-size: 16px;
+  }
+
+  .logout {
+    margin-left: 38px;
+  }
+
+  main {
+    padding: 40px 28px 40px 288px;
+  }
+
+  .course-card {
+    padding-inline: 38px;
+  }
+
+  .course-header h1 {
+    font-size: 27px;
+  }
+}
+
+@media (max-width: 760px) {
+  .mobile-menu {
+    position: fixed;
+    z-index: 40;
+    top: 18px;
+    left: 18px;
+    display: grid;
+    width: 44px;
+    height: 44px;
+    place-content: center;
+    gap: 5px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.18);
+  }
+
+  .mobile-menu span {
+    width: 20px;
+    height: 2px;
+    border-radius: 2px;
+    background: #22577a;
+  }
+
+  .sidebar {
+    width: min(314px, 86vw);
+    transform: translateX(-105%);
+    transition: transform 200ms ease;
+  }
+
+  .sidebar.sidebar-open {
+    transform: translateX(0);
+  }
+
+  .sidebar nav {
+    margin-top: 45px;
+  }
+
+  .scrim {
+    position: fixed;
+    z-index: 10;
+    inset: 0;
+    display: block;
+    background: rgba(18, 39, 54, 0.4);
+  }
+
+  main {
+    padding: 82px 14px 24px;
+  }
+
+  .course-card {
+    min-height: calc(100dvh - 106px);
+    padding: 30px 20px;
+  }
+
+  .course-header {
+    flex-direction: column;
+    gap: 7px;
+  }
+
+  .course-header h1 {
+    font-size: 25px;
+  }
+
+  .edit-toggle {
+    margin: 0 0 4px auto;
+  }
+
+  .tabs {
+    overflow-x: auto;
+    gap: 28px;
+  }
+
+  .section-list {
+    margin-inline: 0;
+  }
+
+  .section-heading {
+    gap: 14px;
+    font-size: 18px;
+  }
+
+  .section-content {
+    padding: 12px 18px 28px 48px;
+  }
+
+  .section-content button {
+    font-size: 14px;
+  }
+
+  .add-section {
+    width: 100%;
+    border-radius: 14px;
+    font-size: 18px;
+  }
+}
