@@ -1,0 +1,7 @@
+---
+- name: Validate one inventory and Compose model without deployment
+  hosts: platform
+  gather_facts: false
+  roles:
+    - preflight
+    - secrets

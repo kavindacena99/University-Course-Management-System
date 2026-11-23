@@ -1,0 +1,11 @@
+---
+- name: Validate the selected gateway and its audited routing
+  ansible.builtin.command:
+    argv:
+      - '{{ ansible_playbook_python }}'
+      - '{{ platform_root }}/infrastructure/scripts/platformctl.py'
+      - nginx
+      - --environment
+      - '{{ platform_environment }}'
+  changed_when: false
+  when: not ansible_check_mode

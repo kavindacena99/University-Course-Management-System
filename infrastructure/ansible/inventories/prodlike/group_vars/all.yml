@@ -1,0 +1,5 @@
+---
+platform_environment: prodlike
+environment_directory: prod
+deployment_mode: existing
+release_manifest: ""

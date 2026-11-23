@@ -1,0 +1,45 @@
+name: Prepare deployment
+
+on:
+  workflow_dispatch:
+    inputs:
+      publish_run_id:
+        description: Successful main/version Publish images run ID
+        required: true
+        type: string
+      target:
+        description: Local target for controlled execution; this workflow does not deploy
+        required: true
+        type: choice
+        options: [qa, prodlike]
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: ${{ inputs.target }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Validate source publication and download its digest manifest
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_ID: ${{ inputs.publish_run_id }}
+        run: |
+          [[ "$RUN_ID" =~ ^[0-9]+$ ]] || exit 1
+          gh run view "$RUN_ID" --repo "$GITHUB_REPOSITORY" --json conclusion,workflowName,headBranch,event > source.json
+          python -c "import json; r=json.load(open('source.json')); assert r['conclusion']=='success' and r['workflowName']=='Publish images' and (r['headBranch']=='main' or r['headBranch'].startswith('v'))"
+          gh run download "$RUN_ID" --repo "$GITHUB_REPOSITORY" --name immutable-release --dir release
+          python -c "import sys; sys.path.insert(0,'infrastructure/scripts'); from platformctl import validate_release; validate_release('release/release.env')"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: approved-local-release-${{ inputs.target }}
+          path: release/release.env
+          retention-days: 30
+      - name: Explain execution boundary
+        run: echo 'Prepared immutable references only. Deploy locally with Ansible; no server, SSH credential or PC runner is configured.'

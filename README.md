@@ -128,7 +128,7 @@ Original design documents:
 
 ## Stack
 
-- Go 1.27.2
+- Go 1.27.3
 - Gin HTTP framework
 - PostgreSQL 18 with `pgx/v5`
 - Ed25519 JWT authentication
@@ -468,7 +468,7 @@ go test ./...
 The repository does not yet include:
 - frontend API integration (the UI is currently static)
 - a complete end-to-end university workflow beyond identity and authorization
-- CI/CD workflow configuration
+- a GitHub-hosted run of the new CI/GHCR workflows (local validation is documented)
 - production deployment manifests
 - production TLS and secret-management configuration
 - external activation and password-reset notification delivery
@@ -476,3 +476,15 @@ The repository does not yet include:
 ## License
 
 This project is licensed under the MIT License. See `LICENSE` for details.
+
+## Isolated environments and delivery
+
+See [Deployment Guide](docs/infrastructure/deployment-guide.md) and the
+[Phase 3](docs/infrastructure/phase-3-report.md),
+[Phase 4](docs/infrastructure/phase-4-report.md), and
+[Phase 5](docs/infrastructure/phase-5-report.md) reports for local DEV/QA/PROD-like,
+Ansible, CI/GHCR, secrets, security validation and backups. DEV data is retained;
+no cloud Production deployment is configured.
+
+The [validation ledger](docs/infrastructure/validation-ledger.md) records commands,
+outcomes, limitations, and the complete changed-file inventory.

@@ -1,3 +1,6 @@
 # Shell scripts are executed inside Linux containers and must keep LF endings
 # even when the repository is checked out on Windows.
 *.sh text eol=lf
+*.go text eol=lf
+go.mod text eol=lf
+go.sum text eol=lf
