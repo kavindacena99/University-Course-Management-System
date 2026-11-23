@@ -114,4 +114,3 @@ func internalSignatureValid(provided, canonical, secret string) bool {
 	}
 	return hmac.Equal(expectedBytes, providedBytes)
 }
-

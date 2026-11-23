@@ -3,6 +3,111 @@
 Last validated: 2026-11-23 on Docker Desktop's Linux engine (Docker 29.9.3,
 Compose v5.7.0).
 
+## Current Phase 3–5 deployment architecture
+
+Use the [Deployment Guide](deployment-guide.md) and the
+[Phase 3](phase-3-report.md), [Phase 4](phase-4-report.md) and
+[Phase 5](phase-5-report.md) reports for current operation and acceptance evidence.
+The original DEV topology and dated Phase 1/2 observations below remain useful
+baseline history; they are not claims of live Production readiness.
+
+See the [validation ledger](validation-ledger.md) for executed acceptance commands,
+final runtime evidence and the complete changed-file inventory.
+
+| Environment | Compose project | UI / gateway host ports | Application/configuration model |
+| --- | --- | --- | --- |
+| DEV | `platform-dev` | Existing 3000 / 8080 | Existing secrets, signing keys, storage and running image IDs preserved |
+| QA | `platform-qa` | Loopback 3001 / 8081 | Independent local credentials, issuer, cookies, keys, six DBs and object data |
+| PROD-like | `platform-prodlike` | Loopback 3002 / 8082 | Local production rehearsal, independent credentials and data; not live Production |
+
+All three use the same six domain services and internal ports, six PostgreSQL
+databases, object storage, migrations and Nginx routes. There are no extra domain
+services, caches, brokers, remote servers or cloud resources. Each project owns
+`edge`, `backend`, `data` networks and seven persistent named volumes. External
+volumes, fixed container names, host-backed volume driver aliases, private port
+publication and cross-environment credentials are rejected by deployment guards.
+Rehearsals run sequentially on this 8 GiB Desktop engine while DEV stays running.
+
+```mermaid
+flowchart TB
+    Operator[Windows operator / Linux Ansible control container] --> DEV
+    Operator --> QA
+    Operator --> PROD
+    CI[GitHub CI: tests, builds, security gates] --> GHCR[GHCR immutable image digests]
+    GHCR --> Manifest[Reviewed release manifest]
+    Manifest --> Operator
+    subgraph DEV[platform-dev: existing DEV]
+      DEdge[UI 3000 / gateway 8080] --> DApp[Six Go services]
+      DApp --> DData[Six PostgreSQL volumes + object volume]
+    end
+    subgraph QA[platform-qa: QA]
+      QEdge[UI 3001 / gateway 8081] --> QApp[Six Go services]
+      QApp --> QData[Separate six PostgreSQL volumes + object volume]
+    end
+    subgraph PROD[platform-prodlike: local rehearsal]
+      PEdge[UI 3002 / gateway 8082] --> PApp[Six Go services]
+      PApp --> PData[Separate six PostgreSQL volumes + object volume]
+    end
+```
+
+Compose remains shared, with small DEV/QA/PROD-like overrides. Configurable
+`*_ENV_FILE` inputs preserve existing DEV paths and select separate rehearsal
+runtime files. `*_IMAGE` variables select the same promoted artifact without
+rebuilding per environment. Registry manifests permit exactly nine digest-pinned
+application/helper images and cannot inject project names or secrets. Local
+`:candidate` tags are build conveniences, not immutable release identifiers.
+
+Ansible uses explicit local inventories, preflight/config validation, optional
+Vault input rendering, application updates, Nginx validation and health checks.
+Windows uses a trusted disposable control container because native Ubuntu Docker
+socket access is unavailable. The socket grants host-equivalent Docker access;
+no personal-PC SSH service or internet-facing runner is introduced. Registry
+promotion/rollback remain conditional on real published manifests and credentials.
+
+Source modules/builders receive the Go 1.27.3 security patch and patched
+`x/crypto`, `x/net`, `x/text` and Assessment compression dependencies. The Nginx
+1.30.7 digest stays pinned, with a fixed libxml2 runtime security floor. The
+storage helper and rehearsal object servers use the verified vendor November
+security release. Existing DEV containers/storage are deliberately not upgraded
+in place; its retained older artifacts need a separately controlled update.
+Review vendor storage upgrade requirements, backups and a maintenance window
+before applying a new storage release to existing DEV data.
+
+QA/PROD-like application/edge filesystems are read-only with bounded scratch
+tmpfs. Go processes are non-root with capabilities dropped; Nginx retains only
+master/worker startup capabilities. PIDs, memory, logs and restart behavior are
+bounded, with database/object data writable only in their named volumes. Database
+application identities still use bootstrap superuser privileges. PostgreSQL 18
+rejected an attempted QA demotion; the experiment was withdrawn. Separate
+migration/runtime identities require a reviewed ownership/grant transition
+before live Production. DEV privileges were not changed.
+These local resource limits are not production capacity or load-test results.
+
+Auth private keys use the existing file loader through a read-only Compose secret
+in rehearsals. Other Go secrets remain environment-based, visible to Docker
+administrators. Vault templates/activation, Windows file ACLs, no-log rendering,
+ignored secret paths and per-environment keys/issuers/cookie names reduce local
+exposure. No production cloud secret manager is active, and plaintext rehearsal
+inputs under a synced checkout are not suitable for live secrets. Future Azure
+Key Vault/managed identity or AWS Secrets Manager/IAM roles are documented, not
+provisioned.
+
+Backups are per-environment, non-overwriting PostgreSQL logical archives plus
+scoped object copies, non-secret recovery configuration, image IDs and checksums.
+Defaults are outside Git/OneDrive; secret/key recovery is separately Vault-managed.
+Archive listing and synthetic object recovery are verified without restoring or
+deleting any existing database. No production backup schedule, off-site retention,
+TLS certificate, remote host hardening or disaster-recovery guarantee is active.
+
+GitHub-hosted workflows do not deploy to this PC. Publishing uses `GITHUB_TOKEN`
+only on trusted refs after CI, scans exact digests, and releases immutable
+manifests. GitHub owner protection/package administration and actual hosted
+execution remain separate acceptance items; no workflow was dispatched or image
+published during implementation. The current account returned a plan-related
+403 for branch protection and has no configured environments.
+
+### Original DEV reference and Phase 1/2 history
+
 The current audit, reproducible commands, file inventory, and acceptance results
 are in [Phase 1 and 2 report](phase-1-2-report.md). The dated validation section
 below is historical; the resumed validation found transient 504 responses during

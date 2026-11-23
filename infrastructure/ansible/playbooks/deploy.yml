@@ -1,0 +1,10 @@
+---
+- name: Deploy one isolated local environment without deleting data
+  hosts: platform
+  gather_facts: false
+  roles:
+    - preflight
+    - secrets
+    - application
+    - nginx
+    - health-check

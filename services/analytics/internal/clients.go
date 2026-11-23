@@ -17,8 +17,8 @@ import (
 type CourseClient struct {
 	baseURL   string
 	serviceID string
-	secret   string
-	client   *http.Client
+	secret    string
+	client    *http.Client
 }
 
 func NewCourseClient(baseURL, serviceID, secret string) *CourseClient {

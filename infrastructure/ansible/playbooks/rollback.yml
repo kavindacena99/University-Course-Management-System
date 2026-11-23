@@ -1,0 +1,22 @@
+---
+- name: Roll back images only to a recorded immutable release
+  hosts: platform
+  gather_facts: false
+  roles:
+    - preflight
+    - secrets
+  tasks:
+    - name: Refuse rollback without a previous recorded release
+      ansible.builtin.command:
+        argv:
+          - '{{ ansible_playbook_python }}'
+          - '{{ platform_root }}/infrastructure/scripts/platformctl.py'
+          - rollback
+          - --environment
+          - '{{ platform_environment }}'
+      register: rollback
+      changed_when: "'PLATFORM_CHANGED=true' in rollback.stdout"
+      when: not ansible_check_mode
+    - name: Validate recovery
+      ansible.builtin.include_role:
+        name: health-check

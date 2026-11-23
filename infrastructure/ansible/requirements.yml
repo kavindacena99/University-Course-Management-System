@@ -1,0 +1,3 @@
+---
+# Only ansible.builtin modules are required. No community collection dependency.
+collections: []

@@ -517,4 +517,3 @@ func (h *Handler) ReleaseGrade(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"grade": grade})
 }
-

@@ -33,7 +33,7 @@ services:
     volumes:
       - auth-db-data:/var/lib/postgresql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U auth_app -d authentication_and_security"]
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U auth_app -d authentication_and_security"]
       interval: 5s
       timeout: 3s
       retries: 12
@@ -51,7 +51,7 @@ services:
     volumes:
       - user-db-data:/var/lib/postgresql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U user_app -d users"]
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U user_app -d users"]
       interval: 5s
       timeout: 3s
       retries: 12
@@ -69,7 +69,7 @@ services:
     volumes:
       - course-db-data:/var/lib/postgresql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U course_app -d courses"]
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U course_app -d courses"]
       interval: 5s
       timeout: 3s
       retries: 12
@@ -87,7 +87,7 @@ services:
     volumes:
       - enrollment-db-data:/var/lib/postgresql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U enrollment_app -d enrollments"]
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U enrollment_app -d enrollments"]
       interval: 5s
       timeout: 3s
       retries: 12
@@ -105,7 +105,7 @@ services:
     volumes:
       - assessment-db-data:/var/lib/postgresql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U assessment_app -d assessments"]
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U assessment_app -d assessments"]
       interval: 5s
       timeout: 3s
       retries: 12
@@ -123,7 +123,7 @@ services:
     volumes:
       - analytics-db-data:/var/lib/postgresql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U analytics_app -d analytics"]
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U analytics_app -d analytics"]
       interval: 5s
       timeout: 3s
       retries: 12
@@ -132,7 +132,7 @@ services:
       - data
 
   minio:
-    image: pgsty/silo:RELEASE.2026-09-16T00-00-00Z
+    image: ${OBJECT_STORE_IMAGE:-pgsty/silo:RELEASE.2026-09-16T00-00-00Z}
     restart: unless-stopped
     entrypoint: ["/usr/bin/silo"]
     command: ["server", "/data"]
@@ -154,7 +154,7 @@ services:
     build:
       context: ../../services/assessment
       dockerfile: MinIOInit.Dockerfile
-    image: ucm-assessment-minio-init:local
+    image: ${ASSESSMENT_MINIO_INIT_IMAGE:-ucm-assessment-minio-init:local}
     restart: "no"
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:?set MINIO_ROOT_USER}
@@ -170,8 +170,7 @@ services:
 
   auth-migrate:
     build: ../../services/security-and-authentication
-    image: ucm-auth:local
-    env_file: ../../services/security-and-authentication/.env
+    image: ${AUTH_IMAGE:-ucm-auth:local}
     environment:
       DB_HOST: auth-db
       DB_PORT: "5432"
@@ -191,8 +190,7 @@ services:
 
   user-migrate:
     build: ../../services/user
-    image: ucm-user:local
-    env_file: ../../services/user/.env
+    image: ${USER_IMAGE:-ucm-user:local}
     environment:
       DB_HOST: user-db
       DB_PORT: "5432"
@@ -212,8 +210,7 @@ services:
 
   course-migrate:
     build: ../../services/course
-    image: ucm-course:local
-    env_file: ../../services/course/.env
+    image: ${COURSE_IMAGE:-ucm-course:local}
     environment:
       DB_HOST: course-db
       DB_PORT: "5432"
@@ -233,8 +230,7 @@ services:
 
   enrollment-migrate:
     build: ../../services/enrollment
-    image: ucm-enrollment:local
-    env_file: ../../services/enrollment/.env
+    image: ${ENROLLMENT_IMAGE:-ucm-enrollment:local}
     environment:
       DB_HOST: enrollment-db
       DB_PORT: "5432"
@@ -254,8 +250,7 @@ services:
 
   assessment-migrate:
     build: ../../services/assessment
-    image: ucm-assessment:local
-    env_file: ../../services/assessment/.env
+    image: ${ASSESSMENT_IMAGE:-ucm-assessment:local}
     environment:
       DB_HOST: assessment-db
       DB_PORT: "5432"
@@ -275,8 +270,7 @@ services:
 
   analytics-migrate:
     build: ../../services/analytics
-    image: ucm-analytics:local
-    env_file: ../../services/analytics/.env
+    image: ${ANALYTICS_IMAGE:-ucm-analytics:local}
     environment:
       DB_HOST: analytics-db
       DB_PORT: "5432"
@@ -295,9 +289,9 @@ services:
       - data
 
   auth:
-    image: ucm-auth:local
+    image: ${AUTH_IMAGE:-ucm-auth:local}
     restart: unless-stopped
-    env_file: ../../services/security-and-authentication/.env
+    env_file: ${AUTH_ENV_FILE:-../../services/security-and-authentication/.env}
     environment:
       BIND_HOST: 0.0.0.0
       AUTH_SERVICE_PORT: "8081"
@@ -330,9 +324,9 @@ services:
       - data
 
   user:
-    image: ucm-user:local
+    image: ${USER_IMAGE:-ucm-user:local}
     restart: unless-stopped
-    env_file: ../../services/user/.env
+    env_file: ${USER_ENV_FILE:-../../services/user/.env}
     environment:
       BIND_HOST: 0.0.0.0
       USER_SERVICE_PORT: "8082"
@@ -362,9 +356,9 @@ services:
       - data
 
   course:
-    image: ucm-course:local
+    image: ${COURSE_IMAGE:-ucm-course:local}
     restart: unless-stopped
-    env_file: ../../services/course/.env
+    env_file: ${COURSE_ENV_FILE:-../../services/course/.env}
     environment:
       BIND_HOST: 0.0.0.0
       COURSE_SERVICE_PORT: "8083"
@@ -395,9 +389,9 @@ services:
       - data
 
   enrollment:
-    image: ucm-enrollment:local
+    image: ${ENROLLMENT_IMAGE:-ucm-enrollment:local}
     restart: unless-stopped
-    env_file: ../../services/enrollment/.env
+    env_file: ${ENROLLMENT_ENV_FILE:-../../services/enrollment/.env}
     environment:
       BIND_HOST: 0.0.0.0
       ENROLLMENT_SERVICE_PORT: "8084"
@@ -435,9 +429,9 @@ services:
       - data
 
   assessment:
-    image: ucm-assessment:local
+    image: ${ASSESSMENT_IMAGE:-ucm-assessment:local}
     restart: unless-stopped
-    env_file: ../../services/assessment/.env
+    env_file: ${ASSESSMENT_ENV_FILE:-../../services/assessment/.env}
     environment:
       BIND_HOST: 0.0.0.0
       ASSESSMENT_SERVICE_PORT: "8085"
@@ -477,9 +471,9 @@ services:
       - data
 
   analytics:
-    image: ucm-analytics:local
+    image: ${ANALYTICS_IMAGE:-ucm-analytics:local}
     restart: unless-stopped
-    env_file: ../../services/analytics/.env
+    env_file: ${ANALYTICS_ENV_FILE:-../../services/analytics/.env}
     environment:
       BIND_HOST: 0.0.0.0
       ANALYTICS_SERVICE_PORT: "8086"
@@ -515,7 +509,7 @@ services:
 
   gateway:
     build: ../nginx
-    image: ucm-gateway:local
+    image: ${GATEWAY_IMAGE:-ucm-gateway:local}
     restart: unless-stopped
     ports:
       - "${GATEWAY_PORT:-8080}:8080"
@@ -545,7 +539,7 @@ services:
       dockerfile: Dockerfile
       args:
         VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8080}
-    image: ucm-frontend:local
+    image: ${FRONTEND_IMAGE:-ucm-frontend:local}
     restart: unless-stopped
     ports:
       - "${FRONTEND_PORT:-3000}:80"
