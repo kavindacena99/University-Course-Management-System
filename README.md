@@ -4,7 +4,7 @@ Group 5 · COSC 52083
 
 ## Overview
 
-This repository contains the current Go backend for identity, users, academic courses, student enrollment, assessment, and analytics.
+This repository contains the current Go backend for identity, users, academic courses, student enrollment, assessment, and analytics, plus a React frontend and a local Docker Compose stack.
 
 The codebase currently includes:
 
@@ -14,15 +14,18 @@ The codebase currently includes:
 - `services/enrollment` for student enrollment, capacity enforcement, and Assessment-facing eligibility checks
 - `services/assessment` for component assessments, private submissions, grading, and approved final-result imports
 - `services/analytics` for rebuildable academic reporting projections and GPA analytics
-- `infrastructure/nginx` as a basic reverse proxy in front of the services
+- `frontend` for the React/Vite user interface served by Nginx
+- `infrastructure/nginx` for the public API gateway
+- `infrastructure/docker` for the local Compose stack, with its environment template in `infrastructure/environments`
 
-The repository does not yet include a frontend UI. Course remains the authority for lecturer assignment; Assessment remains the authority for grades and final results.
+The frontend is a static React application served by Nginx. It currently has no API integration; when wired, it calls the gateway directly at `VITE_API_BASE_URL` (default `http://localhost:8080`). Course remains the authority for lecturer assignment; Assessment remains the authority for grades and final results.
 
 ## Documentation
 
 Detailed project documentation is available in the `docs/` directory:
 
 - [System Architecture](docs/architecture.md)
+- [Infrastructure Architecture](docs/infrastructure/architecture.md)
 - [User Service](docs/user-service.md)
 - [Course Service](docs/course-service.md)
 - [Enrollment Service](services/enrollment/README.md)
@@ -52,15 +55,27 @@ Original design documents:
 
 ```text
 .
+├── .gitattributes
 ├── LICENSE
 ├── README.md
 ├── consider.txt
 ├── docs/
+│   ├── infrastructure/
 │   ├── openapi/
 │   ├── *.md
 │   ├── Solution_Security_v1.0.0.pdf
 │   └── System_Architecture_v1.1.0.pdf
+├── frontend/
+│   ├── Dockerfile
+│   ├── nginx.conf
+│   ├── src/
+│   └── ...
 ├── infrastructure/
+│   ├── docker/
+│   │   ├── compose.yaml
+│   │   └── compose.dev.yaml
+│   ├── environments/
+│   │   └── dev/.env.example
 │   └── nginx/
 ├── services/
 │   ├── security-and-authentication/
@@ -115,28 +130,37 @@ Original design documents:
 
 - Go 1.27.2
 - Gin HTTP framework
-- PostgreSQL with `pgx/v5`
+- PostgreSQL 18 with `pgx/v5`
 - Ed25519 JWT authentication
 - Argon2 password hashing
 - `golang-migrate` for schema migration
 - NGINX reverse proxy
+- Node 22, pnpm 10.34.3, React 19, Vite 8, and Tailwind 4
+- Docker Compose for the local integration stack
 
 ## Architecture
 
 ```text
-NGINX (port 8080)
-  ├── /api/v1/auth/         -> auth service (127.0.0.1:8081)
-  ├── /api/v1/admin/auth/   -> auth service (127.0.0.1:8081)
-  ├── /api/v1/users/        -> user service (127.0.0.1:8082)
-  ├── /api/v1/admin/users/  -> user service (127.0.0.1:8082)
-  ├── /api/v1/courses/, /api/v1/admin/courses/ -> course service (127.0.0.1:8083)
-  ├── /api/v1/offerings/, /api/v1/admin/offerings/ -> course service (127.0.0.1:8083)
-  ├── /api/v1/enrollments/, student/Offering enrollment routes -> enrollment service (127.0.0.1:8084)
-  ├── assessment, submission, and result routes -> assessment service (127.0.0.1:8085)
-  └── /api/v1/analytics/ -> analytics service (127.0.0.1:8086)
+Browser
+  ├── :3000 -> frontend Nginx (static React SPA)
+  └── :8080 -> API gateway NGINX
+        ├── /api/v1/auth/         -> auth service (auth:8081)
+        ├── /api/v1/admin/auth/   -> auth service (auth:8081)
+        ├── /api/v1/users/        -> user service (user:8082)
+        ├── /api/v1/admin/users/  -> user service (user:8082)
+        ├── /api/v1/courses/, /api/v1/admin/courses/ -> course service (course:8083)
+        ├── /api/v1/offerings/, /api/v1/admin/offerings/ -> course service (course:8083)
+        ├── /api/v1/enrollments/, student/Offering enrollment routes -> enrollment service (enrollment:8084)
+        ├── assessment, submission, and result routes -> assessment service (assessment:8085)
+        └── /api/v1/analytics/ -> analytics service (analytics:8086)
 ```
 
-The six domain services are separate Go applications. Internal integrations use signed HTTP; released grades and imported final results are transactionally written to Assessment's outbox and projected by Analytics.
+Docker Compose uses service-name upstreams and publishes only frontend port
+`3000` and gateway port `8080`. Host-run development uses loopback upstreams
+on ports `8081` through `8086`. The six domain services are separate Go
+applications. Internal integrations use signed HTTP; released grades and
+imported final results are transactionally written to Assessment's outbox and
+projected by Analytics.
 
 ## Service responsibilities
 
@@ -260,6 +284,8 @@ The current implementation includes:
 - Go toolchain
 - PostgreSQL instance
 - NGINX
+- Docker Desktop (for the Compose stack)
+- Node 22 and pnpm 10.34.3 (for the frontend)
 - JWT key material for the auth service
 - environment variables configured per service
 
@@ -270,11 +296,14 @@ cp services/security-and-authentication/.env.example services/security-and-authe
 cp services/user/.env.example services/user/.env
 cp services/course/.env.example services/course/.env
 cp services/enrollment/.env.example services/enrollment/.env
+cp services/assessment/.env.example services/assessment/.env
+cp services/analytics/.env.example services/analytics/.env
 ```
 
 Set the database credentials, a shared `INTERNAL_SERVICE_SECRET` (32+
 characters), and matching `AUTH_JWT_PUBLIC_KEYS_JSON` values in User, Course,
-and Enrollment generated from Auth's public key. Never commit `.env` files.
+Enrollment, Assessment, and Analytics generated from Auth's public key. Never
+commit `.env` files.
 
 ### 2. Generate JWT keys
 
@@ -305,6 +334,16 @@ cd services/enrollment
 go run ./cmd/migrate -direction up
 ```
 
+```bash
+cd services/assessment
+go run ./cmd/migrate -direction up
+```
+
+```bash
+cd services/analytics
+go run ./cmd/migrate -direction up
+```
+
 ### 4. Start the services
 
 ```bash
@@ -327,6 +366,16 @@ cd services/enrollment
 go run .
 ```
 
+```bash
+cd services/assessment
+go run .
+```
+
+```bash
+cd services/analytics
+go run .
+```
+
 ### 5. Optional admin bootstrap
 
 ```bash
@@ -335,6 +384,43 @@ go run ./cmd/bootstrap-admin --email admin@example.com --first-name Admin --last
 ```
 
 This requires `ADMIN_BOOTSTRAP_TOKEN` to be configured.
+
+### 6. Frontend
+
+The frontend uses Node 22 and pnpm 10.34.3 (see `.mise.toml`):
+
+```bash
+cd frontend
+corepack enable
+pnpm install --frozen-lockfile
+pnpm dev
+```
+
+Vite serves on port `8443` by default; set `PORT` to override it. The
+application currently has no API integration. The production image is built
+from `frontend/Dockerfile`.
+
+### 7. Docker Compose
+
+The local integration stack is defined in `infrastructure/docker/compose.yaml`
+with a development override in `compose.dev.yaml`:
+
+```bash
+cp infrastructure/environments/dev/.env.example infrastructure/docker/.env
+docker compose -f infrastructure/docker/compose.yaml -f infrastructure/docker/compose.dev.yaml -p platform-dev config --quiet
+docker compose -f infrastructure/docker/compose.yaml -f infrastructure/docker/compose.dev.yaml -p platform-dev up -d --build
+```
+
+Set values in `infrastructure/docker/.env` and the six service `.env` files.
+Auth's generated key directory is mounted read-only. The stack publishes only
+frontend port `3000` and gateway port `8080`; open `http://localhost:3000` and
+`http://localhost:8080/health`. The object store uses the maintained
+`pgsty/silo` fork because MinIO community-edition images are no longer
+published. Stop with `docker compose ... down`; add `-v` only when
+intentionally deleting local data. Scale a stateless service with
+`docker compose ... up -d --scale auth=2`; the gateway re-resolves Docker DNS
+every 10 seconds. See [Infrastructure Architecture](docs/infrastructure/architecture.md)
+and [Development Setup](docs/development-setup.md).
 
 ## Testing
 
@@ -367,15 +453,25 @@ go test ./...
 TEST_DATABASE_URL='postgres://enrollment_app:password@127.0.0.1:5432/enrollments_test?sslmode=disable' go test ./internal/...
 ```
 
+```bash
+cd services/assessment
+go test ./...
+```
+
+```bash
+cd services/analytics
+go test ./...
+```
+
 ## Known gaps
 
 The repository does not yet include:
-- a frontend or browser application
-- timetable, result, and assessment workflows
-- Docker container verification of the local Compose stack
+- frontend API integration (the UI is currently static)
+- a complete end-to-end university workflow beyond identity and authorization
 - CI/CD workflow configuration
 - production deployment manifests
-- a complete end-to-end university workflow beyond identity and authorization
+- production TLS and secret-management configuration
+- external activation and password-reset notification delivery
 
 ## License
 

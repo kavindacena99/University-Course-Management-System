@@ -98,9 +98,12 @@ go run ./cmd/migrate -direction version
 go run .
 ```
 
-The repository Compose stack includes Assessment PostgreSQL, MinIO, migration
-and API containers; see [`../../compose.yaml`](../../compose.yaml). Its `.env`
-files and generated Auth keys are intentionally not committed.
+The repository Compose stack includes Assessment PostgreSQL, the private
+object store, migration and API containers; see
+[`../../infrastructure/docker/compose.yaml`](../../infrastructure/docker/compose.yaml).
+The stack uses the maintained `pgsty/silo` object-storage fork because MinIO
+community-edition images are no longer published. Its `.env` files and
+generated Auth keys are intentionally not committed.
 
 ## Validation
 

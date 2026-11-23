@@ -105,12 +105,12 @@ Important environment values:
 | Cookie/CSRF, CORS, trusted proxy, HTTP timeout values | Edge security and operations |
 
 In Docker, set `BIND_HOST=0.0.0.0` and use service DNS names, not localhost,
-for dependencies. `../../compose.yaml` is a local integration stack with
-private service and database ports; it requires configured ignored `.env`
-files, Auth's mounted Ed25519 key, MinIO root credentials, scoped Assessment
-object-store credentials, and five exported DB passwords. An isolated
-Compose stack built and reached readiness on 2026-11-14; production deployment
-readiness has not been established.
+for dependencies. `../../infrastructure/docker/compose.yaml` is a local
+integration stack with private service and database ports; it requires
+configured ignored `.env` files, Auth's mounted Ed25519 key, object-store
+credentials, scoped Assessment object-store credentials, and six Compose-level
+DB passwords. The full stack built and reached readiness on 2026-11-22;
+production deployment readiness has not been established.
 
 ## Tests
 

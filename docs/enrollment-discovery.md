@@ -1,19 +1,28 @@
 # Enrollment Service discovery and integration decisions
 
 This report records the source-code investigation before Enrollment Service
-implementation. It describes current contracts, not proposed endpoints.
+implementation. It describes contracts at that time, not proposed endpoints.
+
+> Historical note: the repository now also contains Enrollment, Assessment,
+> Analytics, the React frontend, and the Docker Compose stack. See
+> [architecture.md](architecture.md) and
+> [infrastructure/architecture.md](infrastructure/architecture.md) for the
+> current state. The integration decisions below remain the record of the
+> original investigation.
 
 ## Repository and conventions
 
 - The implemented services are `services/security-and-authentication`,
-  `services/user`, and `services/course`. Each is a separate Go 1.27.2 module
-  using Gin, pgx/v5, PostgreSQL, `golang-migrate` versioned up/down SQL files,
-  environment-based configuration, structured `slog` JSON logs, request IDs,
-  health/readiness routes, and graceful HTTP shutdown.
-- `infrastructure/nginx` routes the three public `/api/v1` namespaces and
-  does not proxy `/internal/*`. The current upstreams use host loopback. The
-  `frontend` directory has no tracked application files. No Compose file or
-  CI workflow is present.
+  `services/user`, `services/course`, `services/enrollment`,
+  `services/assessment`, and `services/analytics`. Each is a separate Go
+  1.27.2 module using Gin, pgx/v5, PostgreSQL, `golang-migrate` versioned
+  up/down SQL files, environment-based configuration, structured `slog` JSON
+  logs, request IDs, health/readiness routes, and graceful HTTP shutdown.
+- `infrastructure/nginx` routes the six public `/api/v1` namespaces and does
+  not proxy `/internal/*`. Host development uses loopback upstreams; the
+  Docker Compose gateway uses service-name upstreams. The `frontend` directory
+  contains the React application, and `infrastructure/docker/compose.yaml`
+  defines the local stack. No CI workflow is present.
 - Each service owns its own database. Repository integration tests use a
   dedicated `TEST_DATABASE_URL` and refuse a non-test database name. The
   error envelope is `{"error":{"code":"...","message":"...","request_id":"..."}}`.

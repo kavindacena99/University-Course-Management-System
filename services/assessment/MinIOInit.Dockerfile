@@ -1,4 +1,4 @@
-FROM minio/mc:latest AS mc
+FROM pgsty/silo:RELEASE.2026-09-16T00-00-00Z AS mc
 
 FROM alpine:3.22
 

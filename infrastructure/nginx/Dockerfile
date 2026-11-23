@@ -1,11 +1,10 @@
 # Custom API gateway image.
 #
-# The stable Alpine tag is used deliberately: dynamic upstream re-resolution
-# (`resolve` in an upstream server) requires NGINX 1.27.3 or newer, and the
-# stable tag satisfies that requirement. Pin an exact patch tag in production
-# if reproducible image digests are required.
+# This tested digest contains NGINX 1.30.7. Dynamic upstream re-resolution
+# (`resolve` in an upstream server) requires NGINX 1.27.3 or newer.
+# Update the digest deliberately and repeat DNS/scaling validation.
 
-FROM nginx:stable-alpine
+FROM nginx:stable-alpine@sha256:caf4e1e032a20f9c3c5e28fc7f25ffd768ad8677b4975c54193075997b3a97e3
 
 # Remove the stock default server and route relative log/pid paths to the
 # image's stdout/stderr-backed log directory.
