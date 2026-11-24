@@ -12,7 +12,7 @@ permissions:
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   backend:
@@ -143,27 +143,150 @@ jobs:
         with:
           persist-credentials: false
       - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+      - name: Prepare isolated image output
+        id: image-meta
+        run: |
+          mkdir -p "$RUNNER_TEMP/image"
+          echo "created=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
       - uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
           context: ${{ matrix.context }}
           file: ${{ matrix.file }}
           push: false
-          load: true
+          platforms: linux/amd64
+          outputs: type=oci,dest=${{ runner.temp }}/image/image.tar
+          sbom: true
+          provenance: mode=max
           tags: ucm-${{ matrix.name }}:ci
+          build-args: ${{ matrix.name == 'frontend' && 'VITE_API_BASE_URL=' || '' }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=sha-${{ github.sha }}
+            org.opencontainers.image.created=${{ steps.image-meta.outputs.created }}
+            org.opencontainers.image.title=${{ matrix.name }}
+            org.opencontainers.image.description=University Course Management System ${{ matrix.name }} runtime
           cache-from: type=gha,scope=${{ matrix.name }}
           cache-to: type=gha,mode=max,scope=${{ matrix.name }}
+      - name: Unpack OCI layout for the existing Trivy scanner
+        run: python -B infrastructure/scripts/registry_pipeline.py unpack --directory "$RUNNER_TEMP/image"
       - name: Scan image dependencies
         run: >-
-          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock
-          -v "$RUNNER_TEMP:/reports"
+          docker run --rm -v "$RUNNER_TEMP/image:/reports"
           aquasec/trivy:0.76.2@sha256:8f6bb947dbc528902e11f2f5be52f7b519f6a39d5d148f41166f2040499768fb image --scanners vuln --severity HIGH,CRITICAL
-          --format json --output /reports/image-scan.json --exit-code 1 ucm-${{ matrix.name }}:ci
+          --timeout 15m --format json --output /reports/image-scan.json --exit-code 1 --input /reports/scan-layout
+      - name: Verify source and attestation bundle
+        if: matrix.name != 'postgres'
+        env:
+          IMAGE_SERVICE: ${{ matrix.name }}
+        run: python -B infrastructure/scripts/registry_pipeline.py prepare --directory "$RUNNER_TEMP/image" --service "$IMAGE_SERVICE"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: matrix.name != 'postgres'
+        with:
+          name: image-${{ matrix.name }}
+          path: |
+            ${{ runner.temp }}/image/image.tar
+            ${{ runner.temp }}/image/image-scan.json
+            ${{ runner.temp }}/image/build.json
+          compression-level: 0
+          retention-days: 7
+          if-no-files-found: error
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
           name: image-scan-${{ matrix.name }}
-          path: ${{ runner.temp }}/image-scan.json
+          path: ${{ runner.temp }}/image/image-scan.json
           retention-days: 14
       - name: Image result
         if: always()
         run: echo 'Image ${{ matrix.name }} build/scan status ${{ job.status }}; HIGH/CRITICAL findings fail the job; no publication.' >> "$GITHUB_STEP_SUMMARY"
+
+  publication-prerequisites:
+    needs: [backend, frontend, infrastructure, images]
+    if: >-
+      github.repository == 'kavindacena99/University-Course-Management-System' &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
+      github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Require protected default branch and reviewed prerequisites
+        env:
+          GITHUB_REF_PROTECTED: ${{ github.ref_protected }}
+        run: python -B infrastructure/scripts/registry_pipeline.py gate
+
+  publish:
+    needs: [backend, frontend, infrastructure, images, publication-prerequisites]
+    if: >-
+      github.repository == 'kavindacena99/University-Course-Management-System' &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
+      github.ref == format('refs/heads/{0}', github.event.repository.default_branch) &&
+      github.ref_protected
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    concurrency:
+      group: ghcr-${{ github.repository }}-${{ github.sha }}
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      packages: write
+    env:
+      GITHUB_REF_PROTECTED: ${{ github.ref_protected }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Recheck prerequisites before authentication
+        run: python -B infrastructure/scripts/registry_pipeline.py gate
+      - name: Configure ephemeral registry credential paths
+        run: |
+          echo "REGISTRY_AUTH_FILE=$RUNNER_TEMP/registry-auth.json" >> "$GITHUB_ENV"
+          echo "DOCKER_CONFIG=$RUNNER_TEMP/docker-auth" >> "$GITHUB_ENV"
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: image-*
+          path: ${{ runner.temp }}/publication
+      - name: Install OCI copy tooling
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y skopeo
+          python -m pip install -r infrastructure/scripts/requirements.txt
+      - name: Authenticate with repository-scoped GITHUB_TOKEN
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GHCR_ACTOR: ${{ github.actor }}
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -p "$DOCKER_CONFIG"
+          printf '%s' "$GHCR_TOKEN" | skopeo login --authfile "$REGISTRY_AUTH_FILE" --username "$GHCR_ACTOR" --password-stdin ghcr.io
+          printf '%s' "$GHCR_TOKEN" | docker login --username "$GHCR_ACTOR" --password-stdin ghcr.io
+      - name: Publish the already scanned OCI archives and verify registry pulls
+        env:
+          TRIVY_USERNAME: ${{ github.actor }}
+          TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+        run: python -B infrastructure/scripts/registry_pipeline.py publish --directory "$RUNNER_TEMP/publication"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: image-manifest-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/publication/image-manifest.json
+            ${{ runner.temp }}/publication/images.env
+          retention-days: 90
+          if-no-files-found: error
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: publication-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/publication/**/publication.json
+            ${{ runner.temp }}/publication/**/published-digest.txt
+            ${{ runner.temp }}/publication/**/registry-scan.json
+          retention-days: 90
+      - name: Remove ephemeral registry credentials
+        if: always()
+        run: rm -f "$REGISTRY_AUTH_FILE" "$DOCKER_CONFIG/config.json"
