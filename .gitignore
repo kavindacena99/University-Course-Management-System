@@ -17,6 +17,9 @@ infrastructure/nginx/temp/
 .infra-state/
 infrastructure/environments/*/runtime/
 infrastructure/environments/*/secrets/
+infrastructure/environments/*/target-secrets/
+infrastructure/environments/*/target-runtime/
+infrastructure/environments/*/postgres.env
 infrastructure/ansible/**/vault.yml
 !infrastructure/ansible/**/vault.yml.example
 *vault-pass*

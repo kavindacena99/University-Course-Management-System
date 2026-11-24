@@ -1,0 +1,195 @@
+# Prepared consolidated target only. Legacy compose.yaml remains the active default.
+# Never deploy a target against a legacy project or legacy volume without authorized cutover.
+name: ${PG_PROJECT:?select target project}
+x-runtime: &runtime
+  read_only: true
+  cap_drop: [ALL]
+  tmpfs: ["/tmp:rw,noexec,nosuid,size=16m"]
+  mem_limit: 384m
+  cpus: 1.0
+  pids_limit: 128
+x-edge: &edge
+  read_only: true
+  cap_drop: [ALL]
+  cap_add: [CHOWN, SETUID, SETGID]
+  tmpfs: ["/tmp:rw,noexec,nosuid,size=16m", "/var/cache/nginx:rw,noexec,nosuid,size=32m", "/var/run:rw,noexec,nosuid,size=4m"]
+  mem_limit: 128m
+  pids_limit: 64
+services:
+  postgres:
+    extends: {file: compose.postgres.yaml, service: postgres}
+  auth-migrate:
+    extends: {file: compose.yaml, service: auth-migrate}
+    environment:
+      DB_HOST: postgres
+      DB_USER: auth_migrator
+      DB_PASSWORD: ${AUTH_MIGRATION_DB_PASSWORD:?migration secret required}
+    depends_on: !override
+      postgres: {condition: service_healthy}
+  auth:
+    <<: *runtime
+    extends: {file: compose.yaml, service: auth}
+    environment:
+      DB_HOST: postgres
+      APP_ENV: ${TARGET_APP_ENV:?select application environment}
+      LOG_LEVEL: info
+    depends_on:
+      db-permissions: {condition: service_completed_successfully}
+    volumes: !reset []
+    secrets: [auth_signing_key]
+  user-migrate:
+    extends: {file: compose.yaml, service: user-migrate}
+    environment:
+      DB_HOST: postgres
+      DB_USER: user_migrator
+      DB_PASSWORD: ${USER_MIGRATION_DB_PASSWORD:?migration secret required}
+    depends_on: !override
+      postgres: {condition: service_healthy}
+  user:
+    <<: *runtime
+    extends: {file: compose.yaml, service: user}
+    environment:
+      DB_HOST: postgres
+      APP_ENV: ${TARGET_APP_ENV:?select application environment}
+      LOG_LEVEL: info
+    depends_on:
+      db-permissions: {condition: service_completed_successfully}
+  course-migrate:
+    extends: {file: compose.yaml, service: course-migrate}
+    environment:
+      DB_HOST: postgres
+      DB_USER: course_migrator
+      DB_PASSWORD: ${COURSE_MIGRATION_DB_PASSWORD:?migration secret required}
+    depends_on: !override
+      postgres: {condition: service_healthy}
+  course:
+    <<: *runtime
+    extends: {file: compose.yaml, service: course}
+    environment:
+      DB_HOST: postgres
+      APP_ENV: ${TARGET_APP_ENV:?select application environment}
+      LOG_LEVEL: info
+    depends_on:
+      db-permissions: {condition: service_completed_successfully}
+  enrollment-migrate:
+    extends: {file: compose.yaml, service: enrollment-migrate}
+    environment:
+      DB_HOST: postgres
+      DB_USER: enrollment_migrator
+      DB_PASSWORD: ${ENROLLMENT_MIGRATION_DB_PASSWORD:?migration secret required}
+    depends_on: !override
+      postgres: {condition: service_healthy}
+  enrollment:
+    <<: *runtime
+    extends: {file: compose.yaml, service: enrollment}
+    environment:
+      DB_HOST: postgres
+      APP_ENV: ${TARGET_APP_ENV:?select application environment}
+      LOG_LEVEL: info
+    depends_on:
+      db-permissions: {condition: service_completed_successfully}
+  assessment-migrate:
+    extends: {file: compose.yaml, service: assessment-migrate}
+    environment:
+      DB_HOST: postgres
+      DB_USER: assessment_migrator
+      DB_PASSWORD: ${ASSESSMENT_MIGRATION_DB_PASSWORD:?migration secret required}
+    depends_on: !override
+      postgres: {condition: service_healthy}
+  assessment:
+    <<: *runtime
+    extends: {file: compose.yaml, service: assessment}
+    environment:
+      DB_HOST: postgres
+      APP_ENV: ${TARGET_APP_ENV:?select application environment}
+      LOG_LEVEL: info
+    depends_on:
+      db-permissions: {condition: service_completed_successfully}
+  analytics-migrate:
+    extends: {file: compose.yaml, service: analytics-migrate}
+    environment:
+      DB_HOST: postgres
+      DB_USER: analytics_migrator
+      DB_PASSWORD: ${ANALYTICS_MIGRATION_DB_PASSWORD:?migration secret required}
+    depends_on: !override
+      postgres: {condition: service_healthy}
+  analytics:
+    <<: *runtime
+    extends: {file: compose.yaml, service: analytics}
+    environment:
+      DB_HOST: postgres
+      APP_ENV: ${TARGET_APP_ENV:?select application environment}
+      LOG_LEVEL: info
+    depends_on:
+      db-permissions: {condition: service_completed_successfully}
+  frontend:
+    <<: *edge
+    extends: {file: compose.yaml, service: frontend}
+    cap_add: [CHOWN, SETUID, SETGID, NET_BIND_SERVICE]
+    volumes:
+      - ${FRONTEND_CONFIG_FILE:?}:/etc/nginx/conf.d/default.conf:ro
+    ports: !override
+      - "127.0.0.1:${FRONTEND_PORT:?}:80"
+  gateway:
+    <<: *edge
+    extends: {file: compose.yaml, service: gateway}
+    volumes:
+      - ${GATEWAY_CONFIG_FILE:?}:/etc/nginx/nginx.conf:ro
+    ports: !override
+      - "127.0.0.1:${GATEWAY_PORT:?}:8080"
+  minio:
+    extends: {file: compose.yaml, service: minio}
+    command: [server, --address, "127.0.0.1:19000", --console-address, "127.0.0.1:19001", /data]
+    mem_limit: 512m
+    cpus: 1
+    pids_limit: 128
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    healthcheck:
+      test: [CMD, curl, --fail, --silent, http://127.0.0.1:19000/minio/health/live]
+  storage-guard:
+    extends: {file: compose.storage-guard.yaml, service: storage-guard}
+  assessment-minio-init:
+    extends: {file: compose.yaml, service: assessment-minio-init}
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    tmpfs: ["/tmp:rw,noexec,nosuid,size=16m"]
+    depends_on:
+      storage-guard: {condition: service_healthy}
+  db-permissions:
+    image: ${POSTGRES_IMAGE:?}
+    entrypoint: [/bin/sh, /provision/finalize-permissions.sh]
+    restart: "no"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    tmpfs: ["/tmp:rw,noexec,nosuid,size=4m", "/var/lib/postgresql:rw,noexec,nosuid,size=1m"]
+    volumes:
+      - ../postgres/finalize-permissions.sh:/provision/finalize-permissions.sh:ro
+      - ../postgres/permissions.sql:/provision/permissions.sql:ro
+    secrets: [pg_migration_passwords]
+    networks: [data]
+    depends_on:
+      auth-migrate: {condition: service_completed_successfully}
+      user-migrate: {condition: service_completed_successfully}
+      course-migrate: {condition: service_completed_successfully}
+      enrollment-migrate: {condition: service_completed_successfully}
+      assessment-migrate: {condition: service_completed_successfully}
+      analytics-migrate: {condition: service_completed_successfully}
+volumes:
+  postgres-data:
+  minio-data:
+networks:
+  edge:
+  backend:
+  data:
+secrets:
+  pg_admin_password:
+    file: ${PG_ADMIN_PASSWORD_FILE:?}
+  pg_bootstrap_sql:
+    file: ${PG_BOOTSTRAP_SQL_FILE:?}
+  pg_migration_passwords:
+    file: ${PG_MIGRATION_PASSWORD_FILE:?}
+  auth_signing_key:
+    file: ${AUTH_PRIVATE_KEY_FILE:?}

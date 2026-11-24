@@ -15,16 +15,19 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--tag', default='phase345')
     parser.add_argument('--skip-db-update', action='store_true')
+    parser.add_argument('--output-dir', type=Path, help='Separate evidence directory; preserve historical scan summaries')
+    parser.add_argument('--only', choices=local.IMAGES, help='Retry one image, retaining other results in this evidence directory')
     args = parser.parse_args()
     cache = local.ROOT / '.infra-state/trivy'
-    reports = local.ROOT / '.infra-state/security'
+    reports = (args.output_dir or (local.ROOT / '.infra-state/security')).resolve()
     reports.mkdir(parents=True, exist_ok=True)
-    summary = {}
+    previous = reports / 'image-scan-summary.json'
+    summary = json.loads(previous.read_text()) if args.only and previous.exists() else {}
     run_id = datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')
-    for service in local.IMAGES:
+    for service in ([args.only] if args.only else local.IMAGES):
         output = service + '-' + run_id + '-vulnerabilities.json'
         image = f'ucm-{service}:{args.tag}'
-        command = ['docker', 'run', '--rm', '--mount',
+        command = ['docker', 'run', '--rm', '--label', 'ucm.validation=phase123', '--mount',
                    f'type=bind,source={cache},target=/root/.cache/trivy', '--mount',
                    f'type=bind,source={reports},target=/reports', '--mount',
                    'type=bind,source=/var/run/docker.sock,target=/var/run/docker.sock',
@@ -34,6 +37,7 @@ def main():
         if args.skip_db_update:
             command.append('--skip-db-update')
         result = subprocess.run(command + [image], capture_output=True, text=True)
+        (reports / (output + '.log')).write_text(result.stderr, encoding='utf-8')
         path = reports / output
         if result.returncode not in (0, 1) or not path.exists():
             summary[service] = {'status': 'scanner-error', 'exit_code': result.returncode}

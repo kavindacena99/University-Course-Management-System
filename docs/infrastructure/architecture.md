@@ -1,5 +1,37 @@
 # Infrastructure Architecture
 
+## Current roadmap baseline and inactive consolidated target — 2026-11-23
+
+The [new integration report](phase-1-2-3-integration-report.md) and
+[updated evidence ledger](updated-infrastructure-validation-ledger.md) supersede
+the operational-state claims in the historical sections below. All 66 legacy
+DEV/QA/PROD-like containers were stopped at this implementation's entry and
+remain stopped; their IDs, start timestamps and volumes were preserved.
+`compose.yaml` and its existing environment overrides remain the legacy default,
+with six PostgreSQL containers per environment. No environment was cut over.
+
+`infrastructure/docker/compose.target.yaml` separately prepares one PostgreSQL
+18.7 cluster with six logical databases per target environment, independent
+admin/migrator/runtime credentials, project-scoped networks and one PostgreSQL
+plus one object-data volume. DEV/QA/PROD-like targets are inactive, with ports
+3000/8080, 3001/8081 and 3002/8082 respectively; do not start them alongside the
+corresponding legacy port mappings. Only the distinct
+`platform-qa-pg-rehearsal-20261123` project was exercised, using new data volumes
+and loopback 3101/8181. Its restored-data, privilege, persistence and full runtime
+checks passed and it was stopped afterward. See the
+[database implementation report](phase-1-implementation-report.md) for the exact
+role model, backup evidence and remaining Auth compatibility failure.
+
+GitHub-hosted CI now validates eight Compose models and ten image builds/scans
+without publishing or deployment. Existing publishing/preparation workflows are
+manual fail-safe holds pending a future release phase. No GHCR access, remote CI
+pass or immutable release-promotion mechanism is claimed. Supporting object-store
+HIGH disposition and Auth's real-DB permission test remain unresolved. WSL Docker
+socket access remains unavailable; Windows Docker Desktop is the tested engine.
+
+The remaining sections are the preserved historical architecture and commands;
+they must not be read as authorization to start or cut over any environment.
+
 Last validated: 2026-11-23 on Docker Desktop's Linux engine (Docker 29.9.3,
 Compose v5.7.0).
 

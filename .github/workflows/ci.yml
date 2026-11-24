@@ -3,9 +3,9 @@ name: CI
 on:
   pull_request:
   push:
-    branches-ignore: [main]
     tags-ignore: ['**']
   workflow_call:
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -39,8 +39,26 @@ jobs:
           go mod download
           go mod verify
           go mod tidy -diff
-          go test ./...
+          set -o pipefail
+          go test -json ./... | tee "$RUNNER_TEMP/backend-test.json"
           go vet ./...
+          go build -trimpath -o "$RUNNER_TEMP/service" .
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: backend-tests-${{ matrix.service }}
+          path: ${{ runner.temp }}/backend-test.json
+          retention-days: 14
+      - name: Summarize passed, failed and skipped tests
+        if: always()
+        shell: python
+        run: |
+          import json, os, pathlib
+          p = pathlib.Path(os.environ['RUNNER_TEMP']) / 'backend-test.json'
+          events = [json.loads(line) for line in p.read_text().splitlines()] if p.exists() else []
+          counts = {a: sum(e.get('Action') == a and bool(e.get('Test')) for e in events) for a in ('pass', 'fail', 'skip')}
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as summary:
+              summary.write('Backend test events: ' + str(counts) + '\nDatabase integration tests need explicit disposable fixtures; skipped tests are not passes.\n')
 
   frontend:
     runs-on: ubuntu-latest
@@ -66,6 +84,9 @@ jobs:
           CI: 'true'
       - run: pnpm build
       - run: pnpm audit --prod --audit-level high
+      - name: Frontend result
+        if: always()
+        run: echo 'Frontend job status ${{ job.status }}; API integration and missing lint/unit scripts are tracked separately.' >> "$GITHUB_STEP_SUMMARY"
 
   infrastructure:
     runs-on: ubuntu-latest
@@ -82,7 +103,8 @@ jobs:
       - run: python -m unittest discover -s tests/infrastructure -v
       - name: Scan committed history for secrets
         run: docker run --rm -v "$PWD:/repo:ro" ghcr.io/gitleaks/gitleaks:v8.30.1@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f git /repo --config /repo/.gitleaks.toml --redact --no-banner --log-opts=--all
-      - run: python infrastructure/scripts/ci_models.py
+      - name: Validate legacy and consolidated Compose configurations with isolated inputs
+        run: python -B infrastructure/scripts/ci_models.py
       - name: Ansible inventories and playbook syntax
         working-directory: infrastructure/ansible
         env:
@@ -94,7 +116,10 @@ jobs:
               ansible-playbook -i "inventories/$inventory/hosts.yml" "playbooks/$playbook.yml" --syntax-check
             done
           done
-      - run: git diff --check
+      - name: Verify clean tracked inputs
+        run: git diff --check
+      - name: Summarize infrastructure checks
+        run: echo "Ten isolated Compose configurations and safety tests validated; no application deployment or publishing." >> "$GITHUB_STEP_SUMMARY"
 
   images:
     runs-on: ubuntu-latest
@@ -110,6 +135,7 @@ jobs:
           - {name: assessment, context: services/assessment, file: services/assessment/Dockerfile}
           - {name: analytics, context: services/analytics, file: services/analytics/Dockerfile}
           - {name: frontend, context: frontend, file: frontend/Dockerfile}
+          - {name: postgres, context: infrastructure/postgres, file: infrastructure/postgres/Dockerfile}
           - {name: gateway, context: infrastructure/nginx, file: infrastructure/nginx/Dockerfile}
           - {name: assessment-minio-init, context: services/assessment, file: services/assessment/MinIOInit.Dockerfile}
     steps:
@@ -129,5 +155,15 @@ jobs:
       - name: Scan image dependencies
         run: >-
           docker run --rm -v /var/run/docker.sock:/var/run/docker.sock
+          -v "$RUNNER_TEMP:/reports"
           aquasec/trivy:0.76.2@sha256:8f6bb947dbc528902e11f2f5be52f7b519f6a39d5d148f41166f2040499768fb image --scanners vuln --severity HIGH,CRITICAL
-          --exit-code 1 ucm-${{ matrix.name }}:ci
+          --format json --output /reports/image-scan.json --exit-code 1 ucm-${{ matrix.name }}:ci
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: image-scan-${{ matrix.name }}
+          path: ${{ runner.temp }}/image-scan.json
+          retention-days: 14
+      - name: Image result
+        if: always()
+        run: echo 'Image ${{ matrix.name }} build/scan status ${{ job.status }}; HIGH/CRITICAL findings fail the job; no publication.' >> "$GITHUB_STEP_SUMMARY"
