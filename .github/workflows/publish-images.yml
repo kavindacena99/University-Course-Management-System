@@ -1,118 +1,17 @@
-name: Publish images
+name: Image publishing deferred
 
 on:
-  push:
-    branches: [main]
-    tags: ['v*']
   workflow_dispatch:
 
 permissions:
   contents: read
 
-concurrency:
-  group: publish-${{ github.ref }}
-  cancel-in-progress: false
-
 jobs:
-  verify:
-    uses: ./.github/workflows/ci.yml
-    permissions:
-      contents: read
-
-  publish:
-    needs: verify
-    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
+  deferred:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
-    permissions:
-      contents: read
-      packages: write
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - {name: auth, key: AUTH_IMAGE, context: services/security-and-authentication, file: services/security-and-authentication/Dockerfile}
-          - {name: user, key: USER_IMAGE, context: services/user, file: services/user/Dockerfile}
-          - {name: course, key: COURSE_IMAGE, context: services/course, file: services/course/Dockerfile}
-          - {name: enrollment, key: ENROLLMENT_IMAGE, context: services/enrollment, file: services/enrollment/Dockerfile}
-          - {name: assessment, key: ASSESSMENT_IMAGE, context: services/assessment, file: services/assessment/Dockerfile}
-          - {name: analytics, key: ANALYTICS_IMAGE, context: services/analytics, file: services/analytics/Dockerfile}
-          - {name: frontend, key: FRONTEND_IMAGE, context: frontend, file: frontend/Dockerfile}
-          - {name: gateway, key: GATEWAY_IMAGE, context: infrastructure/nginx, file: infrastructure/nginx/Dockerfile}
-          - {name: assessment-minio-init, key: ASSESSMENT_MINIO_INIT_IMAGE, context: services/assessment, file: services/assessment/MinIOInit.Dockerfile}
+    timeout-minutes: 2
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-        with:
-          persist-credentials: false
-      - name: Lowercase GHCR namespace
-        id: namespace
-        shell: bash
-        run: echo "repository=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
-      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
-      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5
-        id: metadata
-        with:
-          images: ${{ steps.namespace.outputs.repository }}/${{ matrix.name }}
-          flavor: latest=false
-          tags: |
-            type=sha,format=long,prefix=sha-
-            type=ref,event=branch
-            type=semver,pattern={{version}}
-      - uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
-        id: build
-        with:
-          context: ${{ matrix.context }}
-          file: ${{ matrix.file }}
-          push: true
-          tags: ${{ steps.metadata.outputs.tags }}
-          labels: ${{ steps.metadata.outputs.labels }}
-          provenance: true
-          sbom: true
-          cache-from: type=gha,scope=${{ matrix.name }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.name }}
-      - name: Scan the exact published digest before releasing deployment references
-        env:
-          TRIVY_USERNAME: ${{ github.actor }}
-          TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
-          IMAGE: ${{ steps.namespace.outputs.repository }}/${{ matrix.name }}@${{ steps.build.outputs.digest }}
-        run: >-
-          docker run --rm --env TRIVY_USERNAME --env TRIVY_PASSWORD
-          aquasec/trivy:0.76.2@sha256:8f6bb947dbc528902e11f2f5be52f7b519f6a39d5d148f41166f2040499768fb image --scanners vuln --severity HIGH,CRITICAL
-          --exit-code 1 "$IMAGE"
-      - name: Record immutable deployment reference
-        env:
-          IMAGE_KEY: ${{ matrix.key }}
-          IMAGE_REPOSITORY: ${{ steps.namespace.outputs.repository }}/${{ matrix.name }}
-          IMAGE_DIGEST: ${{ steps.build.outputs.digest }}
-        run: printf '%s=%s@%s\n' "$IMAGE_KEY" "$IMAGE_REPOSITORY" "$IMAGE_DIGEST" > image.env
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: image-reference-${{ matrix.name }}
-          path: image.env
-          retention-days: 30
-
-  release-manifest:
-    needs: publish
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-        with:
-          persist-credentials: false
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
-        with:
-          pattern: image-reference-*
-          path: references
-      - run: find references -name image.env -exec cat {} + | sort > release.env
-      - run: python3 -c "import sys; sys.path.insert(0,'infrastructure/scripts'); from platformctl import validate_release; validate_release('release.env')"
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: immutable-release
-          path: release.env
-          retention-days: 90
+      - name: Fail safely until the release phase is approved
+        run: |
+          echo 'Publishing, release approval and deployment are intentionally deferred. This workflow has no credentials or mutation steps.'
+          exit 1

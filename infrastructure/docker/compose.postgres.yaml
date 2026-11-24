@@ -1,0 +1,40 @@
+# Standalone consolidated database layer. Never combine with legacy projects.
+name: ${PG_PROJECT:?select a new project}
+services:
+  postgres:
+    image: ${POSTGRES_IMAGE:?pin reviewed PostgreSQL image}
+    container_name: ${PG_PROJECT:?}-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: platform_admin
+      POSTGRES_DB: postgres
+      POSTGRES_PASSWORD_FILE: /run/secrets/pg_admin_password
+      POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256
+    command: [postgres, -c, max_connections=160, -c, shared_buffers=128MB, -c, work_mem=4MB]
+    secrets: [pg_admin_password, pg_bootstrap_sql]
+    volumes:
+      - postgres-data:/var/lib/postgresql
+      - ../postgres/init/10-platform.sh:/docker-entrypoint-initdb.d/10-platform.sh:ro
+    healthcheck:
+      test: [CMD-SHELL, 'test -f "$$PGDATA/.platform-initialized" && pg_isready -h 127.0.0.1 -U platform_admin -d postgres']
+      interval: 5s
+      timeout: 3s
+      retries: 24
+    mem_limit: 1g
+    cpus: 2
+    pids_limit: 256
+    security_opt: [no-new-privileges:true]
+    cap_drop: [NET_RAW]
+    logging:
+      driver: json-file
+      options: {max-size: 10m, max-file: '3'}
+    networks: [data]
+volumes:
+  postgres-data:
+networks:
+  data:
+secrets:
+  pg_admin_password:
+    file: ${PG_ADMIN_PASSWORD_FILE:?protected admin file}
+  pg_bootstrap_sql:
+    file: ${PG_BOOTSTRAP_SQL_FILE:?protected generated bootstrap SQL}

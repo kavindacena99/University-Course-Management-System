@@ -1,5 +1,76 @@
 # Local deployment and delivery guide
 
+## Current safety gate and PostgreSQL target selection
+
+The [new implementation integration report](phase-1-2-3-integration-report.md)
+and [updated ledger](updated-infrastructure-validation-ledger.md) describe the
+current state. All legacy environments are stopped and preserved. Commands in
+the older sections below describe the **legacy** deployment interface; they do
+not deploy the new consolidated target. Do not run them as a cutover shortcut.
+Publishing and deployment-preparation GitHub workflows are currently held;
+their historical instructions below are deferred until the release phase.
+
+The new rehearsal uses only project `platform-qa-pg-rehearsal-20261123` and its
+new data volumes. Existing generated inputs must not be overwritten. From the
+repository root, inspect before any operation:
+
+```powershell
+git status --short
+docker context show
+docker ps -a
+docker volume ls
+docker network ls
+```
+
+For a genuinely new rehearsal only: build the ten local images described in the
+Phase 2 report, then use `postgres-rehearsal.ps1 -Action init` once. The init
+command refuses an existing input directory. The executed rehearsal inputs and
+volumes already exist, so **do not reinitialize this machine's rehearsal**.
+Supported guarded commands are:
+
+```powershell
+# Syntax/model only; no container start.
+powershell -NoProfile -File infrastructure/docker/postgres-rehearsal.ps1 -Action config
+# These act ONLY on the new rehearsal, when explicitly needed:
+powershell -NoProfile -File infrastructure/docker/postgres-rehearsal.ps1 -Action start
+powershell -NoProfile -File infrastructure/docker/postgres-rehearsal.ps1 -Action verify
+powershell -NoProfile -File infrastructure/docker/postgres-rehearsal.ps1 -Action backup
+powershell -NoProfile -File infrastructure/docker/postgres-rehearsal.ps1 -Action stop
+```
+
+`migrate` runs six service-specific migration jobs and finalizes business-table
+grants. `restore -Snapshot <verified-QA-backup-directory>` is allowed only on an
+empty new target after checksum/TOC/source/version checks; it refuses nonempty
+schemas. Never retry restore by deleting data. `recreate` verifies content hashes
+around replacement of only the new database container. `select-image -Image
+ucm-postgres:phase123` restricts selection to a local PostgreSQL 18 image and pins
+its local digest after compatibility checks. A PostgreSQL-only backup does not
+replace object-storage, secret escrow or full recovery procedures.
+
+Inactive target preparation is separate:
+
+```powershell
+# Run once per genuinely new target; refuses existing inputs; does not deploy.
+.infra-venv/Scripts/python.exe -B infrastructure/scripts/prepare_postgres_target.py --environment dev
+.infra-venv/Scripts/python.exe -B infrastructure/scripts/prepare_postgres_target.py --environment qa
+.infra-venv/Scripts/python.exe -B infrastructure/scripts/prepare_postgres_target.py --environment prodlike
+# Example configuration inspection ONLY, never implicit cutover:
+docker compose --env-file .infra-state/phase123/targets/qa/rehearsal.env -p platform-qa-target -f infrastructure/docker/compose.target.yaml config --quiet
+```
+
+All three target inputs already exist locally following this work. They contain
+independent credentials, signing issuers/keys, cookie names, ports, resource names
+and pinned local images. They are ignored and ACL-restricted. Do not commit or
+copy them across environments. Administrative and migration secrets are distinct
+from runtime DB passwords. Applications still receive passwords through env;
+Docker file secrets are local mounts, not encrypted external secret storage.
+
+Before any future cutover, obtain explicit authorization and satisfy the Phase 1
+report's backup, write-fence, Auth permission-catalog, migration, role, data
+reconciliation and rollback gates. Existing Ansible remains a legacy interface;
+it has not silently been redirected. Do not use target Compose files with a
+legacy project name or a legacy volume. No Phase 4 release/promotion begins here.
+
 This repository has DEV, QA and a local **PROD-like rehearsal**. None is a live
 cloud Production deployment. Existing DEV data must not be reset to troubleshoot
 deployment. Use `stop`; never use volume deletion or Docker prune shortcuts.
