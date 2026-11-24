@@ -1,4 +1,4 @@
-name: Image publishing deferred
+name: Publication entry point guidance
 
 on:
   workflow_dispatch:
@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:
-      - name: Fail safely until the release phase is approved
+      - name: Use the integrated CI publication path
         run: |
-          echo 'Publishing, release approval and deployment are intentionally deferred. This workflow has no credentials or mutation steps.'
+          echo 'Publication is implemented in ci.yml after its quality, image and prerequisite gates. Dispatch CI on protected main. This compatibility entry point never publishes or rebuilds images.'
           exit 1

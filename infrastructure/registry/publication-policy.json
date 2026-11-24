@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "repository": "kavindacena99/University-Course-Management-System",
+  "default_branch": "main",
+  "platform": "linux/amd64",
+  "registry_access_verified": false,
+  "phase3_remote_verified": false,
+  "storage_release_scope_approved": false,
+  "approval_owner": null,
+  "review_by": null,
+  "evidence": {
+    "registry": "2026-11-24: package enumeration HTTP 403; current CLI lacks read:packages",
+    "protection": "2026-11-24: main protection API HTTP 403; private repository plan restriction",
+    "storage": "CVE-2026-39414: approved exception covers isolated local rehearsal only",
+    "phase3": "Local validation passed; remote verification remains pending"
+  }
+}
