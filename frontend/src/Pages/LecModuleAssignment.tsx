@@ -1,7 +1,7 @@
 import { useState } from "react";
 import "./LecModuleAsssignment.css";
 
-const assetPath = "/assets/course-management";
+const assetPath = "/assets";
 
 const navigation = [
   { label: "Dashboard", icon: "57bc3.png" },
