@@ -218,8 +218,7 @@ main {
   gap: 42px;
   height: 43px;
   align-items: start;
-  border-bottom: 3px solid transparent;
-  border-image: url("/assets/5b43a.svg") 5 stretch;
+  border-bottom: 3px solid var(--color-border);
 }
 
 .tabs button {
