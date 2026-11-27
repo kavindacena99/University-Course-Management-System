@@ -55,10 +55,13 @@ def archive_info(path, service, commit, repository):
             if 'sha256:' + hashlib.sha256(raw).hexdigest() != value:
                 raise ValueError('OCI blob digest mismatch')
             return json.loads(raw)
-        index = json.load(archive.extractfile('index.json'))
+        index_raw = archive.extractfile('index.json').read()
+        index = json.loads(index_raw)
+        index_digest = 'sha256:' + hashlib.sha256(index_raw).hexdigest()
         # Buildx OCI exporter may wrap the result index in an OCI-layout index.
         descriptors = index['manifests']
         if len(descriptors) == 1 and descriptors[0]['mediaType'].endswith('image.index.v1+json'):
+            index_digest = digest(descriptors[0]['digest'])
             index = blob(descriptors[0]); descriptors = index['manifests']
         runtimes = [d for d in descriptors if d.get('platform') == {'architecture': 'amd64', 'os': 'linux'}]
         if len(runtimes) != 1:
@@ -82,7 +85,7 @@ def archive_info(path, service, commit, repository):
                 predicates[statement['predicateType']] = layer['digest']
         if 'https://spdx.dev/Document' not in predicates or not any(k.startswith('https://slsa.dev/provenance/') for k in predicates):
             raise ValueError('Missing BuildKit SBOM/provenance')
-        return {'runtime_digest': runtime['digest'], 'config_digest': manifest['config']['digest'], 'attestations': predicates,
+        return {'index_digest': index_digest, 'runtime_digest': runtime['digest'], 'config_digest': manifest['config']['digest'], 'attestations': predicates,
                 'archive_sha256': hashlib.sha256(Path(path).read_bytes()).hexdigest()}
 
 
@@ -95,9 +98,11 @@ def eligible(policy, env):
         raise ValueError('Protected default branch required')
     if not SHA.fullmatch(env.get('GITHUB_SHA', '')):
         raise ValueError('Exact source commit required')
-    for gate in ('registry_access_verified', 'phase3_remote_verified', 'storage_release_scope_approved'):
+    for gate in ('phase3_remote_verified', 'storage_release_scope_approved'):
         if policy.get(gate) is not True:
             raise ValueError('Publication prerequisite pending: ' + gate)
+    if policy.get('registry_access_verified') is not True and policy.get('registry_bootstrap_mode') != 'first_verified_application_upload':
+        raise ValueError('Publication prerequisite pending: registry_access_verified')
     if not policy.get('approval_owner') or not policy.get('review_by') or date.fromisoformat(policy['review_by']) < date.today():
         raise ValueError('Named owner and current review date required')
 
@@ -105,8 +110,34 @@ def eligible(policy, env):
 def run(args, **kwargs):
     result = subprocess.run([str(a) for a in args], capture_output=True, **kwargs)
     if result.returncode:
-        raise RuntimeError(str(args[0]) + ' failed; private registry diagnostics withheld')
+        details = result.stderr.lower()
+        reason = 'HTTP 403 / access denied' if b'403' in details or b'denied' in details else 'command error'
+        raise RuntimeError(str(args[0]) + ' failed (' + reason + '); private registry diagnostics withheld')
     return result.stdout
+
+
+def existing_tag_digest(image, tag, authfile, expected_digest):
+    """Return a matching registry digest or None for a proven absent tag."""
+    result = subprocess.run(['skopeo', 'inspect', '--raw', '--authfile', str(authfile),
+                             'docker://' + image + ':' + tag], capture_output=True)
+    if result.returncode:
+        details = result.stderr.lower()
+        if b'403' in details or b'401' in details or b'denied' in details or b'unauthorized' in details:
+            raise RuntimeError('GHCR access denied for ' + image + '; inspect package repository access')
+        if b'manifest unknown' in details or b'name unknown' in details:
+            return None
+        raise RuntimeError('GHCR tag preflight failed for ' + image + '; private diagnostics withheld')
+    found = digest('sha256:' + hashlib.sha256(result.stdout).hexdigest())
+    if found != expected_digest:
+        raise ValueError('Existing SHA tag conflicts with scanned OCI artifact: ' + image)
+    return found
+
+
+def verified_published_digest(value, expected_digest):
+    published = digest(value.strip())
+    if published != expected_digest:
+        raise ValueError('Registry returned a digest different from the scanned OCI index')
+    return published
 
 
 def prepare(directory, service, commit, repository):
@@ -142,7 +173,7 @@ def validate_manifest(manifest):
         raise ValueError('Unexpected repository')
     if manifest['source']['ref'] != 'refs/heads/main' or manifest['workflow']['run_attempt'] < 1 or not str(manifest['workflow']['run_id']).isdigit():
         raise ValueError('Invalid workflow identity')
-    if not manifest.get('published_at') or not manifest.get('publication_complete'):
+    if not manifest.get('published_at') or not manifest.get('publication_complete') or manifest.get('registry_access_verified') is not True:
         raise ValueError('Incomplete publication')
     datetime.fromisoformat(manifest['published_at'])
     if manifest['workflow'].get('url') != 'https://github.com/' + repository + '/actions/runs/' + str(manifest['workflow']['run_id']):
@@ -186,19 +217,21 @@ def publish(directory, policy):
             raise ValueError('Artifact integrity mismatch')
         image = 'ghcr.io/' + repository.lower() + '/' + service
         tag = 'sha-' + commit
-        # Refuse all existing SHA tags; never silently overwrite or rebuild on rerun.
-        result = subprocess.run(['skopeo', 'inspect', '--authfile', env['REGISTRY_AUTH_FILE'], 'docker://' + image + ':' + tag], capture_output=True)
-        if result.returncode == 0:
-            raise ValueError('Immutable tag already exists: ' + service)
-        if not any(code in result.stderr.lower() for code in (b'manifest unknown', b'name unknown')):
-            raise RuntimeError('Registry preflight failed; verify repository package access')
-        plans.append((service, bundle, row, image, tag))
+        existing = existing_tag_digest(image, tag, env['REGISTRY_AUTH_FILE'], info['index_digest'])
+        plans.append((service, bundle, row, image, tag, existing))
     rows = []
-    for service, bundle, build, image, tag in plans:
-        digestfile = bundle / 'published-digest.txt'
-        run(['skopeo', 'copy', '--all', '--preserve-digests', '--authfile', env['REGISTRY_AUTH_FILE'],
-             '--digestfile', digestfile, 'oci-archive:' + str(bundle / 'image.tar'), 'docker://' + image + ':' + tag])
-        published = digest(digestfile.read_text().strip())  # Only the publication operation supplies this.
+    for service, bundle, build, image, tag, existing in plans:
+        was_new = existing is None
+        if was_new:
+            digestfile = bundle / 'published-digest.txt'
+            try:
+                run(['skopeo', 'copy', '--all', '--preserve-digests', '--authfile', env['REGISTRY_AUTH_FILE'],
+                     '--digestfile', digestfile, 'oci-archive:' + str(bundle / 'image.tar'), 'docker://' + image + ':' + tag])
+            except RuntimeError as error:
+                raise RuntimeError('GHCR upload failed for ' + image + ': ' + str(error)) from error
+            published = verified_published_digest(digestfile.read_text(), build['index_digest'])
+        else:
+            published = existing  # Preflight proved byte-identical registry index; never overwrite the tag.
         immutable = image + '@' + published
         raw = run(['skopeo', 'inspect', '--raw', '--authfile', env['REGISTRY_AUTH_FILE'], 'docker://' + immutable])
         if 'sha256:' + hashlib.sha256(raw).hexdigest() != published:
@@ -228,7 +261,10 @@ def publish(directory, policy):
                    sbom_reference=immutable, provenance_reference=immutable)
         rows.append(row)
         write(bundle / 'publication.json', row)  # Retained even if a later image fails.
-    manifest = dict(schema_version=1, publication_complete=True,
+    # A prior attempt may have uploaded every tag before failing on the final
+    # manifest/artifact step. Every existing tag has now been pulled, checked
+    # against this run's archives and rescanned, so finish without overwrites.
+    manifest = dict(schema_version=1, publication_complete=True, registry_access_verified=True,
                     source=dict(repository=repository, commit=commit, ref=env['GITHUB_REF']),
                     workflow=dict(run_id=env['GITHUB_RUN_ID'], run_attempt=int(env['GITHUB_RUN_ATTEMPT']),
                                   url=env['GITHUB_SERVER_URL'] + '/' + repository + '/actions/runs/' + env['GITHUB_RUN_ID']),

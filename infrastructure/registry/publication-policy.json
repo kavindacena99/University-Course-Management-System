@@ -4,14 +4,15 @@
   "default_branch": "main",
   "platform": "linux/amd64",
   "registry_access_verified": false,
-  "phase3_remote_verified": false,
+  "registry_bootstrap_mode": "first_verified_application_upload",
+  "phase3_remote_verified": true,
   "storage_release_scope_approved": false,
   "approval_owner": null,
   "review_by": null,
   "evidence": {
-    "registry": "2026-11-27: package enumeration HTTP 403; current CLI lacks read:packages; GITHUB_TOKEN package access unverified",
-    "protection": "2026-11-27: main branch protection and rulesets APIs both HTTP 403; private repository plan restriction",
+    "registry": "2026-11-27: CLI package list still HTTP 403 without read:packages; GITHUB_TOKEN write access will be verified by first scanned application upload and subsequent digest, pull and scan checks",
+    "protection": "2026-11-27: public main protected by active ruleset 28252583 targeting ~DEFAULT_BRANCH; hosted run 46047552300 reported GITHUB_REF_PROTECTED=true",
     "storage": "CVE-2026-39414: approved exception covers isolated local rehearsal only",
-    "phase3": "2026-11-27 CI run 46038430324 passed backend, frontend and infrastructure, but nine application image scans failed on new HIGH findings; complete remote validation pending"
+    "phase3": "2026-11-27 hosted CI run 46047552300 on main 92fce6b02c15def11c9194137eca5387bfefa6dd: six backend, frontend, infrastructure and ten image build/scan jobs passed; publication prerequisite failed only on registry-access policy before GHCR use"
   }
 }

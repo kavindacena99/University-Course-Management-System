@@ -143,3 +143,41 @@ exists yet. BuildKit's SPDX/SLSA statements remain unsigned until a separate
 verified signing design is enabled. The publication manifest retains 90 days
 in Actions, subject to repository retention settings; long-term custody needs
 an owner-selected durable store in a later phase.
+
+## 2026-11-27 protected-main and registry bootstrap update
+
+The public repository's active ruleset now protects `main`. Fresh hosted run
+[46047552300](https://github.com/kavindacena99/University-Course-Management-System/actions/runs/46047552300)
+observed `GITHUB_REF_PROTECTED=true`; all backend, frontend, infrastructure and
+image jobs passed. The prerequisite stopped at the old registry-access policy,
+before a registry login. The policy now records this remote validation while
+retaining the unresolved storage decision.
+
+The publisher's explicit `first_verified_application_upload` bootstrap avoids
+claiming registry write access from a CLI package-list result. Only its job has
+`packages: write`. It validates all same-run image archives and scanner results,
+authenticates with the ephemeral `GITHUB_TOKEN`, and checks the full-SHA tags
+before mutation. A missing tag may be uploaded only from its scanned OCI
+archive. The digest returned by Skopeo must equal the OCI index digest, and
+registry resolution, complete index/attestation download, digest pull and
+post-publication scan must pass before the first write counts as access proof.
+The successful manifest records `registry_access_verified=true`.
+
+For a partial rerun, preflight reads each existing tag's raw registry index.
+An identical digest is safely reused and verified again; a different digest,
+an unrecognized error or an authentication denial stops the run. The publisher
+never overwrites a tag. Retrying failed jobs against the same run can reuse the
+earlier same-run OCI artifacts; a newly built archive with different bytes is
+rejected even if its source SHA is the same. If all tags already exist, the
+publisher verifies all nine against the same-run archives, pulls and rescans
+them, then completes the manifest without overwriting them. This proves
+registry access and complete publication, though no new write occurs on the
+rerun.
+
+The manual `publish-images.yml` workflow remains the preferred final entry
+point after its policy changes merge to protected `main`. It reruns all required
+checks and accepts no arbitrary SHA or artifact-run input. BuildKit SPDX/SLSA
+statements are verified by subject and digest but remain **unsigned**. No
+GitHub-signed attestation claim or extra signing key is introduced. The complete
+manifest and scan evidence use finite 90-day Actions retention; retain their
+artifact URL and arrange durable custody in a later release phase.

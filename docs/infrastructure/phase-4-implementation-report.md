@@ -316,3 +316,71 @@ artifacts, not commit-bound release images. No current GHCR identity exists.
 **Current verdict: PARTIALLY COMPLETED — BLOCKED.** Remote publication awaits
 a reviewed source commit/merge, successful hosted validation, supported branch
 protection, package-access review and the unresolved storage release decision.
+
+## 2026-11-27 protected-main continuation
+
+PR #15 merged at `92fce6b02c15def11c9194137eca5387bfefa6dd`. The repository
+is now public. Ruleset `28252583` is active, targets `~DEFAULT_BRANCH`, and
+enforces deletion and non-fast-forward prevention; the branch API reports
+`main.protected=true`. The ruleset currently has no pull-request or required
+status-check rule. The repository's default workflow token permission is read;
+only the CI publisher requests package write. No branch or package setting was
+changed in this continuation.
+
+Fresh [main run 46047552300](https://github.com/kavindacena99/University-Course-Management-System/actions/runs/46047552300)
+reported `GITHUB_REF_PROTECTED=true`. All six backend jobs, frontend,
+infrastructure, and ten image builds/scans (nine application, one supporting
+PostgreSQL) passed. The prerequisite job failed solely on the stale
+`registry_access_verified=false` policy before GHCR authentication; `publish`
+skipped. This establishes remote Phase 3 validation without claiming Phase 4
+publication. The policy now records `phase3_remote_verified=true` and the
+actual run identity. The historical failed runs above remain unchanged.
+
+The prior registry gate was circular: it demanded confirmed package-write
+access before any legitimate package write. `registry_access_verified` remains
+false; the new explicit bootstrap mode permits the publisher to authenticate
+with its job-scoped `GITHUB_TOKEN`, preflight all nine SHA tags, and use the
+first fully scanned application upload plus registry digest, pull and scan
+checks as the access proof. A successful complete manifest marks registry
+access verified for that run. No unscanned probe package or PAT is introduced.
+Existing tags are reused only when their raw registry index digest matches the
+exact same-run scanned OCI index. Missing tags are uploaded; mismatches,
+authentication failures and digest changes fail closed. This supports safe
+recovery after partial publication without overwriting any SHA tag.
+
+The public-source review is in
+[phase-4-public-repository-security-review.md](phase-4-public-repository-security-review.md):
+25 reachable commits and 418 tracked/non-ignored files passed the existing
+full-history/working-tree Gitleaks scan. Only `.env.example` templates were
+tracked among environment files; no live credential or data dump was found.
+GitHub secret-scanning alerts are disabled, so Gitleaks and manual tracked-path
+inspection are the available evidence.
+
+The pinned PGSTY Silo server, not the `assessment-minio-init` helper, retains
+the raw HIGH CVE-2026-39414. The vendor's current 2026-11-12 release is the
+already pinned digest and claims the S3 Select fix; the isolated target's
+guard denies Select while normal S3 operations have passed prior rehearsal.
+The prior owner approval covers isolated local use only. Storage remains part
+of the target runtime, so `storage_release_scope_approved` remains false until
+the owner makes a publication-scope decision. Legacy PostgreSQL's 26 HIGH and
+one CRITICAL finding remains separate and is not a GHCR application package.
+
+The proposed narrow decision is **Phase 4 image publication only**, with no
+runtime deployment approval, for
+`pgsty/silo:RELEASE.2026-11-12T00-00-00Z@sha256:c20d112390b9a9ce8c11b8af95ad35bcaa62f4759663c09c936cd8d2b511f329`.
+S3 Select can exhaust server memory for an oversized record if reachable;
+the target guard denies Select before the loopback-only Silo listener and the
+application does not call that API. Normal S3 operations were rehearsed. The
+vendor [release](https://github.com/pgsty/silo/releases/tag/RELEASE.2026-11-12T00-00-00Z)
+and [security ledger](https://silo.pgsty.com/about/security-advisories/)
+describe the fix in this pinned release, while Trivy retains a module-path
+HIGH match. Residual risk is a mismatch between vendor-source/backport evidence
+and independently reproducible binary proof, plus a guard-bypass risk if later
+deployment changes the network boundary. Recommendation: approve only the
+exact digest with guard mandatory, no QA/PROD-like/production deployment, and
+a dated review before any broader rollout; otherwise keep publication blocked.
+
+No GHCR package, registry digest, image manifest or registry pull has yet been
+produced in this continuation. The changes are being prepared for a reviewed
+branch and a new protected-main publishing run; Phase 4 is not complete at
+this checkpoint.
