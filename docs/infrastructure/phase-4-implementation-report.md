@@ -232,3 +232,87 @@ Historical report hashes remain unchanged. Final resource checks are in
 implementation is locally reviewable and validated. Actual publication and
 Phase 4 completion require the owner-side prerequisites and genuine GitHub/GHCR
 execution, digest, manifest and pull evidence. Phases 5-9 were not started.
+
+## 2026-11-27 continuation: hosted CI and current publishing status
+
+Starting state was clean `main` at
+`e575487337ed5dce1eee3eb172c9e3f09355d13b`, matching GitHub's default
+branch. GitHub CLI is authenticated as repository admin with `repo` and
+`workflow`, but no `read:packages` scope. The private repository has Actions
+enabled; it has zero environments. Branch protection and rulesets APIs both
+return 403 with a GitHub Pro/public-repository requirement. The private package
+list also returns 403 for missing `read:packages`; package existence,
+visibility, linkage and `GITHUB_TOKEN` access are therefore unverified.
+
+The deferred `publish-images.yml` was replaced locally with a manual reusable
+call to `ci.yml`. It accepts no arbitrary commit or artifact input, requires
+the protected default branch, and calls the CI file from the same commit.
+Backend/frontend/infrastructure/images must all pass before the prerequisite
+and publish jobs. Only the publish job in called CI has package-write
+permission. The same OCI archive that passed the pre-publication scan is
+copied by Skopeo; a successful run would record the registry-returned digest,
+verify the index/attestation subjects, pull by digest, rescan, and validate
+`image-manifest.json` plus the nine-variable `images.env`. BuildKit generates
+unsigned SPDX SBOM and SLSA provenance. No signed GitHub attestation is claimed.
+The manifest artifact is configured for 90-day retention, which is finite.
+
+GitHub-hosted CI run
+[46038430324](https://github.com/kavindacena99/University-Course-Management-System/actions/runs/46038430324)
+used that source SHA. All six backend jobs, frontend, infrastructure and the
+PostgreSQL support-image job succeeded. **All nine application image jobs failed
+the HIGH vulnerability gate; publication-prerequisites and publish skipped.**
+The raw scans report CVE-2026-124709 in seven Alpine OpenSSL runtimes and six
+libxml2 HIGH findings in frontend/gateway. Dockerfiles now request the scanner's
+fixed floors, OpenSSL 3.5.9-r2 and libxml2 2.13.9-r5. Those edits are local;
+at this validation checkpoint they had not been committed, pushed or run in
+GitHub. The previous local
+Authentication 23-permission remediation remains intact, with no authorization
+or business-logic edit here. Silo CVE-2026-39414 retains one raw HIGH and only
+local-rehearsal mitigation approval; legacy PostgreSQL retains 26 HIGH and one
+CRITICAL in stopped legacy images. Neither supporting image is an application
+GHCR package.
+
+**No application package, SHA tag, registry digest, complete publication
+manifest, GHCR pull, or registry-verified attestation was produced by this run.**
+The owner must resolve protected-main availability, inspect private GHCR
+package access, provide a release-scope storage decision, and authorize a
+reviewed commit/push of these local edits. A new hosted run must then pass all
+checks before actual publication can be attempted. No environment deployment,
+database mutation, volume deletion, package visibility change, commit or push
+had been performed at this validation checkpoint.
+
+The local continuation then built and scanned all nine application OCI archives
+with the patched Dockerfiles. All nine fresh reports contain zero HIGH/CRITICAL
+findings; OCI source/config identities, SPDX/SLSA subjects and runtime contents
+passed local checks. Actionlint, ten Compose models, secret scanning and 34
+infrastructure tests passed. The source tree is dirty, so these are test
+artifacts, not commit-bound release images. No current GHCR identity exists.
+
+### Phase 4 acceptance at this checkpoint
+
+| Criterion | Status | Evidence or remaining gate |
+| --- | --- | --- |
+| P4-01 inventory | PASS | Nine application images; migrations reuse service images; PostgreSQL/Silo excluded |
+| P4-02 naming | PASS locally | Lowercase GHCR namespace in publisher; no package verified |
+| P4-03 publishing workflow | PASS locally | Manual entry calls same CI; remote execution pending |
+| P4-04 least privilege | PASS locally | Only publisher gets package write in called CI |
+| P4-05 untrusted PR exclusion | PASS locally | Event/ref/protection checks and unit tests |
+| P4-06 remote required checks | FAIL | Run 46038430324 failed nine image scans; patched commit unrun |
+| P4-07 eligible builds | PASS locally | Nine Buildx archives built; hosted old build also succeeded |
+| P4-08 prepublication scan | PASS locally, FAIL remotely | Nine patched scans passed; hosted old scans failed |
+| P4-09 publication | BLOCKED | No GHCR upload; policy/protection/remote gates closed |
+| P4-10 full SHA tags | BLOCKED | Implemented, no published tags |
+| P4-11 actual registry digests | BLOCKED | None returned by GHCR |
+| P4-12 complete manifest | BLOCKED | Schema tests pass; no real manifest |
+| P4-13 evidence retention | PASS for failed run, BLOCKED for publication | Scan artifacts uploaded; no publication artifact |
+| P4-14 SBOM | PASS locally | BuildKit SPDX statements checked in OCI archives |
+| P4-15 provenance/attestation | PASS locally, BLOCKED remotely | Unsigned BuildKit SLSA statements checked; no registry verification/signature |
+| P4-16 pull by digest | BLOCKED | No published digest to pull |
+| P4-17 infrastructure references | PASS locally | Existing nine-variable digest manifest and Compose interpolation validate |
+| P4-18 documentation | PASS | Four Phase 4 documents updated with actual evidence and limits |
+| P4-19 data safety | PASS | 69 container states and 29 volume metadata records unchanged |
+| P4-20 earlier findings | PASS | Auth resolution, Silo HIGH, legacy PostgreSQL 26 HIGH/1 CRITICAL recorded |
+
+**Current verdict: PARTIALLY COMPLETED — BLOCKED.** Remote publication awaits
+a reviewed source commit/merge, successful hosted validation, supported branch
+protection, package-access review and the unresolved storage release decision.

@@ -9,9 +9,9 @@
   "approval_owner": null,
   "review_by": null,
   "evidence": {
-    "registry": "2026-11-24: package enumeration HTTP 403; current CLI lacks read:packages",
-    "protection": "2026-11-24: main protection API HTTP 403; private repository plan restriction",
+    "registry": "2026-11-27: package enumeration HTTP 403; current CLI lacks read:packages; GITHUB_TOKEN package access unverified",
+    "protection": "2026-11-27: main branch protection and rulesets APIs both HTTP 403; private repository plan restriction",
     "storage": "CVE-2026-39414: approved exception covers isolated local rehearsal only",
-    "phase3": "Local validation passed; remote verification remains pending"
+    "phase3": "2026-11-27 CI run 46038430324 passed backend, frontend and infrastructure, but nine application image scans failed on new HIGH findings; complete remote validation pending"
   }
 }

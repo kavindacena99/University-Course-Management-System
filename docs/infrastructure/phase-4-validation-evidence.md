@@ -64,3 +64,78 @@ The implementation report's P4-01 through P4-16 checklist distinguishes local
 proof from remote-pending criteria. Final verdict remains **PARTIALLY COMPLETED —
 BLOCKED BY PREREQUISITES**. No Phase 5 release candidate, QA deployment, PROD-like
 promotion, new backup system or monitoring phase was implemented.
+
+## 2026-11-27 continuation evidence
+
+The historical section above describes the 2026-11-24 session. This session
+started with clean `main` at `e575487337ed5dce1eee3eb172c9e3f09355d13b`;
+the GitHub API reported the same current default-branch commit and a private
+repository. Actions are enabled. The CLI account is repository admin but its
+token lacks `read:packages`. `gh api users/kavindacena99/packages?package_type=container`
+returned HTTP 403 for that scope. Both main branch protection and repository
+ruleset APIs returned HTTP 403 with the private-plan restriction. Zero GitHub
+environments are configured. These reads do not establish any existing GHCR
+package or repository package permission.
+
+`gh workflow run ci.yml --ref main` started actual GitHub-hosted run
+[46038430324](https://github.com/kavindacena99/University-Course-Management-System/actions/runs/46038430324).
+Its source SHA is `e575487337ed5dce1eee3eb172c9e3f09355d13b` and final
+conclusion is **failure**. Six backend jobs, frontend, infrastructure and the
+PostgreSQL supporting-image job passed. All nine application-image jobs failed
+the strict Trivy HIGH/CRITICAL gate. `publication-prerequisites` and `publish`
+skipped, as designed. Their `GITHUB_TOKEN` did not authenticate to GHCR and
+there was no upload, registry digest, manifest artifact or registry pull.
+
+The ten raw `image-scan-*` artifacts were downloaded to ignored local
+`.infra-state/phase4/current-remote-scans`. Seven service/helper reports contain
+HIGH CVE-2026-124709 for `libcrypto3` and `libssl3` 3.5.9-r0, with fixed version
+3.5.9-r2. Frontend and gateway reports contain six HIGH libxml2 CVEs on
+2.13.9-r3, with the highest fixed floor 2.13.9-r5. PostgreSQL's candidate scan
+contained no HIGH/CRITICAL finding. The reports were preserved; no scanner rule,
+ignore file, severity threshold or failed test was weakened. Dockerfiles now
+request the fixed floors in edits that were uncommitted at this checkpoint.
+
+Local checks after those edits: official actionlint 1.7.12 Windows archive was
+downloaded from its release and its SHA-256 matched the published checksums file
+(`6e7241b51e6817ea6a047693d8e6fed13b31819c9a0dd6c5a726e1592d22f6e9`).
+It accepted all three workflows. Infrastructure unit tests passed 33/33 before
+the new manual-entry contract test; the follow-up suite and image build/scan are
+recorded below once complete. `ci_models.py` passed the ten isolated Compose
+configurations. `git diff --check` passed. Docker Desktop was initially stopped;
+it was started for local image validation, with no application deployment.
+
+The new `publish-images.yml` edit was only in the local working tree at this
+checkpoint. GitHub's
+run above used the previously committed workflow; it cannot validate these
+changes or the Dockerfile fixes. No commit or push had yet been made. The existing
+90-day publication artifact retention is finite and has not yet held a
+successful manifest. BuildKit SBOM/provenance statements remain unsigned;
+remote attestation verification did not run.
+
+### Local completion of the uncommitted fix
+
+Ignored evidence directory: `.infra-state/phase4/20261127T170852Z`. The local
+orchestrator recorded exact build/scan argument arrays and exit codes in
+`results.json`, raw logs and nine `image-*/image-scan.json` files. Docker Buildx
+built each of the nine application images once as a `linux/amd64` OCI archive,
+with SBOM and provenance enabled. The extracted OCI layouts were scanned by
+the same pinned Trivy 0.76.2 HIGH/CRITICAL exit-1 policy as CI. **Nine builds and
+nine scans exited 0; all nine fresh reports have zero HIGH/CRITICAL findings.**
+`registry_pipeline.prepare` verified each scanner ImageID against the OCI config
+digest, full blob hashes, source labels and SPDX/SLSA statement subjects.
+Runtime-layer inspection found no Go source or `.env` file in any image; the
+six Go services and setup helper run as `app`.
+
+The final local infrastructure suite passed 34/34 tests, including the new
+manual-entry workflow boundary check. Actionlint passed all three workflow
+files; ten Compose models, secret history and working-tree scans, and
+`git diff --check` passed. `safety.json` records 69 pre-existing container
+identities/start states and 29 volume metadata records unchanged. The images
+were not deployed. The local archives were built from a **dirty working tree**;
+their source-revision labels reflect the current HEAD for local testing and
+must not be treated as published commit artifacts. GitHub must rebuild the
+reviewed committed source, rescan it and return actual GHCR digests.
+
+Manifest schema and semantic-negative tests passed locally; no successful
+publication manifest exists. No GHCR package was created or pulled. This is
+local validation of the fix, not remote acceptance of Phase 4.

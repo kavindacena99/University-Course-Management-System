@@ -100,6 +100,18 @@ class PublicationContract(unittest.TestCase):
         self.assertFalse(any(s.get('uses','').startswith('docker/build-push-action@') for s in jobs['publish']['steps']))
         self.assertTrue(all(len(s['uses'].split('@')[1])==40 for job in jobs.values() for s in job['steps'] if 'uses' in s))
 
+    def test_manual_entry_reuses_protected_ci_pipeline(self):
+        workflow=yaml.load((ROOT/'.github/workflows/publish-images.yml').read_text(), Loader=yaml.BaseLoader)
+        self.assertIn('workflow_dispatch', workflow['on'])
+        self.assertEqual(len(workflow['jobs']), 1)
+        job=workflow['jobs']['validated-publication']
+        self.assertEqual(job['uses'], './.github/workflows/ci.yml')
+        self.assertNotIn('with', job)
+        self.assertNotIn('secrets', job)
+        self.assertIn('github.ref_protected', job['if'])
+        self.assertIn('github.event.repository.default_branch', job['if'])
+        self.assertEqual(job['permissions'], {'contents':'read', 'packages':'write'})
+
     def test_digest_output_matches_existing_compose_contract(self):
         with tempfile.TemporaryDirectory() as temporary:
             path=Path(temporary)/'images.env'
