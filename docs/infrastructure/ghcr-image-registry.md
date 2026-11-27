@@ -103,3 +103,29 @@ against GHCR. Anonymous pulls require public visibility, which is not assumed.
 
 References: [GitHub package permissions](https://docs.github.com/en/packages/learn-github-packages/about-permissions-for-github-packages),
 [package access configuration](https://docs.github.com/en/packages/learn-github-packages/configuring-a-packages-access-control-and-visibility).
+
+## 2026-11-27 status
+
+The nine names and `linux/amd64` inventory above remain the application release
+set. Six migration jobs reuse their service images; the storage setup job needs
+`assessment-minio-init`. PostgreSQL and PGSTY Silo are supporting images and
+remain outside GHCR application publication. `VITE_API_BASE_URL` is explicitly
+empty in the publication build; runtime frontend policy permits the gateway
+origin and no application code currently makes a direct service call. Runtime
+DB, JWT and S3 secrets remain external to image build arguments.
+
+GitHub-hosted run 46038430324 built all ten matrix entries. The PostgreSQL
+support image scan passed. The nine application image scans failed: seven
+Alpine-based Go/helper runtimes reported HIGH CVE-2026-124709 in `libcrypto3`
+and `libssl3` 3.5.9-r0; frontend and gateway reported six HIGH libxml2 findings
+on 2.13.9-r3. Scanner records identify fixed floors of OpenSSL 3.5.9-r2 and
+libxml2 2.13.9-r5. The Dockerfiles now request those floors; all nine then built
+and passed local strict scans with zero HIGH/CRITICAL findings. A clean hosted
+scan of a reviewed commit is still required before publication. The raw
+reports are retained in run artifacts and ignored local evidence.
+
+No package enumeration or private package access claim is possible with the
+current CLI token: the package API returns 403 for missing `read:packages`.
+There are **no verified published references or registry digests** for this
+Phase 4 attempt. The `sha-<full source SHA>` tags and digest-based `images.env`
+remain implemented contracts, not evidence of publication.

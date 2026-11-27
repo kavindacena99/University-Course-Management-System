@@ -8,7 +8,7 @@ FROM nginx:stable-alpine@sha256:caf4e1e032a20f9c3c5e28fc7f25ffd768ad8677b4975c54
 
 # Remove the stock default server and route relative log/pid paths to the
 # image's stdout/stderr-backed log directory.
-RUN apk add --no-cache 'libxml2>=2.13.9-r3' \
+RUN apk add --no-cache 'libxml2>=2.13.9-r5' \
     && rm -f /etc/nginx/conf.d/default.conf \
     && rm -rf /etc/nginx/logs \
     && ln -s /var/log/nginx /etc/nginx/logs

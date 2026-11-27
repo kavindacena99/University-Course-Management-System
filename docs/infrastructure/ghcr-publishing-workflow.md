@@ -112,3 +112,34 @@ uncommitted local code. No remote run was attempted in this implementation.
 References: [Docker attestations](https://docs.docker.com/build/metadata/attestations/),
 [Skopeo copy semantics](https://github.com/podman-container-tools/skopeo/blob/main/docs/skopeo-copy.1.md),
 [GitHub Actions package authentication](https://docs.github.com/en/packages/managing-github-packages/using-github-packages-with-github-actions).
+
+## 2026-11-27 update: manual entry and current gate
+
+`publish-images.yml` now calls the existing `ci.yml` reusable workflow on the
+same commit. It accepts no SHA, artifact-run or branch input. Its job requires
+this repository's protected default branch and grants `packages: write` only
+as the maximum permission passed to the called workflow. The called workflow
+reruns backend, frontend, infrastructure, image-build and scanner jobs; its
+`publish` job alone uses package-write permission after the prerequisite job.
+Default-branch pushes still use that same pipeline. GitHub's reusable-workflow
+context is associated with the caller, and a same-repository relative reference
+selects the caller's commit. At this validation checkpoint, the edit had not
+yet been committed or pushed.
+
+The current private repository cannot report branch protection or rulesets:
+both APIs return HTTP 403 with the GitHub Pro/public-repository requirement.
+The policy remains fail-closed for package access, complete remote validation,
+and the storage release-scope decision. No setting or package visibility was
+changed. The owner must establish an available protected-main policy, confirm
+private package access for this repository, and approve the outstanding storage
+scope before the policy can be reviewed for activation.
+
+Run 46038430324 executed the committed CI on GitHub-hosted runners. Backend,
+frontend and infrastructure passed; nine application image scans failed on new
+HIGH findings, so prerequisite and publish jobs skipped. The fixed-package
+Dockerfile edits require a reviewed commit/merge before remote
+revalidation. No GHCR digest, signed attestation or successful registry pull
+exists yet. BuildKit's SPDX/SLSA statements remain unsigned until a separate
+verified signing design is enabled. The publication manifest retains 90 days
+in Actions, subject to repository retention settings; long-term custody needs
+an owner-selected durable store in a later phase.
