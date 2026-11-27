@@ -139,3 +139,26 @@ reviewed committed source, rescan it and return actual GHCR digests.
 Manifest schema and semantic-negative tests passed locally; no successful
 publication manifest exists. No GHCR package was created or pulled. This is
 local validation of the fix, not remote acceptance of Phase 4.
+
+## 2026-11-27 protected-main continuation evidence
+
+| Check | Actual result |
+| --- | --- |
+| Repository | Public, clean `main` at `92fce6b02c15def11c9194137eca5387bfefa6dd` before this branch |
+| Protection | Branch API `protected=true`; active ruleset 28252583 targets `~DEFAULT_BRANCH`, denies deletion/non-fast-forward; no bypass actors |
+| Actions permission | Repository default workflow permission `read`; CI publisher alone requests `packages: write` |
+| Public history | `scan_secrets.py`: 25 commits and 418 tracked/non-ignored files, no leaks; no runtime `.env`, key or dump tracked in history |
+| GitHub secret scanning | Alerts API HTTP 404: feature disabled; no alert-list inference made |
+| GHCR package list | CLI API HTTP 403: token lacks `read:packages`; no package existence/visibility inference made |
+| Fresh main CI | [Run 46047552300](https://github.com/kavindacena99/University-Course-Management-System/actions/runs/46047552300), source SHA above: six backend, frontend, infrastructure, nine application image and PostgreSQL candidate jobs passed |
+| Hosted protection context | Prerequisite log: `GITHUB_REF_PROTECTED=true` |
+| Hosted publication gate | `publication-prerequisites` failed on `registry_access_verified`; `publish` skipped; no GHCR login/upload/digest/pull/manifest |
+| Local policy/schema tests | 39 infrastructure tests passed after bootstrap/rerun changes; JSON policy/schema parsed and `git diff --check` passed |
+
+The policy records `phase3_remote_verified=true` only after that fresh hosted
+run. `registry_access_verified` remains false until a real scanned image is
+uploaded and verified. The new bootstrap preflight tests cover absent tags,
+identical reruns, partial reruns, conflicts, authentication denial, digest
+mismatch, missing attestation and scanner failures. Historical run failures
+remain recorded above. The publication-scope storage decision remains pending;
+no source or registry publication has been claimed by this continuation.

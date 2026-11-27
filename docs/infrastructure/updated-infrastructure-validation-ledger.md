@@ -478,3 +478,25 @@ authorization; Phase 4 remains deferred. Legacy storage remains unchanged.
 This approval-recording operation changes documentation only. Previous report
 bytes, application/configuration changes and validation evidence are preserved.
 No Docker resource or database was started or modified.
+
+## 2026-11-27 Phase 4 protected-main continuation
+
+The historical Phase 1–3 entries above remain unchanged. PR #15 merged at
+`92fce6b02c15def11c9194137eca5387bfefa6dd`; the repository is now public
+and active ruleset 28252583 protects `~DEFAULT_BRANCH` against deletion and
+non-fast-forward updates. Fresh hosted
+[CI run 46047552300](https://github.com/kavindacena99/University-Course-Management-System/actions/runs/46047552300)
+reported `GITHUB_REF_PROTECTED=true`. Six backend, frontend, infrastructure,
+nine application image and PostgreSQL candidate jobs passed. The publication
+prerequisite failed on the old registry-access policy and `publish` skipped;
+this is remote Phase 3 validation, not GHCR publication evidence.
+
+Full-history and non-ignored working-tree secret scans passed (25 commits,
+418 files). Tracked-path history inspection found no runtime `.env`, private
+key or database dump. GitHub secret scanning is disabled; the current CLI
+package API returns 403 for missing `read:packages`. The new registry bootstrap
+and safe-rerun tests passed locally (39 infrastructure tests total). The
+separate PGSTY Silo HIGH CVE-2026-39414 still needs an explicit Phase 4
+publication-scope owner decision; the 2026-11-24 approval above remains
+local-only. No environment deployment, database operation or volume mutation
+was performed in this continuation.

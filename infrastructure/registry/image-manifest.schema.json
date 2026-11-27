@@ -2,10 +2,11 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Verified nine-image GHCR publication",
   "type": "object",
-  "required": ["schema_version", "publication_complete", "source", "workflow", "published_at", "images"],
+  "required": ["schema_version", "publication_complete", "registry_access_verified", "source", "workflow", "published_at", "images"],
   "properties": {
     "schema_version": {"const": 1},
     "publication_complete": {"const": true},
+    "registry_access_verified": {"const": true},
     "source": {
       "type": "object",
       "required": ["repository", "commit", "ref"],

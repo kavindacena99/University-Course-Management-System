@@ -1,6 +1,8 @@
 """Security boundaries and complete-manifest contracts; never contacts a registry."""
 from datetime import date, timedelta
+import hashlib
 from pathlib import Path
+import subprocess
 import sys
 import tempfile
 from unittest.mock import patch
@@ -35,6 +37,12 @@ class PublicationContract(unittest.TestCase):
             with self.subTest(key=key), self.assertRaises(ValueError):
                 registry.eligible(dict(self.policy, **{key:value}), self.env)
 
+    def test_registry_bootstrap_requires_the_explicit_mode(self):
+        with self.assertRaises(ValueError):
+            registry.eligible(dict(self.policy, registry_access_verified=False), self.env)
+        registry.eligible(dict(self.policy, registry_access_verified=False,
+                               registry_bootstrap_mode='first_verified_application_upload'), self.env)
+
     def test_repository_policy_currently_blocks_publication(self):
         with self.assertRaises(ValueError):
             registry.eligible(registry.read(ROOT / 'infrastructure/registry/publication-policy.json'), self.env)
@@ -55,19 +63,55 @@ class PublicationContract(unittest.TestCase):
                              scan_status='passed', registry_scan_status='passed', pull_status='passed',
                              attestations={'https://spdx.dev/Document':'sha256:'+'3'*64, 'https://slsa.dev/provenance/v0.2':'sha256:'+'4'*64},
                              signed_attestation=False, sbom_reference=image+'@sha256:'+'1'*64, provenance_reference=image+'@sha256:'+'1'*64))
-        return dict(schema_version=1, source=dict(repository=self.policy['repository'], commit='a'*40, ref='refs/heads/main'),
+        return dict(schema_version=1, registry_access_verified=True,
+                    source=dict(repository=self.policy['repository'], commit='a'*40, ref='refs/heads/main'),
                     workflow=dict(run_id='1', run_attempt=1, url='https://github.com/'+self.policy['repository']+'/actions/runs/1'),
                     published_at='2026-11-24T00:00:00Z', publication_complete=True, images=rows)
 
     def test_manifest_requires_complete_verified_inventory(self):
         registry.validate_manifest(self.manifest())
         for field, value in [('digest','sha256:'+'0'*64), ('digest','<digest>'), ('scan_status','failed'),
-                             ('pull_status','pending'), ('tag','latest'), ('signed_attestation',True)]:
+                             ('pull_status','pending'), ('tag','latest'), ('signed_attestation',True), ('attestations',{})]:
             manifest=self.manifest(); manifest['images'][0][field]=value
             with self.subTest(field=field), self.assertRaises(ValueError): registry.validate_manifest(manifest)
         for images in (self.manifest()['images'][:-1], [self.manifest()['images'][0]]*9):
             manifest=self.manifest(); manifest['images']=images
             with self.assertRaises(ValueError): registry.validate_manifest(manifest)
+        manifest=self.manifest(); manifest['registry_access_verified']=False
+        with self.assertRaises(ValueError): registry.validate_manifest(manifest)
+
+    def test_first_publish_and_identical_rerun_tag_states(self):
+        raw=b'{"schemaVersion":2,"manifests":[]}'
+        expected='sha256:'+hashlib.sha256(raw).hexdigest()
+        image='ghcr.io/example/product/auth'
+        with patch.object(registry.subprocess, 'run', return_value=subprocess.CompletedProcess([],1,b'',b'manifest unknown')):
+            self.assertIsNone(registry.existing_tag_digest(image,'sha-'+'a'*40,'authfile',expected))
+        with patch.object(registry.subprocess, 'run', return_value=subprocess.CompletedProcess([],0,raw,b'')) as command:
+            self.assertEqual(registry.existing_tag_digest(image,'sha-'+'a'*40,'authfile',expected), expected)
+            self.assertIn('--raw',command.call_args.args[0])
+
+    def test_partial_publication_rerun_reuses_only_matching_tags(self):
+        raw=b'{"schemaVersion":2,"manifests":[1]}'
+        expected='sha256:'+hashlib.sha256(raw).hexdigest()
+        outcomes=[subprocess.CompletedProcess([],0,raw,b''),
+                  subprocess.CompletedProcess([],1,b'',b'manifest unknown')]
+        with patch.object(registry.subprocess, 'run', side_effect=outcomes):
+            states=[registry.existing_tag_digest('ghcr.io/example/product/'+s,'sha-'+'a'*40,'authfile',expected)
+                    for s in ('auth','user')]
+        self.assertEqual(states,[expected,None])
+
+    def test_conflicting_tag_or_registry_auth_failure_is_not_absence(self):
+        expected='sha256:'+hashlib.sha256(b'expected').hexdigest()
+        for result, error in [(subprocess.CompletedProcess([],0,b'other',b''),ValueError),
+                              (subprocess.CompletedProcess([],1,b'',b'HTTP 403 denied: manifest unknown'),RuntimeError)]:
+            with patch.object(registry.subprocess, 'run', return_value=result), self.assertRaises(error):
+                registry.existing_tag_digest('ghcr.io/example/product/auth','sha-'+'a'*40,'authfile',expected)
+
+    def test_upload_digest_must_match_scanned_index(self):
+        expected='sha256:'+'a'*64
+        self.assertEqual(registry.verified_published_digest(expected+'\n',expected),expected)
+        for value in ('sha256:'+'b'*64,'<digest>'):
+            with self.assertRaises(ValueError): registry.verified_published_digest(value,expected)
 
     def test_inventory_excludes_supporting_images(self):
         self.assertEqual(len(registry.INVENTORY),9)

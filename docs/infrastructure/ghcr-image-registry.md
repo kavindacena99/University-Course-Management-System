@@ -129,3 +129,23 @@ current CLI token: the package API returns 403 for missing `read:packages`.
 There are **no verified published references or registry digests** for this
 Phase 4 attempt. The `sha-<full source SHA>` tags and digest-based `images.env`
 remain implemented contracts, not evidence of publication.
+
+## 2026-11-27 protected-main update
+
+The repository is public and `main` is protected by active ruleset `28252583`.
+Fresh hosted run
+[46047552300](https://github.com/kavindacena99/University-Course-Management-System/actions/runs/46047552300)
+built and strictly scanned all nine application images successfully from
+`92fce6b02c15def11c9194137eca5387bfefa6dd`; the supporting PostgreSQL
+candidate also passed. No image was published because the old registry-access
+policy failed before authentication. The image names and `linux/amd64` target
+above are unchanged. The new publisher can bootstrap repository-scoped access
+only through a real scanned-image upload and digest/pull verification, then
+record that result in the manifest.
+
+The local CLI token still lacks `read:packages`; this does not establish the
+job-scoped `GITHUB_TOKEN`'s write permissions. Package visibility and linkage
+must be inspected after a successful upload. Do not assume a public source
+repository makes its GHCR packages public. No package visibility change is
+authorized by this update. The raw PGSTY Silo HIGH finding remains on a
+separate supporting server image, not on `assessment-minio-init`.
