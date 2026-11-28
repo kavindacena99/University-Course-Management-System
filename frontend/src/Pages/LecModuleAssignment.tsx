@@ -35,8 +35,9 @@ export default function LecModuleAssignment() {
     listAssignedOfferings()
       .then(async (response) => {
         if (!active) return;
-        const selected = response.offerings.find((item) => item.id === requestedOfferingId)
-          ?? response.offerings[0];
+        const selected =
+          response.offerings.find((item) => item.id === requestedOfferingId) ??
+          response.offerings[0];
         setOfferings(response.offerings);
         setOfferingId(selected?.id ?? "");
         if (selected) {
@@ -49,7 +50,9 @@ export default function LecModuleAssignment() {
       })
       .catch((requestError) => {
         if (active) {
-          setError(requestError instanceof Error ? requestError.message : "Unable to load assessments.");
+          setError(
+            requestError instanceof Error ? requestError.message : "Unable to load assessments.",
+          );
         }
       })
       .finally(() => {
@@ -63,7 +66,9 @@ export default function LecModuleAssignment() {
   const visibleAssessments = useMemo(() => {
     const needle = query.trim().toLowerCase();
     return assessments.filter((item) =>
-      `${item.title} ${item.description} ${item.component_kind} ${item.status}`.toLowerCase().includes(needle),
+      `${item.title} ${item.description} ${item.component_kind} ${item.status}`
+        .toLowerCase()
+        .includes(needle),
     );
   }, [assessments, query]);
 
@@ -75,7 +80,9 @@ export default function LecModuleAssignment() {
     try {
       await loadAssessments(id);
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "Unable to load assessments.");
+      setError(
+        requestError instanceof Error ? requestError.message : "Unable to load assessments.",
+      );
     } finally {
       setLoading(false);
     }
@@ -88,7 +95,9 @@ export default function LecModuleAssignment() {
       await changeAssessmentStatus(assessment, action);
       await loadAssessments(offeringId);
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "Unable to update assessment.");
+      setError(
+        requestError instanceof Error ? requestError.message : "Unable to update assessment.",
+      );
     } finally {
       setActionId("");
     }
@@ -111,14 +120,22 @@ export default function LecModuleAssignment() {
       <aside className="lecturer-assessments__sidebar">
         <Link className="lecturer-assessments__brand" to="/lecturer/dashboard">
           <span aria-hidden="true">UC</span>
-          <strong>University Course<br />Management System</strong>
+          <strong>
+            University Course
+            <br />
+            Management System
+          </strong>
         </Link>
         <nav aria-label="Lecturer navigation">
           <Link to="/lecturer/dashboard">Dashboard</Link>
           <Link to="/lecturer/courses">My courses</Link>
-          <Link className="is-active" to="/lecturer/assignments">Assignments</Link>
+          <Link className="is-active" to="/lecturer/assignments">
+            Assignments
+          </Link>
         </nav>
-        <button className="lecturer-assessments__logout" onClick={signOut} type="button">Sign out</button>
+        <button className="lecturer-assessments__logout" onClick={signOut} type="button">
+          Sign out
+        </button>
       </aside>
 
       <main className="lecturer-assessments__main">
@@ -130,7 +147,7 @@ export default function LecModuleAssignment() {
           <button
             className="lecturer-assessments__primary"
             disabled={!offeringId}
-            onClick={() => navigate(`/LecAssignmentSubmissionSettings?offeringId=${encodeURIComponent(offeringId)}`)}
+            onClick={() => navigate(`/lecturer/assessments/create?offeringId=${encodeURIComponent(offeringId)}`)}
             type="button"
           >
             Create assessment
@@ -138,7 +155,11 @@ export default function LecModuleAssignment() {
         </header>
 
         <section className="lecturer-assessments__panel">
-          {error && <p className="lecturer-assessments__error" role="alert">{error}</p>}
+          {error && (
+            <p className="lecturer-assessments__error" role="alert">
+              {error}
+            </p>
+          )}
           <div className="lecturer-assessments__filters">
             <label>
               <span>Course offering</span>
@@ -162,28 +183,51 @@ export default function LecModuleAssignment() {
 
           {selectedOffering && (
             <p className="lecturer-assessments__context">
-              Showing assessments for <strong>{selectedOffering.course_code} - {selectedOffering.course_title}</strong>
+              Showing assessments for{" "}
+              <strong>
+                {selectedOffering.course_code} - {selectedOffering.course_title}
+              </strong>
             </p>
           )}
 
           {loading ? (
-            <p className="lecturer-assessments__state" role="status">Loading assessments...</p>
+            <p className="lecturer-assessments__state" role="status">
+              Loading assessments...
+            </p>
           ) : !offerings.length ? (
-            <p className="lecturer-assessments__state">No course offerings are assigned to your account.</p>
+            <p className="lecturer-assessments__state">
+              No course offerings are assigned to your account.
+            </p>
           ) : visibleAssessments.length ? (
             <div className="lecturer-assessments__table-wrap">
               <table>
                 <thead>
-                  <tr><th>Assessment</th><th>Component</th><th>Due</th><th>Weight</th><th>Status</th><th>Actions</th></tr>
+                  <tr>
+                    <th>Assessment</th>
+                    <th>Component</th>
+                    <th>Due</th>
+                    <th>Weight</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
                 </thead>
                 <tbody>
                   {visibleAssessments.map((assessment) => (
                     <tr key={assessment.id}>
-                      <td><strong>{assessment.title}</strong><small>{assessment.description}</small></td>
+                      <td>
+                        <strong>{assessment.title}</strong>
+                        <small>{assessment.description}</small>
+                      </td>
                       <td>{assessment.component_kind.replace("_", " ")}</td>
                       <td>{new Date(assessment.due_at).toLocaleString()}</td>
                       <td>{assessment.weight_percent}%</td>
-                      <td><span className={`lecturer-assessments__status lecturer-assessments__status--${assessment.status}`}>{assessment.status}</span></td>
+                      <td>
+                        <span
+                          className={`lecturer-assessments__status lecturer-assessments__status--${assessment.status}`}
+                        >
+                          {assessment.status}
+                        </span>
+                      </td>
                       <td className="lecturer-assessments__actions">
                         {assessment.status === "draft" && (
                           <button
@@ -203,7 +247,9 @@ export default function LecModuleAssignment() {
                             Close
                           </button>
                         )}
-                        <Link to={`/LecAssignmentGrading?assessmentId=${encodeURIComponent(assessment.id)}`}>
+                        <Link
+                          to={`/lecturer/grading?assessmentId=${encodeURIComponent(assessment.id)}`}
+                        >
                           Submissions
                         </Link>
                       </td>
@@ -213,7 +259,9 @@ export default function LecModuleAssignment() {
               </table>
             </div>
           ) : (
-            <p className="lecturer-assessments__state">No assessments found for this course offering.</p>
+            <p className="lecturer-assessments__state">
+              No assessments found for this course offering.
+            </p>
           )}
         </section>
       </main>

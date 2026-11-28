@@ -1,8 +1,5 @@
-import { useEffect, useState } from "react";
-import type { ReactNode } from "react";
-import { BrowserRouter as Router, Link, Navigate, Route, Routes } from "react-router-dom";
-import type { UserSummary } from "./types/api";
-import { getCurrentUser } from "./services/auth";
+import { BrowserRouter, Navigate, Route, Routes, Link } from "react-router-dom";
+import { SessionProvider, Protected } from "./session";
 import Login from "./Pages/Login";
 import Courses from "./Pages/Courses";
 import LecModuleAssignment from "./Pages/LecModuleAssignment";
@@ -23,135 +20,344 @@ import {
   RegisterPage,
   ResetPasswordPage,
 } from "./Pages/AccountFlows";
-
-function isHttpError(error: unknown): error is Error & { status: number } {
-  return error instanceof Error && "status" in error && typeof error.status === "number";
-}
-
-function ProtectedPage({
-  children,
-  roles,
-  permissions,
-}: {
-  children: ReactNode;
-  roles?: string[];
-  permissions?: string[];
-}) {
-  const [user, setUser] = useState<UserSummary | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-
-  useEffect(() => {
-    let active = true;
-    getCurrentUser()
-      .then((currentUser) => {
-        if (active) setUser(currentUser);
-      })
-      .catch((requestError) => {
-        if (active) {
-          if (!isHttpError(requestError) || requestError.status !== 401) {
-            setError(requestError instanceof Error ? requestError.message : "Unable to verify your session.");
-          }
-        }
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
-    return () => {
-      active = false;
-    };
-  }, []);
-
-  if (loading) return <main className="route-state" role="status">Checking your session...</main>;
-  if (error) {
-    return (
-      <main className="route-state">
-        <p role="alert">{error}</p>
-        <Link to="/login">Return to sign in</Link>
-      </main>
-    );
-  }
-  if (!user) return <Navigate to="/login" replace />;
-  if (roles?.length && !roles.some((role) => user.roles.includes(role))) {
-    return <Navigate to="/unauthorized" replace />;
-  }
-  if (permissions?.some((permission) => !user.permissions?.includes(permission))) {
-    return <Navigate to="/unauthorized" replace />;
-  }
-  return children;
-}
+import {
+  AssessmentPage,
+  CoursePage,
+  CoursesPage,
+  CreateCoursePage,
+  LecturerAnalyticsPage,
+  LecturerOfferingsPage,
+  OfferingPage,
+  OfferingsPage,
+  StudentSubmissionPage,
+  SubmissionPage,
+} from "./Pages/Workflows";
 
 function NotFound() {
   return (
     <main className="route-state">
       <h1>Page not found</h1>
       <p>The requested page does not exist.</p>
-      <Link to="/">Return to sign in</Link>
+      <Link to="/courses">Return to courses</Link>
     </main>
   );
-}
-
-function Unauthorized() {
-  return (
-    <main className="route-state">
-      <h1>Access denied</h1>
-      <p>Your account does not have access to this page.</p>
-      <Link to="/">Return to sign in</Link>
-    </main>
-  );
-}
-
-function protectedElement(element: ReactNode, roles?: string[], permissions?: string[]) {
-  return <ProtectedPage roles={roles} permissions={permissions}>{element}</ProtectedPage>;
 }
 
 export default function App() {
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<Navigate to="/login" replace />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<RegisterPage />} />
-        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-        <Route path="/reset-password" element={<ResetPasswordPage />} />
-        <Route path="/activate" element={<ActivateAccountPage />} />
+    <BrowserRouter>
+      <SessionProvider>
+        <Routes>
+          <Route path="/" element={<Navigate to="/login" replace />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
+          <Route path="/activate" element={<ActivateAccountPage />} />
 
-        <Route path="/courses" element={protectedElement(<Courses />)} />
-        <Route path="/lecturer/courses" element={protectedElement(<Courses />)} />
-        <Route path="/lecturer/courses/create" element={protectedElement(<LecCreateCourse />, ["ADMIN", "STAFF"])} />
-        <Route path="/lecturer/courses/edit" element={protectedElement(<LecCreateCourse />, ["ADMIN", "STAFF"])} />
-        <Route path="/lecturer/courses/view" element={protectedElement(<LecViewCourse />)} />
-        <Route path="/lecturer/assignments" element={protectedElement(<LecModuleAssignment />, ["LECTURER", "ADMIN"])} />
-        <Route path="/lecturer/submissions" element={protectedElement(<Navigate to="/lecturer/assignments" replace />, ["LECTURER", "ADMIN"])} />
-        <Route path="/lecturer/dashboard" element={protectedElement(<LecDashboard />, ["LECTURER", "ADMIN"])} />
-        <Route path="/student/results" element={protectedElement(<StudentResults />, ["STUDENT"])} />
-        <Route path="/student/assignments" element={protectedElement(<StudentAssignments />, ["STUDENT"])} />
-        <Route path="/student/enrollments" element={protectedElement(<StudentEnrollments />, ["STUDENT"])} />
-        <Route path="/account" element={protectedElement(<AccountSettings />)} />
-        <Route path="/admin" element={protectedElement(<Admin_Dashboard />, ["ADMIN"])} />
-        <Route
-          path="/admin/final-results"
-          element={protectedElement(
-            <AdminFinalResults />,
-            ["ADMIN"],
-            ["assessments:student:read", "assessments:results:import"],
-          )}
-        />
+          <Route
+            path="/courses"
+            element={
+              <Protected>
+                <CoursesPage />
+              </Protected>
+            }
+          />
+          <Route
+            path="/courses/:id"
+            element={
+              <Protected>
+                <CoursePage />
+              </Protected>
+            }
+          />
+          <Route
+            path="/catalog"
+            element={
+              <Protected>
+                <Courses />
+              </Protected>
+            }
+          />
+          <Route
+            path="/lecturer/courses"
+            element={
+              <Protected>
+                <Courses />
+              </Protected>
+            }
+          />
+          <Route
+            path="/lecturer/courses/create"
+            element={
+              <Protected roles={["ADMIN", "STAFF"]}>
+                <LecCreateCourse />
+              </Protected>
+            }
+          />
+          <Route
+            path="/lecturer/courses/edit"
+            element={
+              <Protected roles={["ADMIN", "STAFF"]}>
+                <LecCreateCourse />
+              </Protected>
+            }
+          />
+          <Route
+            path="/lecturer/courses/view"
+            element={
+              <Protected>
+                <LecViewCourse />
+              </Protected>
+            }
+          />
 
-        <Route path="/LecModuleAssignment" element={protectedElement(<LecModuleAssignment />, ["LECTURER", "ADMIN"])} />
-        <Route path="/LecAssignmentSubmission" element={protectedElement(<Navigate to="/lecturer/assignments" replace />, ["LECTURER", "ADMIN"])} />
-        <Route path="/LecViewCourse" element={protectedElement(<LecViewCourse />)} />
-        <Route path="/LecCreateCourse" element={protectedElement(<LecCreateCourse />, ["ADMIN", "STAFF"])} />
-        <Route path="/LecMyCourses" element={protectedElement(<Courses />)} />
-        <Route path="/AssignmentSubmissionSetting" element={protectedElement(<LecAssignmentSubmissionSettings />, ["LECTURER", "ADMIN"])} />
-        <Route path="/LecAssignmentGrading" element={protectedElement(<LecAssignmentGrading />, ["LECTURER", "ADMIN"])} />
-        <Route path="/LecAssignmentSubmissionSettings" element={protectedElement(<LecAssignmentSubmissionSettings />, ["LECTURER", "ADMIN"])} />
-        <Route path="/LecDashboard" element={protectedElement(<LecDashboard />, ["LECTURER", "ADMIN"])} />
-        <Route path="/Admin_Dashboard" element={<Navigate to="/admin" replace />} />
+          <Route
+            path="/offerings"
+            element={
+              <Protected>
+                <OfferingsPage />
+              </Protected>
+            }
+          />
+          <Route
+            path="/offerings/:id"
+            element={
+              <Protected>
+                <OfferingPage />
+              </Protected>
+            }
+          />
+          <Route
+            path="/lecturer/offerings"
+            element={
+              <Protected role="LECTURER">
+                <LecturerOfferingsPage />
+              </Protected>
+            }
+          />
+          <Route
+            path="/lecturer/offerings/:id/analytics"
+            element={
+              <Protected role="LECTURER" permission="analytics:lecturer:read">
+                <LecturerAnalyticsPage />
+              </Protected>
+            }
+          />
+          <Route
+            path="/lecturer/offerings/:id"
+            element={
+              <Protected role="LECTURER">
+                <OfferingPage lecturer />
+              </Protected>
+            }
+          />
 
-        <Route path="/unauthorized" element={<Unauthorized />} />
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </Router>
+          <Route
+            path="/student/enrollments"
+            element={
+              <Protected role="STUDENT">
+                <StudentEnrollments />
+              </Protected>
+            }
+          />
+          <Route
+            path="/student/enrolments"
+            element={
+              <Protected role="STUDENT">
+                <StudentEnrollments />
+              </Protected>
+            }
+          />
+          <Route
+            path="/student/assignments"
+            element={
+              <Protected role="STUDENT" permission="assessments:submit">
+                <StudentAssignments />
+              </Protected>
+            }
+          />
+          <Route
+            path="/student/results"
+            element={
+              <Protected role="STUDENT" permission="analytics:student:read">
+                <StudentResults />
+              </Protected>
+            }
+          />
+          <Route
+            path="/student/assessments/:id"
+            element={
+              <Protected role="STUDENT" permission="assessments:submit">
+                <AssessmentPage />
+              </Protected>
+            }
+          />
+          <Route
+            path="/student/submissions/:id"
+            element={
+              <Protected role="STUDENT">
+                <StudentSubmissionPage />
+              </Protected>
+            }
+          />
+          <Route path="/student/report" element={<Navigate to="/student/results" replace />} />
+
+          <Route
+            path="/lecturer/dashboard"
+            element={
+              <Protected roles={["LECTURER", "ADMIN"]}>
+                <LecDashboard />
+              </Protected>
+            }
+          />
+          <Route
+            path="/lecturer/assignments"
+            element={
+              <Protected roles={["LECTURER", "ADMIN"]} permission="assessments:read">
+                <LecModuleAssignment />
+              </Protected>
+            }
+          />
+          <Route
+            path="/lecturer/assessments/create"
+            element={
+              <Protected roles={["LECTURER", "ADMIN"]} permission="assessments:manage">
+                <LecAssignmentSubmissionSettings />
+              </Protected>
+            }
+          />
+          <Route
+            path="/lecturer/assessments/:id"
+            element={
+              <Protected roles={["LECTURER", "ADMIN"]} permission="assessments:read">
+                <AssessmentPage lecturer />
+              </Protected>
+            }
+          />
+          <Route
+            path="/lecturer/grading"
+            element={
+              <Protected roles={["LECTURER", "ADMIN"]} permission="assessments:grade">
+                <LecAssignmentGrading />
+              </Protected>
+            }
+          />
+          <Route
+            path="/lecturer/submissions/:id"
+            element={
+              <Protected roles={["LECTURER", "ADMIN"]} permission="assessments:grade">
+                <SubmissionPage />
+              </Protected>
+            }
+          />
+          <Route
+            path="/lecturer/submissions"
+            element={
+              <Protected roles={["LECTURER", "ADMIN"]}>
+                <Navigate to="/lecturer/assignments" replace />
+              </Protected>
+            }
+          />
+
+          <Route
+            path="/admin"
+            element={<Navigate to="/admin/dashboard" replace />}
+          />
+          <Route
+            path="/admin/dashboard"
+            element={
+              <Protected role="ADMIN">
+                <Admin_Dashboard />
+              </Protected>
+            }
+          />
+          <Route
+            path="/admin/courses/create"
+            element={
+              <Protected permission="courses:manage">
+                <CreateCoursePage />
+              </Protected>
+            }
+          />
+          <Route
+            path="/admin/final-results"
+            element={
+              <Protected
+                role="ADMIN"
+                permissions={["assessments:student:read", "assessments:results:import"]}
+              >
+                <AdminFinalResults />
+              </Protected>
+            }
+          />
+          <Route
+            path="/account"
+            element={
+              <Protected>
+                <AccountSettings />
+              </Protected>
+            }
+          />
+
+          <Route
+            path="/LecModuleAssignment"
+            element={
+              <Protected roles={["LECTURER", "ADMIN"]}>
+                <LecModuleAssignment />
+              </Protected>
+            }
+          />
+          <Route
+            path="/LecAssignmentSubmission"
+            element={<Navigate to="/lecturer/assignments" replace />}
+          />
+          <Route path="/LecViewCourse" element={<Protected><LecViewCourse /></Protected>} />
+          <Route
+            path="/LecCreateCourse"
+            element={
+              <Protected roles={["ADMIN", "STAFF"]}>
+                <LecCreateCourse />
+              </Protected>
+            }
+          />
+          <Route path="/LecMyCourses" element={<Protected><Courses /></Protected>} />
+          <Route
+            path="/AssignmentSubmissionSetting"
+            element={
+              <Protected roles={["LECTURER", "ADMIN"]} permission="assessments:manage">
+                <LecAssignmentSubmissionSettings />
+              </Protected>
+            }
+          />
+          <Route
+            path="/LecAssignmentGrading"
+            element={
+              <Protected roles={["LECTURER", "ADMIN"]} permission="assessments:grade">
+                <LecAssignmentGrading />
+              </Protected>
+            }
+          />
+          <Route
+            path="/LecAssignmentSubmissionSettings"
+            element={
+              <Protected roles={["LECTURER", "ADMIN"]} permission="assessments:manage">
+                <LecAssignmentSubmissionSettings />
+              </Protected>
+            }
+          />
+          <Route
+            path="/LecDashboard"
+            element={
+              <Protected roles={["LECTURER", "ADMIN"]}>
+                <LecDashboard />
+              </Protected>
+            }
+          />
+          <Route path="/Admin_Dashboard" element={<Navigate to="/admin/dashboard" replace />} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </SessionProvider>
+    </BrowserRouter>
   );
 }

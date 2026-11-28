@@ -112,3 +112,75 @@ gracefully; no `platform-qa-target` container remains running, and both target
 volumes and all DEV volumes remain present. No PROD-like target was started.
 **Phase 6 remains IN PROGRESS.** A reviewed application fix, fresh publication,
 new RC and repeat full QA are required before acceptance.
+
+## Authenticated application remediation branch — pending live acceptance
+
+The RC2 browser failure was caused by registered lecturer routes rendering static
+pages without authentication or API traffic. This branch replaces registered
+operational routes with protected, lowercase, ID-based pages. A later protected
+main commit also added live account, student, lecturer and administrator pages;
+these were merged and their functional routes retained. The remaining static
+placeholder paths are not registered. Existing email login, course API use,
+and the same-origin proxy were recognized as existing work rather than rebuilt.
+
+Authentication now uses a shared session provider. It calls `/api/v1/auth/me`
+at startup, uses rotating cookie refresh after a 401, obtains the CSRF token
+from the Auth response for unsafe methods, and calls backend logout. The unused
+access token and user copies in session storage were removed. Role and
+permission guards protect direct URL navigation. The backend continues to
+enforce identity, permissions, assigned lecturer checks, enrollment ownership,
+CSRF, submission file access, and version transitions.
+
+The [updated integration matrix](../frontend-backend-integration-audit.md)
+lists all current pages, endpoints, source status, and required tests. The
+frontend now requests course and offering records, self enrollments, assigned
+offering enrollments, assessments, submissions, protected files, grades, and
+student/lecturer/admin analytics. Assessment publication and grade release send
+persisted versions; upload uses multipart form data and an `Idempotency-Key`.
+The submission UI checks the default 20 MiB bound and allowed extension while
+the service remains responsible for content-type and authorization validation.
+No GPA, grades, enrollment counts, or analytics are generated locally.
+
+TypeScript validation and production build passed on an isolated copy of the
+frontend source and committed npm lockfile. The repository's OneDrive
+`node_modules` directory contained a locked native binary, preventing an
+in-place dependency install. The committed pnpm lockfile was also rejected by
+the local minimum-release-age policy for `lucide-react@1.83.0`; this did not
+change the lockfile. The temporary build is evidence of source compilation,
+not a live workflow pass.
+
+A Playwright suite under `tests/browser-phase6/` now covers anonymous route and
+backend denial, lecturer assignment and analytics, student self reports and
+role denial, then real draft creation, publication, file upload, protected
+download, grade save, release, and reload persistence, plus an optional
+administrator dashboard check. The suite uses only environment-supplied
+dedicated account credentials. Its test runner installed with zero npm audit
+findings and discovered five tests; all five skipped
+because no running gateway or synthetic account configuration was available.
+The skips are recorded as **no browser acceptance evidence**.
+
+Local non-runtime gates passed: 51 infrastructure tests, all ten Compose
+models, `git diff --check`, formatting of changed frontend files, and a scan
+of 49 reachable commits plus 552 tracked/non-ignored working-tree files with
+no secret findings. The built frontend assets contained no direct service or
+environment-specific API URL. No Go service source changed, so the Go test
+matrix was checked by the PR's required CI jobs.
+
+Draft [PR #28](https://github.com/kavindacena99/University-Course-Management-System/pull/28)
+is mergeable. Its 19 application/infrastructure/image-input and image-build
+checks passed, including all six Go service jobs, frontend, infrastructure,
+and ten image-build jobs. Publication prerequisite/publish jobs were skipped
+for this PR as intended. This CI result does not replace the five skipped live
+Playwright tests, a reviewed merge, new immutable publication, or full QA
+acceptance.
+
+`docker ps` showed no running service stack. No QA or PROD-like target was
+started, so authenticated browser tests, API persistence checks, negative
+authorization tests with dedicated accounts, and projection rebuilding checks
+remain unexecuted. The application cannot be accepted as Phase 6 complete or
+as a new RC on this evidence. Before a new candidate, complete the live
+Playwright matrix, resolve any defects it finds, pass CI, merge after review,
+publish nine immutable images, and obtain a fresh verified external backup of
+the existing QA PostgreSQL and object-store data before any QA migration or
+potentially destructive change. RC1/RC2 evidence and the storage guard remain
+unchanged. Phase 5 remains in progress; Phase 7 remains blocked by QA acceptance.
