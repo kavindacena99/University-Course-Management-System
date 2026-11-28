@@ -1,8 +1,14 @@
 # Object-storage security remediation — CVE-2026-39414
 
-Date: 2026-11-23. Status: **IMPLEMENTED — OWNER APPROVAL PENDING**.
+Date: 2026-11-23. Status at implementation: **IMPLEMENTED — OWNER APPROVAL PENDING**.
 The local mitigation and compatibility tests passed. No security exception has
 been approved by Codex, and no claim is made that the raw image scan is clean.
+
+On 2026-11-28 the owner approved Phase 4 application image publication only,
+for the exact pinned Silo digest with the target guard mandatory. This does not
+approve runtime deployment or erase the raw scanner finding. See
+`infrastructure/registry/publication-policy.json` and
+`docs/infrastructure/object-storage-guide.md` for the current scope.
 
 ## Exact implementation and provenance
 

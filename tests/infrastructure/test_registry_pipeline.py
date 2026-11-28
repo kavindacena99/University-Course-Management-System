@@ -43,9 +43,11 @@ class PublicationContract(unittest.TestCase):
         registry.eligible(dict(self.policy, registry_access_verified=False,
                                registry_bootstrap_mode='first_verified_application_upload'), self.env)
 
-    def test_repository_policy_currently_blocks_publication(self):
-        with self.assertRaises(ValueError):
-            registry.eligible(registry.read(ROOT / 'infrastructure/registry/publication-policy.json'), self.env)
+    def test_repository_policy_allows_reviewed_protected_main_publication(self):
+        policy = registry.read(ROOT / 'infrastructure/registry/publication-policy.json')
+        self.assertTrue(policy['storage_release_scope_approved'])
+        self.assertIn('sha256:c20d112390b9a9ce8c11b8af95ad35bcaa62f4759663c09c936cd8d2b511f329', policy['evidence']['storage'])
+        registry.eligible(policy, self.env)
 
     def test_scan_failures_are_not_clean(self):
         good = dict(SchemaVersion=2, Metadata={}, Results=[{'Target':'test', 'Vulnerabilities':[]}])

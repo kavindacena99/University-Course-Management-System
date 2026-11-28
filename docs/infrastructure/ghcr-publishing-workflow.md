@@ -28,11 +28,11 @@ has no arbitrary source/artifact input. No workflow_run or cross-run artifact
 trust is introduced. Only the publisher receives `packages: write`; all other
 jobs retain read-only repository permissions on GitHub-hosted runners.
 
-`publication-policy.json` is deliberately fail-closed: registry access, Phase 3
-remote verification and storage release-scope approval remain false. A named
+`publication-policy.json` was initially fail-closed: registry access, Phase 3
+remote verification and storage release-scope approval were false. A named
 owner and unexpired review date are additionally required. These are reviewed
 prerequisites, not switchable workflow-dispatch inputs or scanner suppressions.
-Current local-only storage approval is preserved and is not extended by Codex.
+At initial implementation, storage approval covered local rehearsal only.
 Branch protection is independently checked through GitHub's event context, even
 if a policy file is changed. The deprecated `publish-images.yml` manual entry
 point directs operators to CI and exits unsuccessfully; it never duplicates
@@ -150,8 +150,15 @@ The public repository's active ruleset now protects `main`. Fresh hosted run
 [46047552300](https://github.com/kavindacena99/University-Course-Management-System/actions/runs/46047552300)
 observed `GITHUB_REF_PROTECTED=true`; all backend, frontend, infrastructure and
 image jobs passed. The prerequisite stopped at the old registry-access policy,
-before a registry login. The policy now records this remote validation while
-retaining the unresolved storage decision.
+before a registry login. The policy recorded this remote validation while
+retaining the then-unresolved storage decision.
+
+On 2026-11-28 the owner approved Phase 4 application image publication for the
+exact pinned Silo digest with the target's S3 Select guard mandatory. The policy
+now records that narrow approval, a named owner, and a 2026-12-28 review date.
+This permits the protected-main prerequisite gate to proceed to registry
+bootstrap. It does not authorize runtime deployment or publish the Silo image.
+See [the object-storage guide](object-storage-guide.md).
 
 The publisher's explicit `first_verified_application_upload` bootstrap avoids
 claiming registry write access from a CLI package-list result. Only its job has
