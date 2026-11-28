@@ -10,6 +10,8 @@ and `PHASE6_UNASSIGNED_OFFERING_ID` in the
 local process environment. Never commit their values. Then install this
 directory's dev dependency and run `npm test` here. Reports, traces and
 screenshots are ignored under `artifacts/`.
+Set `PHASE6_ADMIN_EMAIL` and `PHASE6_ADMIN_PASSWORD` to exercise the optional
+administrator dashboard check.
 
 The suite issues real same-origin API requests and checks persistence after
 reload. It intentionally cannot run against stopped QA without an authorized

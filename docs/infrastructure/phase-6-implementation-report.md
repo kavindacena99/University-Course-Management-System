@@ -152,9 +152,10 @@ not a live workflow pass.
 A Playwright suite under `tests/browser-phase6/` now covers anonymous route and
 backend denial, lecturer assignment and analytics, student self reports and
 role denial, then real draft creation, publication, file upload, protected
-download, grade save, release, and reload persistence. The suite uses only
-environment-supplied dedicated account credentials. Its test runner installed
-with zero npm audit findings and discovered four tests; all four skipped
+download, grade save, release, and reload persistence, plus an optional
+administrator dashboard check. The suite uses only environment-supplied
+dedicated account credentials. Its test runner installed with zero npm audit
+findings and discovered five tests; all five skipped
 because no running gateway or synthetic account configuration was available.
 The skips are recorded as **no browser acceptance evidence**.
 

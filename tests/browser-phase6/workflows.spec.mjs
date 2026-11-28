@@ -52,8 +52,8 @@ test('student enrolments, report and lecturer/admin denial use live APIs', async
   await expect(page.getByRole('heading', { name: 'My enrolments' })).toBeVisible();
   await page.reload();
   await expect(page.getByRole('heading', { name: 'My enrolments' })).toBeVisible();
-  await page.goto('/student/report');
-  await expect(page.getByRole('heading', { name: 'Academic report' })).toBeVisible();
+  await page.goto('/student/results');
+  await expect(page.getByRole('heading', { name: 'Results and grades' })).toBeVisible();
   expect((await page.context().request.get('/api/v1/analytics/admin/summary')).status()).toBe(403);
   await page.goto('/lecturer/offerings');
   await expect(page.getByRole('alert')).toContainText('Access denied');
@@ -74,20 +74,31 @@ test('student enrolments, report and lecturer/admin denial use live APIs', async
   await expect(page).toHaveURL(/\/login$/);
 });
 
+test('administrator dashboard uses authorized summary and users', async ({ page }) => {
+  test.skip(!process.env.PHASE6_ADMIN_EMAIL || !process.env.PHASE6_ADMIN_PASSWORD, 'Provide a dedicated synthetic administrator account.');
+  const calls = [];
+  page.on('response', response => { if (response.url().includes('/api/v1/')) calls.push(response.url()); });
+  await login(page, process.env.PHASE6_ADMIN_EMAIL, process.env.PHASE6_ADMIN_PASSWORD);
+  await page.goto('/admin/dashboard');
+  await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
+  expect(calls.some(url => url.includes('/analytics/admin/summary'))).toBeTruthy();
+});
+
 test('student file upload persists and lecturer can download, grade and release it', async ({ browser, request }) => {
   const lecturer = await browser.newContext(); const lecturerPage = await lecturer.newPage();
   await login(lecturerPage, process.env.PHASE6_LECTURER_EMAIL, process.env.PHASE6_LECTURER_PASSWORD);
-  await lecturerPage.goto(`/lecturer/offerings/${process.env.PHASE6_ASSIGNED_OFFERING_ID}/assessments/create`);
-  await lecturerPage.getByLabel('Title').fill(`Phase 6 synthetic ${Date.now()}`);
-  await lecturerPage.getByLabel('Description').fill('Synthetic end-to-end assessment');
-  await lecturerPage.getByLabel('Due date').fill(new Date(Date.now() + 86400000).toISOString().slice(0, 16));
+  await lecturerPage.goto(`/lecturer/assessments/create?offeringId=${process.env.PHASE6_ASSIGNED_OFFERING_ID}`);
+  await lecturerPage.getByLabel('Assessment title').fill(`Phase 6 synthetic ${Date.now()}`);
+  await lecturerPage.getByLabel('Description and instructions').fill('Synthetic end-to-end assessment');
+  await lecturerPage.getByLabel('Due date and time').fill(new Date(Date.now() + 86400000).toISOString().slice(0, 16));
   await lecturerPage.getByLabel('Maximum mark').fill('100');
-  await lecturerPage.getByLabel('Weight percent').fill('1');
+  await lecturerPage.getByLabel('Weight (%)').fill('1');
   const created = lecturerPage.waitForResponse(response => response.url().includes('/assessments') && response.request().method() === 'POST');
   await lecturerPage.getByRole('button', { name: 'Create draft' }).click();
-  expect((await created).status()).toBe(201);
-  await expect(lecturerPage).toHaveURL(/\/lecturer\/assessments\//);
-  const assessmentId = lecturerPage.url().split('/').pop();
+  const createdResponse = await created;
+  expect(createdResponse.status()).toBe(201);
+  const assessmentId = (await createdResponse.json()).assessment.id;
+  await lecturerPage.goto(`/lecturer/assessments/${assessmentId}`);
   const published = lecturerPage.waitForResponse(response => response.url().endsWith(`/assessments/${assessmentId}/publish`));
   await lecturerPage.getByRole('button', { name: 'Publish assessment' }).click();
   expect((await published).status()).toBe(200);

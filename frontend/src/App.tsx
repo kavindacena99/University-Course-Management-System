@@ -18,14 +18,12 @@ import {
   AssessmentPage,
   CoursePage,
   CoursesPage,
-  CreateAssessmentPage,
   CreateCoursePage,
   LecturerAnalyticsPage,
   LecturerOfferingsPage,
   OfferingPage,
   OfferingsPage,
   StudentEnrollmentsPage,
-  StudentReportPage,
   StudentSubmissionPage,
   SubmissionPage,
 } from "./Pages/Workflows";
@@ -114,14 +112,7 @@ export default function App() {
               </Protected>
             }
           />
-          <Route
-            path="/student/report"
-            element={
-              <Protected role="STUDENT" permission="analytics:student:read">
-                <StudentReportPage />
-              </Protected>
-            }
-          />
+          <Route path="/student/report" element={<Navigate to="/student/results" replace />} />
           <Route
             path="/lecturer/offerings"
             element={
@@ -180,11 +171,7 @@ export default function App() {
           />
           <Route
             path="/lecturer/offerings/:id/assessments/create"
-            element={
-              <Protected role="LECTURER" permission="assessments:manage">
-                <CreateAssessmentPage />
-              </Protected>
-            }
+            element={<Navigate to="/lecturer/assessments/create" replace />}
           />
           <Route
             path="/lecturer/assessments/:id"

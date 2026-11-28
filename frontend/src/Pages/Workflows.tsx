@@ -384,7 +384,9 @@ export function OfferingPage({ lecturer = false }: { lecturer?: boolean }) {
           <h2>Assessments</h2>
           {lecturer && user && hasPermission(user, "assessments:manage") && (
             <p>
-              <Link to={`/lecturer/offerings/${id}/assessments/create`}>Create assessment</Link>
+              <Link to={`/lecturer/assessments/create?offeringId=${encodeURIComponent(id)}`}>
+                Create assessment
+              </Link>
             </p>
           )}
           {assessmentList.data && (
@@ -413,84 +415,6 @@ export function OfferingPage({ lecturer = false }: { lecturer?: boolean }) {
           )}
         </>
       )}
-    </Shell>
-  );
-}
-export function CreateAssessmentPage() {
-  const { id = "" } = useParams();
-  const [error, setError] = useState("");
-  const [busy, setBusy] = useState(false);
-  const navigate = useNavigate();
-  async function save(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const form = new FormData(event.currentTarget);
-    setBusy(true);
-    setError("");
-    try {
-      const result = await api.createAssessment(id, {
-        title: String(form.get("title")).trim(),
-        description: String(form.get("description")).trim(),
-        component_kind: String(form.get("component_kind")),
-        due_at: new Date(String(form.get("due_at"))).toISOString(),
-        max_mark: Number(form.get("max_mark")),
-        weight_percent: Number(form.get("weight_percent")),
-        max_attempts: Number(form.get("max_attempts")),
-        late_policy: String(form.get("late_policy")),
-        allowed_file_types: [{ extension: "pdf", media_type: "application/pdf" }],
-      });
-      navigate(`/lecturer/assessments/${result.assessment.id}`);
-    } catch (cause) {
-      setError(message(cause));
-    } finally {
-      setBusy(false);
-    }
-  }
-  return (
-    <Shell title="Create assessment">
-      <form onSubmit={save} className="workflow-form">
-        <label>
-          Title
-          <input name="title" required maxLength={200} />
-        </label>
-        <label>
-          Description
-          <textarea name="description" maxLength={10000} />
-        </label>
-        <label>
-          Component kind
-          <select name="component_kind">
-            <option value="ca">Continuous assessment</option>
-            <option value="final_exam">Final exam</option>
-            <option value="other">Other</option>
-          </select>
-        </label>
-        <label>
-          Due date
-          <input name="due_at" type="datetime-local" required />
-        </label>
-        <label>
-          Maximum mark
-          <input name="max_mark" type="number" min="0.01" step="0.01" required />
-        </label>
-        <label>
-          Weight percent
-          <input name="weight_percent" type="number" min="0.01" max="100" step="0.01" required />
-        </label>
-        <label>
-          Maximum attempts
-          <input name="max_attempts" type="number" min="1" max="100" defaultValue="1" required />
-        </label>
-        <label>
-          Late policy
-          <select name="late_policy">
-            <option value="reject">Reject late submissions</option>
-            <option value="accept">Accept late submissions</option>
-          </select>
-        </label>
-        <p>Accepted file type: PDF</p>
-        <button disabled={busy}>{busy ? "Saving…" : "Create draft"}</button>
-        {error && <p role="alert">{error}</p>}
-      </form>
     </Shell>
   );
 }
@@ -710,29 +634,6 @@ export function StudentSubmissionPage() {
     </Shell>
   );
 }
-export function StudentReportPage() {
-  const { data, error, loading } = useLoad(api.studentReport, []);
-  return (
-    <Shell title="Academic report">
-      <Status loading={loading} error={error} />
-      {data && (
-        <>
-          <p>GPA status: {data.report.gpa_status}</p>
-          <p>Cumulative GPA: {data.report.cumulative_gpa ?? "Not available"}</p>
-          <h2>Results</h2>
-          <ul className="workflow-list">
-            {data.report.results.map((item) => (
-              <li key={item.offering_id}>
-                {item.offering_id} · {item.percent}% · {item.grade_code || "Unclassified"}
-              </li>
-            ))}
-          </ul>
-          {!data.report.results.length && <p>No final results are available.</p>}
-        </>
-      )}
-    </Shell>
-  );
-}
 export function LecturerAnalyticsPage() {
   const { id = "" } = useParams();
   const { data, error, loading } = useLoad(() => api.lecturerReport(id), [id]);
@@ -750,36 +651,6 @@ export function LecturerAnalyticsPage() {
             ))}
           </ul>
           {!data.report.total_results && <p>No projected results are available.</p>}
-        </>
-      )}
-    </Shell>
-  );
-}
-export function AdminPage() {
-  const { user } = useSession();
-  const { data, error, loading } = useLoad(api.adminSummary, []);
-  return (
-    <Shell title="Administration">
-      <Status loading={loading} error={error} />
-      {data && (
-        <>
-          <p>{data.summary.total_results} final results</p>
-          <p>
-            Average:{" "}
-            {data.summary.average_percent == null
-              ? "Not available"
-              : `${data.summary.average_percent}%`}
-          </p>
-          <ul className="workflow-list">
-            {data.summary.grade_distribution.map((item) => (
-              <li key={item.grade_code}>
-                {item.grade_code}: {item.count}
-              </li>
-            ))}
-          </ul>
-          {user && hasPermission(user, "courses:manage") && (
-            <Link to="/admin/courses/create">Create course</Link>
-          )}
         </>
       )}
     </Shell>

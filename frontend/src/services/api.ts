@@ -69,6 +69,7 @@ export async function apiRequest<T>(
     if (await refresh()) return apiRequest<T>(path, options, false);
     endSession();
   }
+  if (response.status === 401 && !retry) endSession();
   if (response.status === 204) return undefined as T;
   if (!response.ok) {
     const payload = (await response.json().catch(() => null)) as { error?: ApiError } | null;
