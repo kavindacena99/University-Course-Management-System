@@ -65,3 +65,50 @@ previous bytes were retained in ignored `.infra-state/releases/config-backups/qa
 Credentials, signing keys, target data volumes and DEV remained unchanged.
 RC2 deployment requires a verified external backup of the now-existing QA
 PostgreSQL and object volumes before migrations.
+
+## RC2 QA execution and failed verdict — 2026-11-28
+
+The annotated [RC2 tag](https://github.com/kavindacena99/University-Course-Management-System/releases/tag/v0.1.0-rc.2) points to source commit
+`1d76667cfb27077568f5dca283352386b67d6f02`. The GitHub prerelease is
+downloadable; its release manifest and `images.env` hashes matched the
+repository copies. The deployed manifest SHA-256 was
+`eb58d421135506f8c9e16d019e2bf65b805b09aaac06f68812fc88037a5b94dc`.
+
+Preflight found 19 stopped RC1 target containers and two existing target
+volumes. A protected external backup of all six logical PostgreSQL databases
+passed `pg_restore --list` checks. The submissions bucket was empty, and the
+guarded object export correctly recorded an empty copy. The backup manifest
+SHA-256 was `48819db48224221284b52fbbff3a2121237dd4baa74b2d16b69c4301a60e8a9e`.
+The backup is outside the repository and synced directories; credentials and
+signing keys were not copied into it. The first backup attempt exposed an
+empty-bucket handling defect in `targetctl.py`; no backup marker was issued
+until the corrected retry verified all files. The failed partial attempt was
+retained rather than silently treated as a valid backup.
+
+RC2 then pulled nine digest-pinned images and deployed without rebuilding.
+All 19 target components passed their required runtime/job states and the
+nine running image IDs matched the release manifest. SQL role, ownership,
+cross-database denial, DDL restriction and migration checks passed for six
+databases. S3 Select was denied and the unguarded Silo listener was not
+reachable from the gateway. A scoped synthetic object passed upload, checksum
+readback and deletion through the guard. Gateway health returned 200, frontend
+returned 200, frontend `/api/v1/auth/me` returned 401, and six unauthenticated
+backend routes all returned 401. The latter probes took about 2.0–3.5 seconds
+each; no load test was performed. Selected container memory samples were about
+108 MiB for PostgreSQL and 103 MiB for Silo.
+
+Playwright with installed Chrome rendered the login and course pages without
+page errors. The course API request used `http://localhost:3001/api/...`, the
+frontend's same-origin proxy, and displayed an unauthenticated error. However,
+`/lecturer/assignments`, `/lecturer/submissions`, and
+`/lecturer/courses/view` rendered without login and made **no API requests**.
+Their source uses local placeholder data/state. Required authenticated
+enrollment, assessment/file, analytics and full browser workflows therefore
+were not demonstrated. This is a release blocker, not an accepted limitation.
+
+The [machine-readable RC2 QA verdict](../../release-manifests/v0.1.0-rc.2/qa-validation.json)
+is **failed**. RC2 is not eligible for stable promotion. QA was stopped
+gracefully; no `platform-qa-target` container remains running, and both target
+volumes and all DEV volumes remain present. No PROD-like target was started.
+**Phase 6 remains IN PROGRESS.** A reviewed application fix, fresh publication,
+new RC and repeat full QA are required before acceptance.

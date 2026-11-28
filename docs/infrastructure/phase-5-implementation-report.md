@@ -57,3 +57,16 @@ tag independently resolved on GHCR to the manifest's digest. The manifest's
 SHA-256 is `bd95ab4398ae8a107e87b8d30f0caca059ead1bf5ba41e846baee1fc07e1228e`.
 The RC2 record under `release-manifests/v0.1.0-rc.2/` refers to this exact
 source and image set; QA status remains pending. No RC1 tag or digest changed.
+
+## RC2 prerelease and QA outcome
+
+The annotated `v0.1.0-rc.2` tag points to the exact publication source commit
+`1d76667cfb27077568f5dca283352386b67d6f02`. Its
+[GitHub prerelease](https://github.com/kavindacena99/University-Course-Management-System/releases/tag/v0.1.0-rc.2)
+contains the real release manifest and nine-image `images.env`. Both assets
+were downloaded and SHA-256 matched their repository copies. RC2 deployed
+in QA, but the [QA verdict](../../release-manifests/v0.1.0-rc.2/qa-validation.json)
+failed on unauthenticated, static lecturer pages. The RC2 tag, image digests and
+failure evidence remain preserved. No stable tag or release was created.
+Phase 5 remains **IN PROGRESS** because the stable transition cannot pass
+without accepted QA.

@@ -517,3 +517,19 @@ separate PGSTY Silo HIGH CVE-2026-39414 still needs an explicit Phase 4
 publication-scope owner decision; the 2026-11-24 approval above remains
 local-only. No environment deployment, database operation or volume mutation
 was performed in this continuation.
+
+## 2026-11-28 RC2 QA attempt (new evidence; historical entries above unchanged)
+
+The current Phase 4 close-out is recorded separately in the Phase 4 report.
+RC2 publication run 46120731377 and annotated tag `v0.1.0-rc.2` point to
+application source commit `1d76667cfb27077568f5dca283352386b67d6f02`.
+The GitHub prerelease assets were downloaded and hash-matched. The nine
+digest-pinned RC2 images were deployed in `platform-qa-target` after a verified
+external six-database and guarded object backup. All 19 runtime/setup states,
+SQL separation checks, guard denial and nine running image IDs passed.
+Playwright found that three lecturer pages render without login and make no
+API calls. Authenticated business/browser acceptance therefore failed.
+The exact outcomes and nine digests are in
+`release-manifests/v0.1.0-rc.2/qa-validation.json`. QA was stopped; its two
+target volumes and all DEV volumes remain. No stable release or PROD-like
+promotion occurred. Phases 5 and 6 remain in progress; Phase 7 is pending.

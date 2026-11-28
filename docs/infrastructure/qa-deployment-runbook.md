@@ -6,7 +6,7 @@ target. The selected release manifest must already validate against its
 retained Phase 4 publication manifest.
 
 ```powershell
-$release = 'release-manifests/v0.1.0-rc.1/release-manifest.json'
+$release = 'release-manifests/<new-qa-candidate>/release-manifest.json'
 powershell -NoProfile -File infrastructure/docker/targetctl.ps1 -Action config -Environment qa -Release $release
 powershell -NoProfile -File infrastructure/docker/targetctl.ps1 -Action preflight -Environment qa -Release $release
 powershell -NoProfile -File infrastructure/docker/targetctl.ps1 -Action pull -Environment qa -Release $release
@@ -38,5 +38,14 @@ non-secret `frontend.conf` and updates only that routing file. Existing QA
 PostgreSQL and object volumes must receive a verified external backup before
 RC2 migrations. The controller's `start-support` action starts only PostgreSQL
 and guarded Silo for that backup; `backup` creates six logical dumps and a
-guarded submissions copy outside the synced repository. Stop support services
-again before normal deployment. Existing credentials and keys are preserved.
+guarded submissions copy outside the synced repository. The guarded deploy
+may reuse those support services after the backup marker verifies. Existing
+credentials and keys are preserved.
+
+RC2 was deployed and its full QA verdict failed; do not reuse RC1 or RC2 as an
+accepted candidate. Before a future candidate deployment into the existing QA
+volumes, run `start-support`, then `backup`, and verify the new candidate's
+backup marker. An empty submissions bucket is valid and is recorded as an
+empty object export. The backup captures six independent database snapshots,
+not a full Phase 8 restore guarantee. The failed RC2 evidence is retained at
+`release-manifests/v0.1.0-rc.2/qa-validation.json`.
