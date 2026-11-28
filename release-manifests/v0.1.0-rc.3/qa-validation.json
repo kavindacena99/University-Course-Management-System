@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "version": "0.1.0-rc.3",
+  "tag": "v0.1.0-rc.3",
+  "verdict": "passed",
+  "environment": "qa",
+  "project": "platform-qa-target",
+  "source_commit": "91f53ba8b3b68c74b4de99c70baa20639102c181",
+  "publication_workflow_run_id": "46153596004",
+  "release_manifest_sha256": "3a823b3469d108e2e703178c8c816ec8f3c01a940f3aec985707fba4caaa477e",
+  "images": {
+    "auth": "sha256:c18b07f58fa3c77428a7e8ce4078453c3a770ed97d4470152e9b3c88a67cb278",
+    "user": "sha256:268e21abfc1e48e0d3880d76ac2bf4bd2a5627f03a04233e43f242b31e00bae5",
+    "course": "sha256:ea7fcd47a4dc4951b27005e0ba4b3e7e1e88173ce089fc816e4cb7f8859aa463",
+    "enrollment": "sha256:4e34c956f1b78d724231c0ab60c402f1f3764e152cec23936743187b63f36507",
+    "assessment": "sha256:2b48b8752de0316a0e7b1fad10d1af76f76ca598c40f2a3add9212485176fd9a",
+    "analytics": "sha256:22810795d439f1765d10b5900e9d7b5ea07ebeb34162dc102711129b25fb4bb9",
+    "frontend": "sha256:b72edf36eea9b8d83e5008235217e2a2bd9129469a17457a99012a47a551b656",
+    "gateway": "sha256:e9618ad437d2762908d80c3ed9cf2e5e577c41b894278292656a22ef039202d1",
+    "assessment-minio-init": "sha256:8302e7aaef1f4f3b9326fda6eb770db9c6ab4bff0dc823b1f48062373d53f611"
+  },
+  "checks": {
+    "predeployment_external_backup": "passed: six checksummed PostgreSQL archives; submissions bucket empty; manifest sha256 f4d01fe0fb4b6da9349070817ac44f1b44db26c6d7a7db8978b0726509be7640",
+    "deployment": "passed: 19 components and nine exact image digests",
+    "migrations_and_database_permissions": "passed: six logical databases, ownership, cross-access and migration checks",
+    "gateway_and_frontend_smoke": "passed: health, anonymous 401, missing route 404 and both Nginx configurations",
+    "storage_guard": "passed: S3 Select denied 403; direct Silo listener inaccessible from gateway",
+    "storage_operations": "passed: synthetic object upload, checksum readback and delete",
+    "authenticated_browser_workflows": "passed: five Playwright tests, zero skips; real same-origin API traffic and persisted data",
+    "authorization_negative_cases": "passed: anonymous, student role and unassigned lecturer restrictions",
+    "persistence_after_restart": "passed: released grade and protected file survived Assessment restart; anonymous file request 401",
+    "bounded_fault_recovery": "passed: Analytics outage returned 5xx, recovered route 200 and 19 healthy components",
+    "postworkflow_external_backup": "passed: six checksummed PostgreSQL archives and one submission object; manifest sha256 3ef94b90cb439471848c3186ef3f7833e242831987428fe523996f3b640648cc",
+    "qa_graceful_stop": "passed: zero running QA containers; PostgreSQL and object-storage target volumes preserved"
+  },
+  "browser": {
+    "engine": "Playwright with installed Chrome",
+    "passed": 5,
+    "failed": 0,
+    "skipped": 0,
+    "scenarios": [
+      "anonymous access denial, login, session restoration and logout",
+      "lecturer assigned offering access, unassigned denial and offering analytics",
+      "student self enrolments, academic report and lecturer/admin denial",
+      "administrator summary and authenticated access control",
+      "assessment creation and publication, multipart upload, protected byte-exact download, grading, release and reload persistence"
+    ],
+    "screenshots": [
+      "docs/infrastructure/evidence/rc3-qa/student-results.png",
+      "docs/infrastructure/evidence/rc3-qa/lecturer-analytics.png",
+      "docs/infrastructure/evidence/rc3-qa/admin-dashboard.png"
+    ]
+  },
+  "limitations": [
+    "The later catalog change merged on main at 889c5b7 is outside this immutable candidate and its QA verdict.",
+    "Account settings, administrator final-results UI, registration and password recovery lack dedicated browser acceptance cases.",
+    "Pagination extremes and the Analytics rebuilding state were not exercised.",
+    "The pinned Silo supporting image retains the recorded raw HIGH CVE-2026-39414 finding; exact-digest local runtime approval and the mandatory guard remain in force.",
+    "This verdict establishes isolated local QA acceptance, not public production readiness or a recovery rehearsal."
+  ],
+  "promotion_eligible": true,
+  "prodlike_deployed": false
+}

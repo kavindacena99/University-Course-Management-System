@@ -101,3 +101,25 @@ resolutions and `images.env`. The nonsecret manifest is retained at
 This does not create an RC3 or change RC2's failed verdict. The new frontend
 pages still use local state rather than backend APIs; their authenticated
 business workflows require an application fix before a new QA candidate.
+
+## RC3 publication and accepted isolated QA — 2026-11-28
+
+PRs #28–#30 merged the authenticated application repair and live DEV browser
+acceptance. Protected-main [run 46153596004](https://github.com/kavindacena99/University-Course-Management-System/actions/runs/46153596004)
+published nine scanned, pull-verified immutable images from source
+`91f53ba8b3b68c74b4de99c70baa20639102c181`. The downloaded publication
+manifest, nine records/digest files, `images.env`, SBOM and provenance
+references agree. [RC3](https://github.com/kavindacena99/University-Course-Management-System/releases/tag/v0.1.0-rc.3)
+points to that exact source; both release assets matched repository copies by
+SHA-256. RC1 and RC2 remain unchanged.
+
+The [RC3 QA verdict](../../release-manifests/v0.1.0-rc.3/qa-validation.json)
+is passed for these nine exact digests: 19 healthy components, database and
+guard checks, five real browser tests with zero skips, persisted assessment and
+file checks, fault recovery and two independently verified external backups.
+This establishes RC3 QA acceptance, not a stable release. The repository's
+stable gate additionally requires a reviewed acceptance record and owner
+approval of the tag and notes. A separate catalog change merged on `main`
+after RC3 publication; it was not part of the accepted image set. The raw Silo
+HIGH CVE-2026-39414 remains recorded with exact-digest local approval and the
+mandatory guard.
