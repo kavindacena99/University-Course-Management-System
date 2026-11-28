@@ -1,271 +1,190 @@
-import { useState } from 'react';
+import { FormEvent, useEffect, useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import type { CourseOffering } from "../types/api";
+import { createAssessment, listAssignedOfferings } from "../services/assessments";
 import "./LecAssignmentSubmissionSettings.css";
 
-const A = '/assets';
-
-const navItems = [
-  ['Dashboard', '57bc3.png'],
-  ['My Courses', '45c82.png'],
-  ['Assignments', '2c8cd.png'],
-  ['Results and Grades', '1cad0.png'],
-  ['Class Analysis', '4ebe4.png'],
-  ['Academic Calender', '2e776.png'],
-  ['Notice Board', '4c71a.png'],
-] as const;
-
-const dates = ['Allow Submission from', 'Due Date', 'Cut-off date'];
-
-function Check({
-  checked,
-  onChange,
-  label,
-}: {
-  checked: boolean;
-  onChange: () => void;
-  label: string;
-}) {
-  return (
-    <button
-      type="button"
-      className="check-button"
-      role="checkbox"
-      aria-checked={checked}
-      aria-label={label}
-      onClick={onChange}
-    >
-      <img src={`${A}/${checked ? 'dcd8f.png' : '110ec.png'}`} alt="" />
-    </button>
-  );
-}
-
-function DateRow({
-  label,
-  enabled,
-  onToggle,
-}: {
-  label: string;
-  enabled: boolean;
-  onToggle: () => void;
-}) {
-  return (
-    <div className={`date-row ${enabled ? '' : 'is-disabled'}`}>
-      <span className="date-label">{label} :</span>
-      <span className="enable-control">
-        <Check checked={enabled} onChange={onToggle} label={`Enable ${label}`} />
-        <span>Enable</span>
-      </span>
-      <div className="date-fields" aria-label={`${label} date and time`}>
-        <label>
-          <span className="sr-only">Day</span>
-          <input type="number" min="1" max="31" disabled={!enabled} />
-        </label>
-        <label>
-          <span className="sr-only">Month</span>
-          <input type="number" min="1" max="12" disabled={!enabled} />
-        </label>
-        <label>
-          <span className="sr-only">Year</span>
-          <input className="year" type="number" min="2024" max="2100" disabled={!enabled} />
-        </label>
-        <label>
-          <span className="sr-only">Hour</span>
-          <input type="number" min="0" max="23" disabled={!enabled} />
-        </label>
-        <label>
-          <span className="sr-only">Minute</span>
-          <input type="number" min="0" max="59" disabled={!enabled} />
-        </label>
-        <button type="button" className="calendar-button" disabled={!enabled} aria-label={`Open ${label} calendar`}>
-          <img src={`${A}/3161f.png`} alt="" />
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function SectionTitle({ icon, children }: { icon: string; children: React.ReactNode }) {
-  return (
-    <h2 className="section-title">
-      <img src={`${A}/${icon}`} alt="" />
-      <span>{children}</span>
-    </h2>
-  );
-}
-
 export default function LecAssignmentSubmissionSettings() {
-  const [activeNav, setActiveNav] = useState('Assignments');
-  const [activeTab, setActiveTab] = useState('Assignments');
-  const [editMode, setEditMode] = useState(true);
-  const [enabledDates, setEnabledDates] = useState([true, true, true]);
-  const [onlineText, setOnlineText] = useState(false);
-  const [fileSubmission, setFileSubmission] = useState(true);
-  const [notice, setNotice] = useState('');
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [offerings, setOfferings] = useState<CourseOffering[]>([]);
+  const [offeringId, setOfferingId] = useState(searchParams.get("offeringId") ?? "");
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [componentKind, setComponentKind] = useState<"ca" | "final_exam" | "other">("ca");
+  const [dueAt, setDueAt] = useState("");
+  const [maxMark, setMaxMark] = useState("100");
+  const [weightPercent, setWeightPercent] = useState("100");
+  const [maxAttempts, setMaxAttempts] = useState("1");
+  const [latePolicy, setLatePolicy] = useState<"accept" | "reject">("reject");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
-  const showNotice = (message: string) => {
-    setNotice(message);
-    window.setTimeout(() => setNotice(''), 2500);
-  };
+  useEffect(() => {
+    let active = true;
+    listAssignedOfferings()
+      .then((response) => {
+        if (!active) return;
+        setOfferings(response.offerings);
+        const selected = response.offerings.find((item) => item.id === searchParams.get("offeringId"))
+          ?? response.offerings[0];
+        setOfferingId(selected?.id ?? "");
+        if (selected && searchParams.get("offeringId") !== selected.id) {
+          setSearchParams({ offeringId: selected.id }, { replace: true });
+        }
+      })
+      .catch((requestError) => {
+        if (active) {
+          setError(requestError instanceof Error ? requestError.message : "Unable to load course offerings.");
+        }
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [searchParams, setSearchParams]);
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError("");
+    if (!offeringId) {
+      setError("Select an assigned course offering.");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await createAssessment(offeringId, {
+        title: title.trim(),
+        description: description.trim(),
+        component_kind: componentKind,
+        due_at: new Date(dueAt).toISOString(),
+        max_mark: Number(maxMark),
+        weight_percent: Number(weightPercent),
+        max_attempts: Number(maxAttempts),
+        late_policy: latePolicy,
+        allowed_file_types: [],
+      });
+      navigate(`/lecturer/assignments?offeringId=${encodeURIComponent(offeringId)}`);
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Unable to create assessment.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const selectedOffering = offerings.find((item) => item.id === offeringId);
 
   return (
-    <div className="app-shell">
-      <aside className="sidebar" aria-label="Primary navigation">
-        <div className="brand">
-          <img src={`${A}/580ec.png`} alt="" className="brand-logo" />
-          <div>
-            <strong>University Course</strong>
-            <span>Management System</span>
-          </div>
-        </div>
-
-        <nav className="side-nav">
-          {navItems.map(([label, icon]) => (
-            <button
-              type="button"
-              key={label}
-              className={activeNav === label ? 'active' : ''}
-              onClick={() => setActiveNav(label)}
-            >
-              <img src={`${A}/${icon}`} alt="" />
-              <span>{label}</span>
-            </button>
-          ))}
+    <div className="assessment-create">
+      <aside className="assessment-create__sidebar">
+        <Link className="assessment-create__brand" to="/lecturer/dashboard">
+          <span aria-hidden="true">UC</span>
+          <strong>University Course<br />Management System</strong>
+        </Link>
+        <nav aria-label="Lecturer navigation">
+          <Link to="/lecturer/dashboard">Dashboard</Link>
+          <Link to="/lecturer/courses">My courses</Link>
+          <Link className="is-active" to="/lecturer/assignments">Assignments</Link>
         </nav>
-
-        <button type="button" className="logout" onClick={() => showNotice('You have been logged out.')}>
-          <img src={`${A}/c8ef2.svg`} alt="" />
-          <span>LOGOUT</span>
-        </button>
       </aside>
 
-      <main className="main">
-        <section className="assignment-card" aria-label="Assignment submission settings">
-          <div className="card-toolbar">
-            <span>Edit Mode</span>
-            <button
-              type="button"
-              className={`mode-switch ${editMode ? 'on' : ''}`}
-              onClick={() => setEditMode((value) => !value)}
-              aria-label="Toggle edit mode"
-              aria-pressed={editMode}
-            >
-              <img src={`${A}/01f55.png`} alt="" />
-            </button>
-          </div>
+      <main className="assessment-create__main">
+        <header>
+          <p>Assignments</p>
+          <h1>Create assessment</h1>
+          <p>Set the assessment details supported by the current assessment service.</p>
+        </header>
 
-          <p className="breadcrumbs">
-            School of Computing / HND in Computing/ Cohorts / HND in Computing - UOK 001 / First Semester Assignments/
-            Programming Assignment
-          </p>
-
-          <h1>
-            <img src={`${A}/11c57.png`} alt="" />
-            <span>Unit 01 : Programming Assignment</span>
-          </h1>
-
-          <div className="tabs" role="tablist" aria-label="Assignment sections">
-            {['Assignments', 'Settings', 'Submissions'].map((tab) => (
-              <button
-                key={tab}
-                type="button"
-                role="tab"
-                aria-selected={activeTab === tab}
-                className={activeTab === tab ? 'active' : ''}
-                onClick={() => setActiveTab(tab)}
-              >
-                {tab}
-              </button>
-            ))}
-          </div>
-          <div className="design-rule top-rule">
-            <img src={`${A}/393bd.svg`} alt="" />
-          </div>
-
-          <form
-            onSubmit={(event) => {
-              event.preventDefault();
-              showNotice('Assignment settings saved.');
-            }}
-          >
-            <fieldset disabled={!editMode}>
-              <section className="form-section general">
-                <SectionTitle icon="93d4e.png">General</SectionTitle>
-                <div className="general-grid">
-                  <label htmlFor="assignment-name">Assignment Name :</label>
-                  <input id="assignment-name" name="assignmentName" type="text" />
-                  <label htmlFor="description">Description / Instructions /<br />Additional Files:</label>
-                  <textarea id="description" name="description" />
-                </div>
-              </section>
-
-              <div className="design-rule section-rule">
-                <img src={`${A}/02b60.svg`} alt="" />
-              </div>
-
-              <section className="form-section availability">
-                <SectionTitle icon="d1018.png">Availability</SectionTitle>
-                <div className="date-list">
-                  {dates.map((label, index) => (
-                    <DateRow
-                      key={label}
-                      label={label}
-                      enabled={enabledDates[index]}
-                      onToggle={() =>
-                        setEnabledDates((values) => values.map((value, i) => (i === index ? !value : value)))
-                      }
-                    />
+        <form className="assessment-create__form" onSubmit={handleSubmit}>
+          {error && <p className="assessment-create__error" role="alert">{error}</p>}
+          {loading ? (
+            <p role="status">Loading assigned offerings...</p>
+          ) : !offerings.length ? (
+            <p className="assessment-create__empty">No course offerings are assigned to your account.</p>
+          ) : (
+            <>
+              <label>
+                Course offering
+                <select
+                  onChange={(event) => {
+                    setOfferingId(event.target.value);
+                    setSearchParams(event.target.value ? { offeringId: event.target.value } : {});
+                  }}
+                  required
+                  value={offeringId}
+                >
+                  {offerings.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.course_code} - {item.course_title} ({item.academic_year} {item.semester})
+                    </option>
                   ))}
-                </div>
-              </section>
+                </select>
+              </label>
 
-              <div className="design-rule section-rule lower-rule">
-                <img src={`${A}/ac057.svg`} alt="" />
+              {selectedOffering && (
+                <p className="assessment-create__context">
+                  New assessment for {selectedOffering.course_code} - {selectedOffering.course_title}
+                </p>
+              )}
+
+              <label>
+                Assessment title
+                <input maxLength={200} onChange={(event) => setTitle(event.target.value)} required value={title} />
+              </label>
+              <label>
+                Description and instructions
+                <textarea maxLength={10000} onChange={(event) => setDescription(event.target.value)} rows={5} value={description} />
+              </label>
+
+              <div className="assessment-create__grid">
+                <label>
+                  Component
+                  <select onChange={(event) => setComponentKind(event.target.value as typeof componentKind)} value={componentKind}>
+                    <option value="ca">Continuous assessment</option>
+                    <option value="final_exam">Final exam</option>
+                    <option value="other">Other</option>
+                  </select>
+                </label>
+                <label>
+                  Due date and time
+                  <input onChange={(event) => setDueAt(event.target.value)} required type="datetime-local" value={dueAt} />
+                </label>
+                <label>
+                  Maximum mark
+                  <input max="999999.99" min="0.01" onChange={(event) => setMaxMark(event.target.value)} required step="0.01" type="number" value={maxMark} />
+                </label>
+                <label>
+                  Weight (%)
+                  <input max="100" min="0.01" onChange={(event) => setWeightPercent(event.target.value)} required step="0.01" type="number" value={weightPercent} />
+                </label>
+                <label>
+                  Maximum attempts
+                  <input max="100" min="1" onChange={(event) => setMaxAttempts(event.target.value)} required step="1" type="number" value={maxAttempts} />
+                </label>
+                <label>
+                  Late submission policy
+                  <select onChange={(event) => setLatePolicy(event.target.value as typeof latePolicy)} value={latePolicy}>
+                    <option value="reject">Reject late submissions</option>
+                    <option value="accept">Accept late submissions</option>
+                  </select>
+                </label>
               </div>
 
-              <section className="form-section submission">
-                <SectionTitle icon="84a3a.png">Submission Types</SectionTitle>
-                <div className="submission-grid">
-                  <span>Submission Type :</span>
-                  <div className="submission-checks">
-                    <label>
-                      <Check checked={onlineText} onChange={() => setOnlineText((value) => !value)} label="Online text" />
-                      <span>Online text</span>
-                    </label>
-                    <label>
-                      <Check
-                        checked={fileSubmission}
-                        onChange={() => setFileSubmission((value) => !value)}
-                        label="File submission"
-                      />
-                      <span>File submission</span>
-                    </label>
-                  </div>
-                  <label htmlFor="file-count">Maximum No. of Uploaded Files :</label>
-                  <span className="number-wrap">
-                    <input id="file-count" type="number" min="0" />
-                    <img src={`${A}/8bfd4.png`} alt="" />
-                  </span>
-                  <label htmlFor="submission-size">Maximum Submission Size :</label>
-                  <span className="number-wrap">
-                    <input id="submission-size" type="number" min="0" />
-                    <img src={`${A}/8bfd4.png`} alt="" />
-                  </span>
-                </div>
-              </section>
-            </fieldset>
-
-            <div className="form-actions">
-              <button type="submit" className="save-button" disabled={!editMode}>
-                Save and Display
-              </button>
-              <button type="reset" className="cancel-button" onClick={() => showNotice('Changes cancelled.')}>
-                Cancle
-              </button>
-            </div>
-          </form>
-        </section>
+              <p className="assessment-create__hint">
+                New assessments start as drafts. Allowed file types use the service configuration. The backend does not currently support editing an existing assessment.
+              </p>
+              <div className="assessment-create__actions">
+                <Link to={`/lecturer/assignments?offeringId=${encodeURIComponent(offeringId)}`}>Cancel</Link>
+                <button disabled={saving} type="submit">{saving ? "Creating..." : "Create draft"}</button>
+              </div>
+            </>
+          )}
+        </form>
       </main>
-
-      {notice && <div className="toast" role="status">{notice}</div>}
     </div>
   );
 }

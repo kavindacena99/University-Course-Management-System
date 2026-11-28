@@ -10,7 +10,7 @@ async function login(page, email, password) {
   const response = page.waitForResponse(value => value.url().endsWith('/api/v1/auth/login'));
   await page.getByRole('button', { name: 'Sign In' }).click();
   expect((await response).status()).toBe(200);
-  await expect(page).toHaveURL(/\/courses$/);
+  await expect(page).toHaveURL(/\/(courses|lecturer\/dashboard|admin\/dashboard)$/);
 }
 
 test('anonymous routes and backend operations deny access', async ({ page, request }) => {

@@ -6,7 +6,7 @@ import { onSessionExpired } from "./services/api";
 type Session = {
   user: UserSummary | null;
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<void>;
+  signIn: (email: string, password: string) => Promise<UserSummary>;
   signOut: () => Promise<void>;
 };
 const Context = createContext<Session | null>(null);
@@ -43,6 +43,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   async function signIn(email: string, password: string) {
     const result = await login(email, password);
     setUser(result.user);
+    return result.user;
   }
   async function signOut() {
     await logout();

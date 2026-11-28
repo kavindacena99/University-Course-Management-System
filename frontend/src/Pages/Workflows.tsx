@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useSession, hasPermission, hasRole } from "../session";
 import * as api from "../services/workflows";
+import { createCourse } from "../services/courses";
 import type { Course } from "../types/api";
 import "./Workflows.css";
 
@@ -53,11 +54,16 @@ function Shell({ title, children }: { title: string; children: ReactNode }) {
           {user && hasRole(user, "STUDENT") && (
             <>
               <Link to="/student/enrollments">My enrolments</Link>
-              <Link to="/student/report">Academic report</Link>
+              <Link to="/student/assignments">Assignments</Link>
+              <Link to="/student/results">Academic report</Link>
             </>
           )}
           {user && hasRole(user, "LECTURER") && (
-            <Link to="/lecturer/offerings">Assigned offerings</Link>
+            <>
+              <Link to="/lecturer/dashboard">Dashboard</Link>
+              <Link to="/lecturer/offerings">Assigned offerings</Link>
+              <Link to="/lecturer/assignments">Assignments</Link>
+            </>
           )}
           {user && hasRole(user, "ADMIN") && <Link to="/admin/dashboard">Administration</Link>}
         </nav>
@@ -196,14 +202,12 @@ export function CreateCoursePage() {
     setBusy(true);
     setError("");
     try {
-      const result = await import("../services/courses").then((module) =>
-        module.createCourse({
-          code: String(form.get("code")).trim(),
-          title: String(form.get("title")).trim(),
-          description: String(form.get("description")).trim(),
-          credits: Number(form.get("credits")),
-        }),
-      );
+      const result = await createCourse({
+        code: String(form.get("code")).trim(),
+        title: String(form.get("title")).trim(),
+        description: String(form.get("description")).trim(),
+        credits: Number(form.get("credits")),
+      });
       navigate(`/courses/${result.course.id}`);
     } catch (cause) {
       setError(message(cause));

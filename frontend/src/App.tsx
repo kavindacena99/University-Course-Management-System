@@ -1,8 +1,20 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import Login from "./Pages/Login";
+import StudentAssignments from "./Pages/StudentAssignments";
+import StudentResults from "./Pages/StudentResults";
+import LecturerDashboard from "./Pages/LecDashboard";
+import LecturerAssignments from "./Pages/LecModuleAssignment";
+import LecturerAssessmentCreate from "./Pages/LecAssignmentSubmissionSettings";
+import LecturerGrading from "./Pages/LecAssignmentGrading";
+import AdministratorDashboard from "./Pages/Admin_Dashboard";
+import {
+  ActivateAccountPage,
+  ForgotPasswordPage,
+  RegisterPage,
+  ResetPasswordPage,
+} from "./Pages/AccountFlows";
 import { SessionProvider, Protected } from "./session";
 import {
-  AdminPage,
   AssessmentPage,
   CoursePage,
   CoursesPage,
@@ -25,6 +37,11 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
+          <Route path="/activate" element={<ActivateAccountPage />} />
+          <Route path="/lecturer/courses" element={<Navigate to="/lecturer/offerings" replace />} />
           <Route
             path="/courses"
             element={
@@ -66,6 +83,22 @@ export default function App() {
             }
           />
           <Route
+            path="/student/assignments"
+            element={
+              <Protected role="STUDENT" permission="assessments:submit">
+                <StudentAssignments />
+              </Protected>
+            }
+          />
+          <Route
+            path="/student/results"
+            element={
+              <Protected role="STUDENT" permission="analytics:student:read">
+                <StudentResults />
+              </Protected>
+            }
+          />
+          <Route
             path="/student/assessments/:id"
             element={
               <Protected role="STUDENT" permission="assessments:submit">
@@ -94,6 +127,38 @@ export default function App() {
             element={
               <Protected role="LECTURER">
                 <LecturerOfferingsPage />
+              </Protected>
+            }
+          />
+          <Route
+            path="/lecturer/dashboard"
+            element={
+              <Protected role="LECTURER">
+                <LecturerDashboard />
+              </Protected>
+            }
+          />
+          <Route
+            path="/lecturer/assignments"
+            element={
+              <Protected role="LECTURER" permission="assessments:read">
+                <LecturerAssignments />
+              </Protected>
+            }
+          />
+          <Route
+            path="/lecturer/assessments/create"
+            element={
+              <Protected role="LECTURER" permission="assessments:manage">
+                <LecturerAssessmentCreate />
+              </Protected>
+            }
+          />
+          <Route
+            path="/lecturer/grading"
+            element={
+              <Protected role="LECTURER" permission="assessments:grade">
+                <LecturerGrading />
               </Protected>
             }
           />
@@ -141,7 +206,7 @@ export default function App() {
             path="/admin/dashboard"
             element={
               <Protected role="ADMIN" permission="analytics:admin:read">
-                <AdminPage />
+                <AdministratorDashboard />
               </Protected>
             }
           />

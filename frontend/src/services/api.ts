@@ -9,6 +9,10 @@ export function onSessionExpired(handler: (() => void) | null) {
 export function clearAuthState() {
   csrfValue = "";
 }
+export function endSession() {
+  clearAuthState();
+  sessionExpired?.();
+}
 export function hasCsrfToken() {
   return !!csrfValue;
 }
@@ -63,8 +67,7 @@ export async function apiRequest<T>(
     !["/api/v1/auth/login", "/api/v1/auth/refresh", "/api/v1/auth/logout"].includes(path)
   ) {
     if (await refresh()) return apiRequest<T>(path, options, false);
-    clearAuthState();
-    sessionExpired?.();
+    endSession();
   }
   if (response.status === 204) return undefined as T;
   if (!response.ok) {
@@ -84,13 +87,11 @@ export async function apiFile(path: string): Promise<Blob> {
   if (response.status === 401) {
     if (await refresh()) response = await fetch(path, { credentials: "include" });
     else {
-      clearAuthState();
-      sessionExpired?.();
+      endSession();
     }
   }
   if (response.status === 401) {
-    clearAuthState();
-    sessionExpired?.();
+    endSession();
   }
   if (!response.ok)
     throw new RequestError(response.status, undefined, `Download failed (${response.status})`);

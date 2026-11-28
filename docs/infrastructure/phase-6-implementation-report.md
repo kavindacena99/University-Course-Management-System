@@ -117,10 +117,11 @@ new RC and repeat full QA are required before acceptance.
 
 The RC2 browser failure was caused by registered lecturer routes rendering static
 pages without authentication or API traffic. This branch replaces registered
-operational routes with protected, lowercase, ID-based pages. The old exported
-page files and assets remain in the repository but are no longer reachable as
-working routes. Existing email login, course API use, and the same-origin proxy
-were recognized as existing work rather than rebuilt.
+operational routes with protected, lowercase, ID-based pages. A later protected
+main commit also added live account, student, lecturer and administrator pages;
+these were merged and their functional routes retained. The remaining static
+placeholder paths are not registered. Existing email login, course API use,
+and the same-origin proxy were recognized as existing work rather than rebuilt.
 
 Authentication now uses a shared session provider. It calls `/api/v1/auth/me`
 at startup, uses rotating cookie refresh after a 401, obtains the CSRF token
@@ -159,7 +160,7 @@ The skips are recorded as **no browser acceptance evidence**.
 
 Local non-runtime gates passed: 51 infrastructure tests, all ten Compose
 models, `git diff --check`, formatting of changed frontend files, and a scan
-of 46 reachable commits plus 547 tracked/non-ignored working-tree files with
+of 48 reachable commits plus 552 tracked/non-ignored working-tree files with
 no secret findings. The built frontend assets contained no direct service or
 environment-specific API URL. No Go service source changed, so the Go test
 matrix is delegated to the PR's required CI checks.

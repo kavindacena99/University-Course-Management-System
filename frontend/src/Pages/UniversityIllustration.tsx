@@ -1,37 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import type { FormEvent } from 'react';
-import "./AdminStudentLogin.css";
-import {
-  Eye,
-  EyeOff,
-  CheckCircle2,
-  AlertCircle,
-  X,
-  ArrowLeft,
-  Search,
-  Menu,
-  Users,
-  Bell,
-  BookOpen,
-  TrendingUp,
-  Award,
-  AlertTriangle,
-  Check,
-  Filter,
-  Calendar,
-  Mail,
-  ChevronRight,
-} from 'lucide-react';
-
-/**
- * Custom SVG Illustration for the Login Page:
- * - Soft organic light-blue backdrop shape
- * - Student/instructor character with dark bob haircut, yellow glasses, orange blazer,
- *   white shirt, dark tie, and confident thumbs-up gesture
- * - Modern angled blue-slate desktop monitor with stand
- * - Floating blue unlocked padlock icon above the monitor
- */
-const UniversityIllustration = () => (
+export default function UniversityIllustration() {
+  return (
   <div className="relative w-full max-w-[380px] mx-auto bg-white rounded-[28px] p-4 sm:p-6 shadow-[0_8px_30px_rgba(37,102,137,0.06)] flex items-center justify-center overflow-visible">
     <svg
       viewBox="0 0 420 340"
@@ -179,8 +147,5 @@ const UniversityIllustration = () => (
       />
     </svg>
   </div>
-);
-
-// The illustration draft is retained for completion of the admin login page.
-// It is not exposed as a login route; the existing API-backed Login remains active.
-export default UniversityIllustration;
+  );
+}

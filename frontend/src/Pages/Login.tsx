@@ -1,6 +1,7 @@
 import { FormEvent, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSession } from "../session";
+import UniversityIllustration from "./UniversityIllustration";
 
 const assetPathPrefix = "/assets";
 
@@ -28,12 +29,18 @@ export default function Login() {
 
     setSubmitting(true);
     try {
-      await signIn(email, password);
+      const user = await signIn(email, password);
       setNotice({
         tone: "success",
-        text: `Welcome back.`,
+        text: "Welcome back.",
       });
-      navigate("/courses");
+      navigate(
+        user.roles.includes("ADMIN")
+          ? "/admin/dashboard"
+          : user.roles.includes("LECTURER")
+            ? "/lecturer/dashboard"
+            : "/courses",
+      );
     } catch (error) {
       setNotice({
         tone: "error",
@@ -53,14 +60,13 @@ export default function Login() {
         </header>
 
         <div className="illustration-panel" aria-hidden="true">
-          <img className="illustration-backdrop" src={`${assetPathPrefix}/804da.svg`} alt="" />
-          <img className="illustration" src={`${assetPathPrefix}/23ae0.png`} alt="" />
+          <UniversityIllustration />
         </div>
 
         <div className="form-panel">
           <div className="welcome-copy">
             <h2>WELCOME</h2>
-            <p>Enter your User Name and Password to access your account</p>
+            <p>Enter your university email and password to access your account</p>
           </div>
 
           <form onSubmit={handleSubmit} noValidate>
@@ -94,6 +100,16 @@ export default function Login() {
               </div>
             </div>
 
+            <div className="form-options">
+              <button
+                className="text-button forgot"
+                type="button"
+                onClick={() => navigate("/forgot-password")}
+              >
+                Forgot Password
+              </button>
+            </div>
+
             <button className="primary-button" type="submit" disabled={submitting}>
               {submitting ? "Signing in..." : "Sign In"}
             </button>
@@ -107,6 +123,13 @@ export default function Login() {
               {notice?.text ?? ""}
             </div>
           </form>
+
+          <p className="signup-copy">
+            <span>Don’t have an account?</span>{" "}
+            <button className="text-button" type="button" onClick={() => navigate("/register")}>
+              Sign up
+            </button>
+          </p>
         </div>
       </section>
     </main>
