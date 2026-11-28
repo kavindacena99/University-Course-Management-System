@@ -1,5 +1,6 @@
 import { FormEvent, useMemo, useState } from "react";
 import "./LecCreateCourse.css";
+import { createCourse } from "../services/courses";
 
 const asset = (name: string) => `/assets/${name}`;
 
@@ -16,19 +17,15 @@ const navItems = [
 type FormState = {
   title: string;
   code: string;
-  department: string;
-  capacity: string;
-  coordinator: string;
   description: string;
+  credits: string;
 };
 
 const emptyForm: FormState = {
   title: "",
   code: "",
-  department: "",
-  capacity: "",
-  coordinator: "",
   description: "",
+  credits: "3",
 };
 
 function Sidebar({
@@ -123,22 +120,41 @@ function CourseForm({ onSaved }: { onSaved: (message: string) => void }) {
   const [form, setForm] = useState<FormState>(emptyForm);
   const [editMode, setEditMode] = useState(true);
   const [submitted, setSubmitted] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const setField = (field: keyof FormState, value: string) => {
     setForm((current) => ({ ...current, [field]: value }));
   };
 
   const requiredMissing = useMemo(
-    () => submitted && (!form.title || !form.code || !form.department),
-    [form.code, form.department, form.title, submitted],
+    () =>
+      submitted &&
+      (!form.title || !form.code || !form.credits || Number.isNaN(Number(form.credits))),
+    [form.code, form.credits, form.title, submitted],
   );
 
-  const submit = (event: FormEvent<HTMLFormElement>) => {
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setSubmitted(true);
-    if (!form.title || !form.code || !form.department) return;
-    onSaved(`${form.title} has been saved successfully.`);
-    setSubmitted(false);
+    const credits = Number(form.credits);
+    if (!form.title || !form.code || !form.credits || !Number.isFinite(credits) || credits < 0) return;
+
+    setSaving(true);
+    try {
+      await createCourse({
+        code: form.code,
+        title: form.title,
+        description: form.description,
+        credits,
+      });
+      onSaved(`${form.title} has been created successfully.`);
+      setForm(emptyForm);
+      setSubmitted(false);
+    } catch (error) {
+      onSaved(error instanceof Error ? error.message : "Unable to create the course.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const cancel = () => {
@@ -188,30 +204,14 @@ function CourseForm({ onSaved }: { onSaved: (message: string) => void }) {
                 />
               </div>
               <div className="field">
-                <label htmlFor="department">Department</label>
+                <label htmlFor="credits">Course Credits</label>
                 <input
-                  id="department"
-                  value={form.department}
-                  onChange={(event) => setField("department", event.target.value)}
-                  aria-invalid={submitted && !form.department}
-                />
-              </div>
-              <div className="field">
-                <label htmlFor="capacity">Max Capacity of Students</label>
-                <input
-                  id="capacity"
                   type="number"
-                  min="1"
-                  value={form.capacity}
-                  onChange={(event) => setField("capacity", event.target.value)}
-                />
-              </div>
-              <div className="field">
-                <label htmlFor="coordinator">Course Coordinator</label>
-                <input
-                  id="coordinator"
-                  value={form.coordinator}
-                  onChange={(event) => setField("coordinator", event.target.value)}
+                  id="credits"
+                  min="0"
+                  value={form.credits}
+                  onChange={(event) => setField("credits", event.target.value)}
+                  aria-invalid={submitted && (!form.credits || !Number.isFinite(Number(form.credits)))}
                 />
               </div>
             </div>
@@ -228,16 +228,16 @@ function CourseForm({ onSaved }: { onSaved: (message: string) => void }) {
 
           {requiredMissing && (
             <p className="form-error" role="alert">
-              Please complete the course title, course code and department.
+              Please complete the course title, course code and a valid credit value.
             </p>
           )}
 
           <div className="form-actions">
             <button className="button secondary" type="button" onClick={cancel}>
-              Cancle
+              Cancel
             </button>
-            <button className="button primary" type="submit" disabled={!editMode}>
-              Save Course
+            <button className="button primary" type="submit" disabled={!editMode || saving}>
+              {saving ? "Saving..." : "Save Course"}
             </button>
           </div>
         </form>

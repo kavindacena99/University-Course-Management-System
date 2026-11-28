@@ -1,65 +1,11 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import "./Courses.css";
+import type { Course } from "../types/api";
+import { listCourses } from "../services/courses";
+import { logout } from "../services/auth";
 
 const assets = "/assets";
-
-type Course = {
-  id: number;
-  title: string;
-  category: "HND" | "Top Up";
-  gradient: string;
-};
-
-const courses: Course[] = [
-  {
-    id: 1,
-    title: "HND in Computing - UOK001",
-    category: "HND",
-    gradient: "linear-gradient(90deg, #a0e1ef, #22577a)",
-  },
-  {
-    id: 2,
-    title: "HND in Computing - UOK004",
-    category: "HND",
-    gradient: "linear-gradient(90deg, #4abb84, #57cc99)",
-  },
-  {
-    id: 3,
-    title: "HND in Computing - UOK008",
-    category: "HND",
-    gradient: "linear-gradient(90deg, #b8ecd5, #57cc99)",
-  },
-  {
-    id: 4,
-    title: "HND in Computing - UOK010",
-    category: "HND",
-    gradient: "linear-gradient(90deg, #988152, #e9d8a6 80%)",
-  },
-  {
-    id: 5,
-    title: "HND in Computing - UOK012",
-    category: "HND",
-    gradient: "linear-gradient(90deg, #c6b49c, #ee9b00)",
-  },
-  {
-    id: 6,
-    title: "Top Up (Software) - UOK20",
-    category: "Top Up",
-    gradient: "linear-gradient(90deg, #cca0a0, #ca6702)",
-  },
-  {
-    id: 7,
-    title: "Top Up (Software) - UOK15",
-    category: "Top Up",
-    gradient: "linear-gradient(90deg, #f1c7c7, #bb3e03)",
-  },
-  {
-    id: 8,
-    title: "Top Up (Software) - UOK15",
-    category: "Top Up",
-    gradient: "linear-gradient(90deg, #c09393, #ae2012)",
-  },
-];
 
 const navItems = [
   ["Dashboard", "57bc3.png"],
@@ -71,29 +17,50 @@ const navItems = [
   ["Notice Board", "4c71a.png"],
 ];
 
-// මෙතන function එකේ නම App වෙනුවට Courses දාලා තියෙනවා
 export default function Courses() {
+  const navigate = useNavigate();
   const [query, setQuery] = useState("");
   const [globalQuery, setGlobalQuery] = useState("");
-  const [category, setCategory] = useState<"All" | Course["category"]>("All");
+  const [category, setCategory] = useState<"All" | Course["status"]>("All");
   const [sort, setSort] = useState("default");
   const [activeNav, setActiveNav] = useState("My Courses");
-  const [menuCourse, setMenuCourse] = useState<number | null>(null);
+  const [menuCourse, setMenuCourse] = useState<string | null>(null);
   const [profileOpen, setProfileOpen] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  const [showAdd, setShowAdd] = useState(false);
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    listCourses()
+      .then((response) => {
+        if (!cancelled) setCourses(response.courses);
+      })
+      .catch((requestError) => {
+        if (!cancelled) setError(requestError instanceof Error ? requestError.message : "Unable to load courses.");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const visibleCourses = useMemo(() => {
     const needle = `${query} ${globalQuery}`.trim().toLowerCase();
     const filtered = courses.filter(
       (course) =>
-        (category === "All" || course.category === category) &&
-        (!needle || course.title.toLowerCase().includes(needle)),
+        (category === "All" || course.status === category) &&
+        (!needle ||
+          course.title.toLowerCase().includes(needle) ||
+          course.code.toLowerCase().includes(needle)),
     );
     return sort === "name"
       ? [...filtered].sort((a, b) => a.title.localeCompare(b.title))
       : filtered;
-  }, [category, globalQuery, query, sort]);
+  }, [category, courses, globalQuery, query, sort]);
 
   function chooseNav(label: string) {
     setActiveNav(label);
@@ -129,9 +96,15 @@ export default function Courses() {
         <button
           className="logout"
           type="button"
-          onClick={() => window.alert("You have been logged out.")}
+          onClick={async () => {
+            try {
+              await logout();
+            } finally {
+              navigate("/login");
+            }
+          }}
         >
-          <img src={`${assets}/78101.svg`} alt="" />
+          <img src={`${assets}/394ee.svg`} alt="" />
           <span>LOGOUT</span>
         </button>
       </aside>
@@ -176,7 +149,7 @@ export default function Courses() {
               <strong>Ms Dileeshi Sathsarani</strong>
               <small>Lecturer in IT</small>
             </span>
-            <img src={`${assets}/bb404.svg`} alt="" />
+            <img src={`${assets}/0d534.svg`} alt="" />
           </button>
           {profileOpen && (
             <div className="profile-menu">
@@ -195,7 +168,7 @@ export default function Courses() {
               <h2 id="overview-title">Hii Dileeshi !</h2>
               <p>Course Overview</p>
             </div>
-            <img className="heading-rule" src={`${assets}/15af6.svg`} alt="" />
+            <div className="heading-rule" aria-hidden="true" />
 
             <div className="filters">
               <label className="select-control select-control--category">
@@ -205,8 +178,9 @@ export default function Courses() {
                   onChange={(event) => setCategory(event.target.value as typeof category)}
                 >
                   <option>All</option>
-                  <option>HND</option>
-                  <option>Top Up</option>
+                  <option value="draft">Draft</option>
+                  <option value="published">Published</option>
+                  <option value="archived">Archived</option>
                 </select>
               </label>
               <label className="course-search">
@@ -232,15 +206,17 @@ export default function Courses() {
             </div>
 
             <div className="course-grid">
+              {loading && <p className="empty-state">Loading courses...</p>}
+              {error && <p className="empty-state" role="alert">{error}</p>}
               {visibleCourses.map((course) => (
                 <article className="course-card" key={course.id}>
                   <button
                     className="card-main"
-                    onClick={() => window.alert(`Opening ${course.title}`)}
+                    onClick={() => navigate("/lecturer/courses/view")}
                     type="button"
                   >
-                    <span className="course-banner" style={{ background: course.gradient }} />
-                    <strong>{course.title}</strong>
+                    <span className="course-banner" />
+                    <strong>{course.code} - {course.title}</strong>
                   </button>
                   <button
                     className="course-menu-button"
@@ -249,7 +225,7 @@ export default function Courses() {
                     onClick={() => setMenuCourse(menuCourse === course.id ? null : course.id)}
                     type="button"
                   >
-                    <img src={`${assets}/1779c.png`} alt="" />
+                    <span aria-hidden="true">•••</span>
                   </button>
                   {menuCourse === course.id && (
                     <div className="course-menu">
@@ -259,18 +235,18 @@ export default function Courses() {
                   )}
                 </article>
               ))}
-              {visibleCourses.length === 0 && (
+              {!loading && !error && visibleCourses.length === 0 && (
                 <p className="empty-state">No courses match your search.</p>
               )}
             </div>
 
             <button
               className="add-course"
-              onClick={() => setShowAdd(true)}
+              onClick={() => navigate("/lecturer/courses/create")}
               aria-label="Add a course"
               type="button"
             >
-              <img src={`${assets}/463d6.png`} alt="" />
+              <span aria-hidden="true">+</span>
             </button>
           </section>
         ) : (
@@ -280,40 +256,6 @@ export default function Courses() {
           </section>
         )}
       </main>
-
-      {showAdd && (
-        <div className="modal-backdrop" role="presentation" onMouseDown={() => setShowAdd(false)}>
-          <div
-            className="modal"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="add-title"
-            onMouseDown={(event) => event.stopPropagation()}
-          >
-            <button
-              className="modal-close"
-              aria-label="Close"
-              type="button"
-              onClick={() => setShowAdd(false)}
-            >
-              ×
-            </button>
-            <h2 id="add-title">Add a new course</h2>
-            <p>Enter the course details to add it to your overview.</p>
-            <label>
-              Course name
-              <input placeholder="e.g. HND in Computing" />
-            </label>
-            <label>
-              Course code
-              <input placeholder="e.g. UOK021" />
-            </label>
-            <button className="primary-button" type="button" onClick={() => setShowAdd(false)}>
-              Add course
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

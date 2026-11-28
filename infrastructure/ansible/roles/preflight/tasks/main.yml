@@ -1,0 +1,45 @@
+---
+- name: Enforce the explicitly selected local inventory
+  ansible.builtin.assert:
+    that:
+      - platform_environment in ['dev', 'qa', 'prodlike']
+      - inventory_dir | basename == platform_environment
+      - "environment_directory == {'dev': 'dev', 'qa': 'qa', 'prodlike': 'prod'}[platform_environment]"
+      - ansible_connection == 'local'
+      - deployment_mode in ['existing', 'build', 'pull']
+    fail_msg: Inventory, target, connection or deployment mode mismatch; refusing deployment.
+
+- name: Check the Linux Docker engine
+  ansible.builtin.command:
+    argv: [docker, info, --format, '{% raw %}{{.OSType}}{% endraw %}']
+  register: docker_engine
+  changed_when: false
+  check_mode: false
+
+- name: Require Docker Desktop Linux containers
+  ansible.builtin.assert:
+    that: docker_engine.stdout | trim == 'linux'
+
+- name: Check Compose CLI version
+  ansible.builtin.command:
+    argv: [docker, compose, version, --short]
+  register: compose_version
+  changed_when: false
+  check_mode: false
+
+- name: Require Compose override and readiness support
+  ansible.builtin.assert:
+    that: compose_version.stdout | trim | regex_replace('^v', '') is version('2.24.4', '>=')
+
+- name: Resolve repository root
+  ansible.builtin.set_fact:
+    platform_root: '{{ playbook_dir }}/../../..'
+
+- name: Check repository entry point
+  ansible.builtin.stat:
+    path: '{{ platform_root }}/infrastructure/scripts/platformctl.py'
+  register: platform_script
+
+- name: Require the repository checkout
+  ansible.builtin.assert:
+    that: platform_script.stat.isreg | default(false)

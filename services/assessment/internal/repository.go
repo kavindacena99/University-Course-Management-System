@@ -794,7 +794,7 @@ func (r *Repository) ReleaseGrade(
 		EventType        string    `json:"event_type"`
 		SchemaVersion    int       `json:"schema_version"`
 		OccurredAt       time.Time `json:"occurred_at"`
-		Producer          string    `json:"producer_service"`
+		Producer         string    `json:"producer_service"`
 		AggregateID      uuid.UUID `json:"aggregate_id"`
 		Version          int64     `json:"aggregate_version"`
 		CorrelationID    string    `json:"correlation_id"`
@@ -817,7 +817,7 @@ func (r *Repository) ReleaseGrade(
 		GradeID: saved.ID, SubmissionID: submissionID, StudentID: studentID,
 		AssessmentID: assessmentID, OfferingID: offeringID, AttemptNo: attemptNo,
 		ComponentKind: componentKind,
-		Mark: saved.Mark, MaxMark: maxMark, WeightPercent: weightPercent,
+		Mark:          saved.Mark, MaxMark: maxMark, WeightPercent: weightPercent,
 		ReleasedByUserID: actorID, ReleasedAt: *saved.ReleasedAt,
 	}
 	payload, err := json.Marshal(eventPayload)

@@ -14,12 +14,12 @@ const (
 	RoleLecturer = "LECTURER"
 	RoleStudent  = "STUDENT"
 
-	PermAssessmentRead    = "assessments:read"
-	PermAssessmentManage  = "assessments:manage"
-	PermAssessmentGrade   = "assessments:grade"
-	PermAssessmentRelease = "assessments:release"
-	PermAssessmentSubmit  = "assessments:submit"
-	PermAssessmentStudentRead = "assessments:student:read"
+	PermAssessmentRead         = "assessments:read"
+	PermAssessmentManage       = "assessments:manage"
+	PermAssessmentGrade        = "assessments:grade"
+	PermAssessmentRelease      = "assessments:release"
+	PermAssessmentSubmit       = "assessments:submit"
+	PermAssessmentStudentRead  = "assessments:student:read"
 	PermAssessmentResultImport = "assessments:results:import"
 )
 
@@ -138,37 +138,37 @@ type AssessmentList struct {
 }
 
 type Submission struct {
-	ID               uuid.UUID       `json:"id"`
-	AssessmentID     uuid.UUID       `json:"assessment_id"`
-	StudentUserID    uuid.UUID       `json:"student_user_id"`
-	AttemptNo        int             `json:"attempt_no"`
-	IdempotencyKey   string          `json:"-"`
-	ObjectKey        string          `json:"-"`
-	OriginalFilename string          `json:"original_filename"`
-	MediaType        string          `json:"media_type"`
-	SizeBytes        int64           `json:"size_bytes"`
-	ContentSHA256    string          `json:"content_sha256"`
+	ID               uuid.UUID        `json:"id"`
+	AssessmentID     uuid.UUID        `json:"assessment_id"`
+	StudentUserID    uuid.UUID        `json:"student_user_id"`
+	AttemptNo        int              `json:"attempt_no"`
+	IdempotencyKey   string           `json:"-"`
+	ObjectKey        string           `json:"-"`
+	OriginalFilename string           `json:"original_filename"`
+	MediaType        string           `json:"media_type"`
+	SizeBytes        int64            `json:"size_bytes"`
+	ContentSHA256    string           `json:"content_sha256"`
 	Status           SubmissionStatus `json:"status"`
-	SubmittedAt      time.Time       `json:"submitted_at"`
+	SubmittedAt      time.Time        `json:"submitted_at"`
 }
 
 type SubmissionList struct {
 	Submissions []Submission `json:"submissions"`
 	Total       int64        `json:"total"`
-	Limit       int           `json:"limit"`
-	Offset      int           `json:"offset"`
+	Limit       int          `json:"limit"`
+	Offset      int          `json:"offset"`
 }
 
 type FinalResult struct {
-	ID              uuid.UUID `json:"id"`
-	OfferingID      uuid.UUID `json:"offering_id"`
-	StudentUserID   uuid.UUID `json:"student_user_id"`
-	FinalMark       float64   `json:"final_mark"`
-	MaxMark         float64   `json:"max_mark"`
-	Version         int64     `json:"version"`
-	ImportBatchID   uuid.UUID `json:"import_batch_id"`
-	ImportedBy      uuid.UUID `json:"imported_by_user_id"`
-	ImportedAt      time.Time `json:"imported_at"`
+	ID            uuid.UUID `json:"id"`
+	OfferingID    uuid.UUID `json:"offering_id"`
+	StudentUserID uuid.UUID `json:"student_user_id"`
+	FinalMark     float64   `json:"final_mark"`
+	MaxMark       float64   `json:"max_mark"`
+	Version       int64     `json:"version"`
+	ImportBatchID uuid.UUID `json:"import_batch_id"`
+	ImportedBy    uuid.UUID `json:"imported_by_user_id"`
+	ImportedAt    time.Time `json:"imported_at"`
 }
 
 type FinalResultImportBatch struct {
@@ -194,23 +194,23 @@ type AnalyticsEventRecord struct {
 }
 
 type AnalyticsEventPage struct {
-	Events          []AnalyticsEventRecord `json:"events"`
-	HasMore         bool                   `json:"has_more"`
-	NextOccurredAt  *time.Time             `json:"next_occurred_at,omitempty"`
-	NextEventID     *uuid.UUID             `json:"next_event_id,omitempty"`
+	Events         []AnalyticsEventRecord `json:"events"`
+	HasMore        bool                   `json:"has_more"`
+	NextOccurredAt *time.Time             `json:"next_occurred_at,omitempty"`
+	NextEventID    *uuid.UUID             `json:"next_event_id,omitempty"`
 }
 
 type Grade struct {
-	ID            uuid.UUID  `json:"id"`
-	SubmissionID  uuid.UUID  `json:"submission_id"`
-	GradedBy      uuid.UUID  `json:"graded_by_user_id"`
-	Mark          float64    `json:"mark"`
-	Feedback      string     `json:"feedback"`
-	Status        GradeStatus `json:"status"`
-	Version       int64      `json:"version"`
-	GradedAt      time.Time  `json:"graded_at"`
-	ReleasedAt    *time.Time `json:"released_at,omitempty"`
-	UpdatedAt     time.Time  `json:"updated_at"`
+	ID           uuid.UUID   `json:"id"`
+	SubmissionID uuid.UUID   `json:"submission_id"`
+	GradedBy     uuid.UUID   `json:"graded_by_user_id"`
+	Mark         float64     `json:"mark"`
+	Feedback     string      `json:"feedback"`
+	Status       GradeStatus `json:"status"`
+	Version      int64       `json:"version"`
+	GradedAt     time.Time   `json:"graded_at"`
+	ReleasedAt   *time.Time  `json:"released_at,omitempty"`
+	UpdatedAt    time.Time   `json:"updated_at"`
 }
 
 type AssessmentStore interface {
@@ -244,12 +244,12 @@ type ObjectStore interface {
 }
 
 type AssessmentService struct {
-	store         AssessmentStore
-	enrollments   EnrollmentReader
-	objects       ObjectStore
+	store          AssessmentStore
+	enrollments    EnrollmentReader
+	objects        ObjectStore
 	maxUploadBytes int64
-	allowedFiles  map[string]string
-	now           func() time.Time
+	allowedFiles   map[string]string
+	now            func() time.Time
 }
 
 func NewAssessmentService(
@@ -270,11 +270,11 @@ func NewAssessmentService(
 }
 
 type Upload struct {
-	Filename string
+	Filename  string
 	MediaType string
 	SizeBytes int64
-	SHA256 string
-	Reader io.Reader
+	SHA256    string
+	Reader    io.Reader
 }
 
 type FinalResultInput struct {

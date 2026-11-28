@@ -1,0 +1,7 @@
+---
+- name: Deploy the selected environment and immutable release if supplied
+  ansible.builtin.command:
+    argv: "{{ [ansible_playbook_python, platform_root + '/infrastructure/scripts/platformctl.py', 'deploy', '--environment', platform_environment, '--mode', deployment_mode] + (['--release', release_manifest] if release_manifest | length > 0 else []) }}"
+  register: deployment
+  changed_when: "'PLATFORM_CHANGED=true' in deployment.stdout"
+  when: not ansible_check_mode

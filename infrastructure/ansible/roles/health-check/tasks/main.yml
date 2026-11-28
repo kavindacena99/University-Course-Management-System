@@ -1,0 +1,11 @@
+---
+- name: Check all containers, setup jobs and environment HTTP routes
+  ansible.builtin.command:
+    argv:
+      - '{{ ansible_playbook_python }}'
+      - '{{ platform_root }}/infrastructure/scripts/platformctl.py'
+      - health
+      - --environment
+      - '{{ platform_environment }}'
+  changed_when: false
+  when: not ansible_check_mode

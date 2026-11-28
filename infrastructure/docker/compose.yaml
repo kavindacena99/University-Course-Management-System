@@ -1,0 +1,564 @@
+# Local integration stack for the University Course Management System.
+#
+# From the repository root:
+#   1. Copy infrastructure/environments/dev/.env.example to
+#      infrastructure/docker/.env and set local values.
+#   2. Copy each services/*/.env.example to services/*/.env.
+#   3. Generate Auth's Ed25519 keys under
+#      services/security-and-authentication/var/keys.
+#   4. Run:
+#      docker compose -f infrastructure/docker/compose.yaml \
+#        -f infrastructure/docker/compose.dev.yaml -p platform-dev up --build
+#
+# Only the frontend and gateway publish host ports. Services, databases, and
+# object storage stay on private Compose networks.
+#
+# The object store uses the maintained Silo fork because the MinIO community
+# edition images are no longer published on Docker Hub or Quay.
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  auth-db:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: authentication_and_security
+      POSTGRES_USER: auth_app
+      POSTGRES_PASSWORD: ${AUTH_DB_PASSWORD:?set AUTH_DB_PASSWORD}
+    volumes:
+      - auth-db-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U auth_app -d authentication_and_security"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    logging: *default-logging
+    networks:
+      - data
+
+  user-db:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: users
+      POSTGRES_USER: user_app
+      POSTGRES_PASSWORD: ${USER_DB_PASSWORD:?set USER_DB_PASSWORD}
+    volumes:
+      - user-db-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U user_app -d users"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    logging: *default-logging
+    networks:
+      - data
+
+  course-db:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: courses
+      POSTGRES_USER: course_app
+      POSTGRES_PASSWORD: ${COURSE_DB_PASSWORD:?set COURSE_DB_PASSWORD}
+    volumes:
+      - course-db-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U course_app -d courses"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    logging: *default-logging
+    networks:
+      - data
+
+  enrollment-db:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: enrollments
+      POSTGRES_USER: enrollment_app
+      POSTGRES_PASSWORD: ${ENROLLMENT_DB_PASSWORD:?set ENROLLMENT_DB_PASSWORD}
+    volumes:
+      - enrollment-db-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U enrollment_app -d enrollments"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    logging: *default-logging
+    networks:
+      - data
+
+  assessment-db:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: assessments
+      POSTGRES_USER: assessment_app
+      POSTGRES_PASSWORD: ${ASSESSMENT_DB_PASSWORD:?set ASSESSMENT_DB_PASSWORD}
+    volumes:
+      - assessment-db-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U assessment_app -d assessments"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    logging: *default-logging
+    networks:
+      - data
+
+  analytics-db:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: analytics
+      POSTGRES_USER: analytics_app
+      POSTGRES_PASSWORD: ${ANALYTICS_DB_PASSWORD:?set ANALYTICS_DB_PASSWORD}
+    volumes:
+      - analytics-db-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U analytics_app -d analytics"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    logging: *default-logging
+    networks:
+      - data
+
+  minio:
+    image: ${OBJECT_STORE_IMAGE:-pgsty/silo:RELEASE.2026-09-16T00-00-00Z}
+    restart: unless-stopped
+    entrypoint: ["/usr/bin/silo"]
+    command: ["server", "/data"]
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?set MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?set MINIO_ROOT_PASSWORD}
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:9000/minio/health/live"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    logging: *default-logging
+    networks:
+      - data
+
+  assessment-minio-init:
+    build:
+      context: ../../services/assessment
+      dockerfile: MinIOInit.Dockerfile
+    image: ${ASSESSMENT_MINIO_INIT_IMAGE:-ucm-assessment-minio-init:local}
+    restart: "no"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?set MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?set MINIO_ROOT_PASSWORD}
+      ASSESSMENT_OBJECT_USER: ${ASSESSMENT_OBJECT_USER:?set ASSESSMENT_OBJECT_USER}
+      ASSESSMENT_OBJECT_PASSWORD: ${ASSESSMENT_OBJECT_PASSWORD:?set ASSESSMENT_OBJECT_PASSWORD}
+    depends_on:
+      minio:
+        condition: service_healthy
+    logging: *default-logging
+    networks:
+      - data
+
+  auth-migrate:
+    build: ../../services/security-and-authentication
+    image: ${AUTH_IMAGE:-ucm-auth:local}
+    environment:
+      DB_HOST: auth-db
+      DB_PORT: "5432"
+      DB_SSLMODE: disable
+      DB_NAME: authentication_and_security
+      DB_USER: auth_app
+      DB_PASSWORD: ${AUTH_DB_PASSWORD:?set AUTH_DB_PASSWORD}
+    entrypoint: /app/auth-migrate
+    command: ["-path", "/app/migrations", "-direction", "up"]
+    depends_on:
+      auth-db:
+        condition: service_healthy
+    restart: "no"
+    logging: *default-logging
+    networks:
+      - data
+
+  user-migrate:
+    build: ../../services/user
+    image: ${USER_IMAGE:-ucm-user:local}
+    environment:
+      DB_HOST: user-db
+      DB_PORT: "5432"
+      DB_SSLMODE: disable
+      DB_NAME: users
+      DB_USER: user_app
+      DB_PASSWORD: ${USER_DB_PASSWORD:?set USER_DB_PASSWORD}
+    entrypoint: /app/user-migrate
+    command: ["-path", "/app/migrations", "-direction", "up"]
+    depends_on:
+      user-db:
+        condition: service_healthy
+    restart: "no"
+    logging: *default-logging
+    networks:
+      - data
+
+  course-migrate:
+    build: ../../services/course
+    image: ${COURSE_IMAGE:-ucm-course:local}
+    environment:
+      DB_HOST: course-db
+      DB_PORT: "5432"
+      DB_SSLMODE: disable
+      DB_NAME: courses
+      DB_USER: course_app
+      DB_PASSWORD: ${COURSE_DB_PASSWORD:?set COURSE_DB_PASSWORD}
+    entrypoint: /app/course-migrate
+    command: ["-path", "/app/migrations", "-direction", "up"]
+    depends_on:
+      course-db:
+        condition: service_healthy
+    restart: "no"
+    logging: *default-logging
+    networks:
+      - data
+
+  enrollment-migrate:
+    build: ../../services/enrollment
+    image: ${ENROLLMENT_IMAGE:-ucm-enrollment:local}
+    environment:
+      DB_HOST: enrollment-db
+      DB_PORT: "5432"
+      DB_SSLMODE: disable
+      DB_NAME: enrollments
+      DB_USER: enrollment_app
+      DB_PASSWORD: ${ENROLLMENT_DB_PASSWORD:?set ENROLLMENT_DB_PASSWORD}
+    entrypoint: /app/enrollment-migrate
+    command: ["-path", "/app/migrations", "-direction", "up"]
+    depends_on:
+      enrollment-db:
+        condition: service_healthy
+    restart: "no"
+    logging: *default-logging
+    networks:
+      - data
+
+  assessment-migrate:
+    build: ../../services/assessment
+    image: ${ASSESSMENT_IMAGE:-ucm-assessment:local}
+    environment:
+      DB_HOST: assessment-db
+      DB_PORT: "5432"
+      DB_SSLMODE: disable
+      DB_NAME: assessments
+      DB_USER: assessment_app
+      DB_PASSWORD: ${ASSESSMENT_DB_PASSWORD:?set ASSESSMENT_DB_PASSWORD}
+    entrypoint: /app/assessment-migrate
+    command: ["-path", "/app/migrations", "-direction", "up"]
+    depends_on:
+      assessment-db:
+        condition: service_healthy
+    restart: "no"
+    logging: *default-logging
+    networks:
+      - data
+
+  analytics-migrate:
+    build: ../../services/analytics
+    image: ${ANALYTICS_IMAGE:-ucm-analytics:local}
+    environment:
+      DB_HOST: analytics-db
+      DB_PORT: "5432"
+      DB_SSLMODE: disable
+      DB_NAME: analytics
+      DB_USER: analytics_app
+      DB_PASSWORD: ${ANALYTICS_DB_PASSWORD:?set ANALYTICS_DB_PASSWORD}
+    entrypoint: /app/analytics-migrate
+    command: ["-path", "/app/migrations", "-direction", "up"]
+    depends_on:
+      analytics-db:
+        condition: service_healthy
+    restart: "no"
+    logging: *default-logging
+    networks:
+      - data
+
+  auth:
+    image: ${AUTH_IMAGE:-ucm-auth:local}
+    restart: unless-stopped
+    env_file: ${AUTH_ENV_FILE:-../../services/security-and-authentication/.env}
+    environment:
+      BIND_HOST: 0.0.0.0
+      AUTH_SERVICE_PORT: "8081"
+      DB_HOST: auth-db
+      DB_PORT: "5432"
+      DB_SSLMODE: disable
+      DB_NAME: authentication_and_security
+      DB_USER: auth_app
+      DB_PASSWORD: ${AUTH_DB_PASSWORD:?set AUTH_DB_PASSWORD}
+      USER_SERVICE_INTERNAL_URL: http://user:8082
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:8080}
+      INTERNAL_ALLOWED_CALLERS: user-service,course-service,enrollment-service
+      TRUSTED_PROXIES: 172.16.0.0/12
+    volumes:
+      - ../../services/security-and-authentication/var/keys:/app/var/keys:ro
+    depends_on:
+      auth-migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8081/health/ready"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    stop_grace_period: 15s
+    security_opt:
+      - no-new-privileges:true
+    logging: *default-logging
+    networks:
+      - backend
+      - data
+
+  user:
+    image: ${USER_IMAGE:-ucm-user:local}
+    restart: unless-stopped
+    env_file: ${USER_ENV_FILE:-../../services/user/.env}
+    environment:
+      BIND_HOST: 0.0.0.0
+      USER_SERVICE_PORT: "8082"
+      DB_HOST: user-db
+      DB_PORT: "5432"
+      DB_SSLMODE: disable
+      DB_NAME: users
+      DB_USER: user_app
+      DB_PASSWORD: ${USER_DB_PASSWORD:?set USER_DB_PASSWORD}
+      AUTH_SERVICE_INTERNAL_URL: http://auth:8081
+      INTERNAL_ALLOWED_CALLERS: auth-service,course-service,enrollment-service
+      TRUSTED_PROXIES: 172.16.0.0/12
+    depends_on:
+      user-migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8082/health/ready"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    stop_grace_period: 15s
+    security_opt:
+      - no-new-privileges:true
+    logging: *default-logging
+    networks:
+      - backend
+      - data
+
+  course:
+    image: ${COURSE_IMAGE:-ucm-course:local}
+    restart: unless-stopped
+    env_file: ${COURSE_ENV_FILE:-../../services/course/.env}
+    environment:
+      BIND_HOST: 0.0.0.0
+      COURSE_SERVICE_PORT: "8083"
+      DB_HOST: course-db
+      DB_PORT: "5432"
+      DB_SSLMODE: disable
+      DB_NAME: courses
+      DB_USER: course_app
+      DB_PASSWORD: ${COURSE_DB_PASSWORD:?set COURSE_DB_PASSWORD}
+      USER_SERVICE_INTERNAL_URL: http://user:8082
+      AUTH_SERVICE_INTERNAL_URL: http://auth:8081
+      INTERNAL_ALLOWED_CALLERS: enrollment-service,analytics-service
+      TRUSTED_PROXIES: 172.16.0.0/12
+    depends_on:
+      course-migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8083/health/ready"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    stop_grace_period: 15s
+    security_opt:
+      - no-new-privileges:true
+    logging: *default-logging
+    networks:
+      - backend
+      - data
+
+  enrollment:
+    image: ${ENROLLMENT_IMAGE:-ucm-enrollment:local}
+    restart: unless-stopped
+    env_file: ${ENROLLMENT_ENV_FILE:-../../services/enrollment/.env}
+    environment:
+      BIND_HOST: 0.0.0.0
+      ENROLLMENT_SERVICE_PORT: "8084"
+      DB_HOST: enrollment-db
+      DB_PORT: "5432"
+      DB_SSLMODE: disable
+      DB_NAME: enrollments
+      DB_USER: enrollment_app
+      DB_PASSWORD: ${ENROLLMENT_DB_PASSWORD:?set ENROLLMENT_DB_PASSWORD}
+      USER_SERVICE_INTERNAL_URL: http://user:8082
+      AUTH_SERVICE_INTERNAL_URL: http://auth:8081
+      COURSE_SERVICE_INTERNAL_URL: http://course:8083
+      INTERNAL_ALLOWED_CALLERS: assessment-service
+      TRUSTED_PROXIES: 172.16.0.0/12
+    depends_on:
+      enrollment-migrate:
+        condition: service_completed_successfully
+      auth:
+        condition: service_healthy
+      user:
+        condition: service_healthy
+      course:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8084/health/ready"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    stop_grace_period: 15s
+    security_opt:
+      - no-new-privileges:true
+    logging: *default-logging
+    networks:
+      - backend
+      - data
+
+  assessment:
+    image: ${ASSESSMENT_IMAGE:-ucm-assessment:local}
+    restart: unless-stopped
+    env_file: ${ASSESSMENT_ENV_FILE:-../../services/assessment/.env}
+    environment:
+      BIND_HOST: 0.0.0.0
+      ASSESSMENT_SERVICE_PORT: "8085"
+      DB_HOST: assessment-db
+      DB_PORT: "5432"
+      DB_SSLMODE: disable
+      DB_NAME: assessments
+      DB_USER: assessment_app
+      DB_PASSWORD: ${ASSESSMENT_DB_PASSWORD:?set ASSESSMENT_DB_PASSWORD}
+      ENROLLMENT_SERVICE_INTERNAL_URL: http://enrollment:8084
+      OBJECT_STORAGE_ENDPOINT: minio:9000
+      OBJECT_STORAGE_USE_SSL: "false"
+      OBJECT_STORAGE_BUCKET: submissions
+      OBJECT_STORAGE_ACCESS_KEY: ${ASSESSMENT_OBJECT_USER:?set ASSESSMENT_OBJECT_USER}
+      OBJECT_STORAGE_SECRET_KEY: ${ASSESSMENT_OBJECT_PASSWORD:?set ASSESSMENT_OBJECT_PASSWORD}
+      ANALYTICS_SERVICE_INTERNAL_URL: http://analytics:8086
+      INTERNAL_ALLOWED_CALLERS: analytics-service
+      TRUSTED_PROXIES: 172.16.0.0/12
+    depends_on:
+      assessment-migrate:
+        condition: service_completed_successfully
+      enrollment:
+        condition: service_healthy
+      assessment-minio-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8085/health/ready"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    stop_grace_period: 15s
+    security_opt:
+      - no-new-privileges:true
+    logging: *default-logging
+    networks:
+      - backend
+      - data
+
+  analytics:
+    image: ${ANALYTICS_IMAGE:-ucm-analytics:local}
+    restart: unless-stopped
+    env_file: ${ANALYTICS_ENV_FILE:-../../services/analytics/.env}
+    environment:
+      BIND_HOST: 0.0.0.0
+      ANALYTICS_SERVICE_PORT: "8086"
+      DB_HOST: analytics-db
+      DB_PORT: "5432"
+      DB_SSLMODE: disable
+      DB_NAME: analytics
+      DB_USER: analytics_app
+      DB_PASSWORD: ${ANALYTICS_DB_PASSWORD:?set ANALYTICS_DB_PASSWORD}
+      COURSE_SERVICE_INTERNAL_URL: http://course:8083
+      ASSESSMENT_SERVICE_INTERNAL_URL: http://assessment:8085
+      INTERNAL_ALLOWED_CALLERS: assessment-service
+      TRUSTED_PROXIES: 172.16.0.0/12
+    depends_on:
+      analytics-migrate:
+        condition: service_completed_successfully
+      course:
+        condition: service_healthy
+      assessment:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8086/health/ready"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    stop_grace_period: 15s
+    security_opt:
+      - no-new-privileges:true
+    logging: *default-logging
+    networks:
+      - backend
+      - data
+
+  gateway:
+    build: ../nginx
+    image: ${GATEWAY_IMAGE:-ucm-gateway:local}
+    restart: unless-stopped
+    ports:
+      - "${GATEWAY_PORT:-8080}:8080"
+    depends_on:
+      auth:
+        condition: service_healthy
+      user:
+        condition: service_healthy
+      course:
+        condition: service_healthy
+      enrollment:
+        condition: service_healthy
+      assessment:
+        condition: service_healthy
+      analytics:
+        condition: service_healthy
+    security_opt:
+      - no-new-privileges:true
+    logging: *default-logging
+    networks:
+      - edge
+      - backend
+
+  frontend:
+    build:
+      context: ../../frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8080}
+    image: ${FRONTEND_IMAGE:-ucm-frontend:local}
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-3000}:80"
+    security_opt:
+      - no-new-privileges:true
+    logging: *default-logging
+    networks:
+      - edge
+
+volumes:
+  auth-db-data:
+  user-db-data:
+  course-db-data:
+  enrollment-db-data:
+  assessment-db-data:
+  analytics-db-data:
+  minio-data:
+
+networks:
+  edge:
+  backend:
+  data:

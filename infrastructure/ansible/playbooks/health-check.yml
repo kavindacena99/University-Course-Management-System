@@ -1,0 +1,8 @@
+---
+- name: Check one environment without deployment
+  hosts: platform
+  gather_facts: false
+  roles:
+    - preflight
+    - nginx
+    - health-check

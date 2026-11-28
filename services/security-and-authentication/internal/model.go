@@ -25,17 +25,29 @@ func IsValidRole(role string) bool {
 }
 
 const (
-	PermUsersRead       = "users:read"
-	PermUsersManage     = "users:manage"
-	PermRolesManage     = "roles:manage"
-	PermSessionsRead    = "sessions:read"
-	PermSessionsRevoke  = "sessions:revoke"
-	PermAccountUnlock   = "account:unlock"
-	PermAuditRead       = "audit:read"
-	PermCoursesManage   = "courses:manage"
-	PermOfferingsManage = "offerings:manage"
-	PermEnrollmentsRead = "enrollments:read"
-	PermEnrollmentsManage = "enrollments:manage"
+	PermUsersRead                 = "users:read"
+	PermUsersManage               = "users:manage"
+	PermRolesManage               = "roles:manage"
+	PermSessionsRead              = "sessions:read"
+	PermSessionsRevoke            = "sessions:revoke"
+	PermAccountUnlock             = "account:unlock"
+	PermAuditRead                 = "audit:read"
+	PermCoursesManage             = "courses:manage"
+	PermOfferingsManage           = "offerings:manage"
+	PermEnrollmentsRead           = "enrollments:read"
+	PermEnrollmentsManage         = "enrollments:manage"
+	PermAssessmentsRead           = "assessments:read"
+	PermAssessmentsManage         = "assessments:manage"
+	PermAssessmentsGrade          = "assessments:grade"
+	PermAssessmentsRelease        = "assessments:release"
+	PermAssessmentsSubmit         = "assessments:submit"
+	PermAssessmentsStudentRead    = "assessments:student:read"
+	PermAssessmentsResultsImport  = "assessments:results:import"
+	PermAnalyticsStudentRead      = "analytics:student:read"
+	PermAnalyticsLecturerRead     = "analytics:lecturer:read"
+	PermAnalyticsAdminRead        = "analytics:admin:read"
+	PermAnalyticsAdminStudentRead = "analytics:admin:student:read"
+	PermAnalyticsManage           = "analytics:manage"
 )
 
 var AllPermissions = []string{
@@ -50,6 +62,18 @@ var AllPermissions = []string{
 	PermOfferingsManage,
 	PermEnrollmentsRead,
 	PermEnrollmentsManage,
+	PermAssessmentsRead,
+	PermAssessmentsManage,
+	PermAssessmentsGrade,
+	PermAssessmentsRelease,
+	PermAssessmentsSubmit,
+	PermAssessmentsStudentRead,
+	PermAssessmentsResultsImport,
+	PermAnalyticsStudentRead,
+	PermAnalyticsLecturerRead,
+	PermAnalyticsAdminRead,
+	PermAnalyticsAdminStudentRead,
+	PermAnalyticsManage,
 }
 
 func IsValidPermission(permission string) bool {

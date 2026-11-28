@@ -1,10 +1,11 @@
 # Course Service deployment-readiness audit
 
-Audit date: 2026-11-14. Scope: Course, Authentication and Security, User,
-PostgreSQL, and the repository NGINX gateway. **Status: not deployment-ready.**
-The local integration path was exercised, but the Docker Desktop Linux engine
-was unavailable, and the production notification and gateway arrangements
-still need decisions and verification.
+Audit date: 2026-11-14. Updated: 2026-11-22 after the local Docker Compose
+stack was built and run. Scope: Course, Authentication and Security, User,
+PostgreSQL, and the repository NGINX gateway. **Status: not production
+deployment-ready.** The local Docker integration stack now builds and runs;
+production TLS, secret management, external notification delivery, and CI/CD
+remain open.
 
 ## Verified checks
 
@@ -34,22 +35,40 @@ from the lecturer workflow were removed by the later migration rollback.
   implemented. Choose and implement a delivery contract before production
   onboarding. The file notification mode used in local testing writes
   activation tokens to a sensitive file and must remain development-only.
-- The checked-in NGINX configuration listens on HTTP port 8080 and routes to
-  `127.0.0.1:8081/8082/8083`. It is a host-local gateway configuration.
-  It does not provide TLS termination or container DNS upstreams. A reviewed
-  production ingress/gateway configuration is required.
+- The checked-in host NGINX configuration listens on HTTP port 8080 and routes
+  to loopback service ports 8081 through 8086. The Docker gateway image uses
+  Compose service-name upstreams with dynamic DNS re-resolution and the same
+  routing policy. Neither provides TLS termination; a reviewed production
+  ingress/TLS configuration is still required.
 - A repository-wide `gofmt -l` lists pre-existing files in Auth and User.
   This audit did not reformat unrelated working code. The Go files modified by
   this audit are formatted.
 
-## Blocked checks
+## Docker checks (updated 2026-11-22)
 
-Docker Desktop's Linux engine was not running. `docker info` failed because
-`//./pipe/dockerDesktopLinuxEngine` did not exist. Therefore **no service image
-was built or run**, and container startup, networking, image contents, mounted
-key paths, container health/restart, and graceful container shutdown are
-unverified. Base image availability is also unverified. No Compose or CI
-deployment definition exists in the repository.
+The original audit could not run Docker because Docker Desktop's Linux engine
+was not running. That blocker no longer applies. The local Compose stack in
+`infrastructure/docker/compose.yaml` was built and run:
+
+- `docker compose ... config --quiet` passed.
+- All nine images built: six services, the MinIO bootstrap image, the gateway,
+  and the frontend.
+- All long-running containers became healthy; all six migration jobs and the
+  MinIO bootstrap job exited with code 0.
+- Gateway routing reached all six services; `/internal/*` and unknown paths
+  returned `404`; only frontend port `3000` and gateway port `8080` were
+  published.
+- Frontend health, SPA fallback, hashed assets, security headers, and CORS
+  preflight passed.
+- Scaling Auth to two replicas split 20 unauthenticated requests 10/10;
+  stopping one replica left the other serving requests.
+- Stopping Course produced gateway `504`/`502` responses; restarting Course
+  restored routing, and Course logged `server_stopped` during shutdown.
+
+See [Infrastructure Architecture](infrastructure/architecture.md) for the full
+topology and validation report. This establishes local Compose integration,
+not production readiness. The repository still has no CI deployment definition
+or production orchestrator manifests.
 
 ## Required runtime configuration
 
@@ -68,7 +87,7 @@ Do not use `localhost` in a container for another service. Configure DNS
 names reachable on the deployment network, synchronize clocks for JWT and HMAC
 timestamp checks, and protect the shared HMAC secret and Auth private key.
 
-## Deployment sequence once Docker is available
+## Production deployment sequence
 
 1. Provision PostgreSQL with separate databases and least-privilege roles for
    Auth, User, and Course; set DNS, TLS, secret injection, and a gateway
@@ -89,9 +108,12 @@ timestamp checks, and protect the shared HMAC secret and Auth private key.
    caller, restart, shutdown, and log checks against the actual containers and
    TLS gateway. Only then make a deployment-readiness decision.
 
-The current repository has no Compose file; these are operator steps, not a
-claim that a runnable container deployment already exists. Local host
-development commands are in [development-setup.md](development-setup.md).
+The repository's `infrastructure/docker/compose.yaml` is a local integration
+stack; these are operator steps for a real deployment, not a claim that a
+production container deployment already exists. Local host development
+commands are in [development-setup.md](development-setup.md), and the Docker
+stack is documented in
+[Infrastructure Architecture](infrastructure/architecture.md).
 
 ## Integration risks and remaining work
 
@@ -101,8 +123,8 @@ development commands are in [development-setup.md](development-setup.md).
   [enrollment-capacity-change.md](proposals/enrollment-capacity-change.md).
 - Decide and implement production activation/reset notification delivery.
 - Provide reviewed TLS gateway/container routing and runtime secret mounts.
-- Start Docker Desktop, build all images, run migrations and the three-service
-  stack in containers, and repeat the end-to-end and failure checks.
-- Exercise a live graceful signal and restart in the actual orchestrator.
+- Repeat the local Compose build, migration, routing, scaling, and failure
+  checks in the production orchestrator.
+- Exercise a live graceful signal and restart in the production orchestrator.
 - Resolve the baseline formatting gap and add automated deployment verification
   when the deployment topology is established.

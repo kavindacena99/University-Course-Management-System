@@ -8,7 +8,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"analytics/internal"
+	analytics "analytics/internal"
 	"analytics/internal/config"
 )
 
@@ -29,7 +29,7 @@ func run() error {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
 		Level: parseLogLevel(cfg.LogLevel),
 	}))
-	app, err := internal.NewApp(cfg, logger)
+	app, err := analytics.NewApp(cfg, logger)
 	if err != nil {
 		return fmt.Errorf("initialise application: %w", err)
 	}

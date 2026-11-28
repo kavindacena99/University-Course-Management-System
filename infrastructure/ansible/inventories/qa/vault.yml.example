@@ -1,0 +1,14 @@
+---
+# Encrypt an EDITED copy with ansible-vault create/edit; do not deploy placeholders.
+# This file is documentation, never automatically loaded. vault.yml is ignored.
+# List only files belonging to this inventory. Never copy DEV secrets to QA/PROD-like.
+vault_environment_files: []
+# - path: .env
+#   content: |
+#     ...actual environment-specific Compose inputs...
+# - path: runtime/auth.env
+#   content: |
+#     ...actual Auth settings...
+# - path: runtime/keys/jwt-private.pem
+#   content: |
+#     ...actual locally generated private key; no production key in rehearsal...
