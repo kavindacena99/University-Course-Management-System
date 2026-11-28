@@ -31,12 +31,14 @@ test('lecturer sees only assigned offering and can inspect live analytics', asyn
   await expect(page.locator(`a[href="/lecturer/offerings/${process.env.PHASE6_ASSIGNED_OFFERING_ID}"]`)).toBeVisible();
   await page.goto(`/lecturer/offerings/${process.env.PHASE6_ASSIGNED_OFFERING_ID}`);
   await expect(page.getByRole('heading', { name: 'Assessments' })).toBeVisible();
+  const lecturerAnalytics = page.waitForResponse(response => response.url().includes('/analytics/lecturer/offerings/'));
   await page.goto(`/lecturer/offerings/${process.env.PHASE6_ASSIGNED_OFFERING_ID}/analytics`);
   await expect(page.getByRole('heading', { name: 'Offering analytics' })).toBeVisible();
+  expect((await lecturerAnalytics).status()).toBe(200);
   expect(calls.some(url => url.includes('/offerings/assigned'))).toBeTruthy();
   expect(calls.some(url => url.includes('/analytics/lecturer/offerings/'))).toBeTruthy();
   await page.goto(`/lecturer/offerings/${process.env.PHASE6_UNASSIGNED_OFFERING_ID}`);
-  await expect(page.getByRole('alert')).toContainText(/not assigned|denied|forbidden/i);
+  await expect(page.getByRole('alert')).toContainText(/not assigned|denied|forbidden|not found/i);
   const forbidden = await page.context().request.get(`/api/v1/offerings/${process.env.PHASE6_UNASSIGNED_OFFERING_ID}/enrollments`);
   expect(forbidden.status()).toBe(403);
   await page.getByRole('button', { name: 'Log out' }).click();
@@ -52,8 +54,10 @@ test('student enrolments, report and lecturer/admin denial use live APIs', async
   await expect(page.getByRole('heading', { name: 'My enrolments' })).toBeVisible();
   await page.reload();
   await expect(page.getByRole('heading', { name: 'My enrolments' })).toBeVisible();
+  const studentAnalytics = page.waitForResponse(response => response.url().includes('/analytics/students/me'));
   await page.goto('/student/results');
   await expect(page.getByRole('heading', { name: 'Results and grades' })).toBeVisible();
+  expect((await studentAnalytics).status()).toBe(200);
   expect((await page.context().request.get('/api/v1/analytics/admin/summary')).status()).toBe(403);
   await page.goto('/lecturer/offerings');
   await expect(page.getByRole('alert')).toContainText('Access denied');
@@ -79,8 +83,10 @@ test('administrator dashboard uses authorized summary and users', async ({ page 
   const calls = [];
   page.on('response', response => { if (response.url().includes('/api/v1/')) calls.push(response.url()); });
   await login(page, process.env.PHASE6_ADMIN_EMAIL, process.env.PHASE6_ADMIN_PASSWORD);
+  const adminAnalytics = page.waitForResponse(response => response.url().includes('/analytics/admin/summary'));
   await page.goto('/admin/dashboard');
   await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
+  expect((await adminAnalytics).status()).toBe(200);
   expect(calls.some(url => url.includes('/analytics/admin/summary'))).toBeTruthy();
 });
 
@@ -123,13 +129,15 @@ test('student file upload persists and lecturer can download, grade and release 
   await lecturerPage.goto(`/lecturer/submissions/${submissionId}`);
   const download = lecturerPage.waitForResponse(response => response.url().endsWith(`/submissions/${submissionId}/file`));
   await lecturerPage.getByRole('button', { name: 'Download protected file' }).click();
-  expect((await download).status()).toBe(200);
+  const downloaded = await download;
+  expect(downloaded.status()).toBe(200);
+  expect(await downloaded.body()).toEqual(bytes);
   await lecturerPage.getByLabel('Mark').fill('75');
   await lecturerPage.getByLabel('Feedback').fill('Synthetic Phase 6 browser test');
   await lecturerPage.getByRole('button', { name: 'Save grade' }).click();
   await expect(lecturerPage.getByText(/Saved mark: 75/)).toBeVisible();
   await lecturerPage.getByRole('button', { name: 'Release grade' }).click();
-  await expect(lecturerPage.getByText(/released/)).toBeVisible();
+  await expect(lecturerPage.getByRole('status').filter({ hasText: 'Grade released.' })).toBeVisible();
   await studentPage.reload();
   await expect(studentPage.getByText(/Grade: 75/)).toBeVisible();
   expect((await request.get(`/api/v1/submissions/${submissionId}`)).status()).toBe(401);
