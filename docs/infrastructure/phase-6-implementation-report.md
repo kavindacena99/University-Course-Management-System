@@ -1,5 +1,42 @@
 # Phase 6 — consolidated QA target
 
+## 2026-11-28 live DEV acceptance update
+
+PR #28 merged at `b6a8935a341cc29808a93dc61f822ca106762c98`.
+The preexisting DEV stack was started without deleting or replacing volumes;
+its controller reported 15 healthy containers, seven completed setup jobs and
+12 successful HTTP probes. Only the frontend image was rebuilt from merged
+source for the live test. Dedicated synthetic admin, lecturer and student
+accounts, two courses, two offerings and one enrollment were created through
+the existing User, Auth, Course and Enrollment APIs. The second offering was
+left unpublished because the Course service correctly rejects publishing an
+offering without a lecturer. A failed first setup attempt left additional
+synthetic DEV records; those records were retained, not silently removed.
+
+Playwright against `http://localhost:3000` passed **5/5 tests, zero skips**.
+Observed requests covered login, session restoration and refresh, logout,
+anonymous and role denial, lecturer assigned and unassigned access, student
+enrollment and report, lecturer/admin analytics, assessment creation and
+publication, multipart file submission, protected byte-for-byte download,
+grade save and release, and result persistence after reload. Student,
+lecturer and administrator analytics each returned HTTP 200. The test runner
+used installed Chrome; its local HTML report and traces remain ignored under
+`tests/browser-phase6/artifacts/`. The run also checked anonymous backend
+denial and student 403 access to administrator analytics. A protected draft
+offering is hidden with a not-found response, while its enrollment endpoint
+denies the lecturer with 403.
+
+The frontend production image build and Docker-based TypeScript check passed.
+Infrastructure unittest discovery passed 51 tests; ten Compose models passed;
+both edited Playwright files passed `node --check`; and `git diff --check`
+passed. The secret scan found no leaks in 50 reachable commits or 552
+tracked/nonignored working-tree files. No Go service code changed in this
+follow-up. These are DEV acceptance results; a new reviewed source commit,
+protected-main image publication, new immutable RC, fresh verified external
+QA backup, and full QA validation are still required. RC1/RC2 evidence remains
+immutable. The recorded Silo HIGH CVE-2026-39414 and exact-digest guarded
+runtime exception remain visible.
+
 ## Preparation and safety state
 
 The prepared target is `platform-qa-target` with frontend port 3001 and

@@ -10,6 +10,8 @@ and `PHASE6_UNASSIGNED_OFFERING_ID` in the
 local process environment. Never commit their values. Then install this
 directory's dev dependency and run `npm test` here. Reports, traces and
 screenshots are ignored under `artifacts/`.
+The suite uses the installed Chrome channel by default. Set
+`PHASE6_BROWSER_CHANNEL` to another installed Playwright channel if needed.
 Set `PHASE6_ADMIN_EMAIL` and `PHASE6_ADMIN_PASSWORD` to exercise the optional
 administrator dashboard check.
 
