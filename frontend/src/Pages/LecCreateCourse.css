@@ -1,5 +1,3 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
-
 html,
 body,
 #root {
@@ -281,14 +279,20 @@ body,
 }
 
 .app-shell:has(.sidebar-accent) .profile .avatar {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
   width: 38px !important;
   height: 38px !important;
   border-radius: 50% !important;
-  object-fit: cover !important;
+  background: #dbeafe !important;
+  color: #1d4ed8 !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
   flex-shrink: 0 !important;
 }
 
-.app-shell:has(.sidebar-accent) .profile > span {
+.app-shell:has(.sidebar-accent) .profile > span:not(.avatar) {
   display: flex !important;
   flex-direction: column !important;
   text-align: left !important;
@@ -319,7 +323,7 @@ body,
   position: absolute !important;
   top: calc(100% + 8px) !important;
   right: 0 !important;
-  width: 175px !important;
+  width: 240px !important;
   background: #ffffff !important;
   border: 1px solid #e2e8f0 !important;
   border-radius: 10px !important;
@@ -328,6 +332,9 @@ body,
   display: flex !important;
   flex-direction: column !important;
   z-index: 50 !important;
+  color: #1e293b !important;
+  font-size: 13px !important;
+  overflow-wrap: anywhere !important;
 }
 
 .app-shell:has(.sidebar-accent) .profile-menu button {

@@ -1,0 +1,124 @@
+.student-results {
+  width: min(1180px, 100%);
+  min-height: 100dvh;
+  margin: 0 auto;
+  padding: clamp(20px, 4vw, 48px);
+  color: #172554;
+}
+
+.student-results__header {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.student-results__header p {
+  margin: 0 0 5px;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.student-results__header h1 {
+  margin: 0;
+  color: #0f172a;
+  font-size: clamp(24px, 3vw, 32px);
+}
+
+.student-results__header a {
+  color: #1d4ed8;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.student-results__summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.student-results__summary article,
+.student-results__panel {
+  padding: 20px;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgb(15 23 42 / 4%);
+}
+
+.student-results__summary article {
+  display: grid;
+  gap: 8px;
+}
+
+.student-results__summary span {
+  color: #64748b;
+  font-size: 13px;
+}
+
+.student-results__summary strong {
+  color: #0f172a;
+  font-size: 21px;
+  text-transform: capitalize;
+}
+
+.student-results__panel {
+  margin-bottom: 18px;
+}
+
+.student-results__panel h2 {
+  margin: 0 0 16px;
+  color: #0f172a;
+  font-size: 18px;
+}
+
+.student-results__table-wrap {
+  overflow-x: auto;
+}
+
+.student-results table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.student-results th,
+.student-results td {
+  padding: 12px 9px;
+  border-bottom: 1px solid #e2e8f0;
+  font-size: 13px;
+}
+
+.student-results th {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.student-results__empty {
+  color: #64748b;
+  font-size: 13px;
+}
+
+.student-results__error {
+  padding: 12px 14px;
+  border-radius: 10px;
+  color: #991b1b;
+  background: #fee2e2;
+}
+
+@media (max-width: 640px) {
+  .student-results {
+    padding: 20px 14px;
+  }
+
+  .student-results__summary {
+    grid-template-columns: 1fr;
+  }
+
+  .student-results__header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

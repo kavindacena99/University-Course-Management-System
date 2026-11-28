@@ -15,6 +15,10 @@ func TestParseFinalResultCSV(t *testing.T) {
 			content: "student_user_id,final_mark,max_mark\n" + studentID + ",78.50,100\n",
 		},
 		{
+			name:    "UTF-8 BOM header",
+			content: "\uFEFFstudent_user_id,final_mark,max_mark\n" + studentID + ",78.50,100\n",
+		},
+		{
 			name: "duplicate student",
 			content: "student_user_id,final_mark,max_mark\n" +
 				studentID + ",78,100\n" + studentID + ",81,100\n",

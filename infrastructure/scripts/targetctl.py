@@ -27,7 +27,7 @@ def state(env):
 
 def run(args, *, input=None, check=True):
     result = subprocess.run([str(x) for x in args], cwd=ROOT, input=input,
-                            capture_output=True, text=True)
+                            capture_output=True, text=True, encoding='utf-8', errors='replace')
     if check and result.returncode:
         raise RuntimeError(f'{Path(str(args[0])).name} failed (exit {result.returncode}); output suppressed')
     return result
@@ -277,9 +277,15 @@ def backup(env, manifest):
         credential = 'http://' + values['ASSESSMENT_OBJECT_USER'] + ':' + values['ASSESSMENT_OBJECT_PASSWORD'] + '@127.0.0.1:9000'
         script = 'IFS= read -r MC_HOST_target; export MC_HOST_target; exec mc mirror target/submissions "$1"'
         run(['docker', 'exec', '-i', project + '-minio-1', 'sh', '-c', script, 'mc', temporary], input=credential + '\n')
-        run(['docker', 'cp', project + '-minio-1:' + temporary, destination / 'objects'])
-        # Remove only the uniquely named temporary copy inside the container.
-        run(['docker', 'exec', project + '-minio-1', 'rm', '-rf', temporary])
+        mirrored = run(['docker', 'exec', project + '-minio-1', 'test', '-d', temporary], check=False)
+        if mirrored.returncode == 0:
+            run(['docker', 'cp', project + '-minio-1:' + temporary, destination / 'objects'])
+            # Remove only the uniquely named temporary copy inside the container.
+            run(['docker', 'exec', project + '-minio-1', 'rm', '-rf', temporary])
+        else:
+            # mc mirror exits successfully without creating a target directory
+            # when the submissions bucket is empty.
+            (destination / 'objects').mkdir()
         files = {p.relative_to(destination).as_posix(): {'bytes': p.stat().st_size,
                     'sha256': hashlib.sha256(p.read_bytes()).hexdigest()}
                  for p in destination.rglob('*') if p.is_file()}

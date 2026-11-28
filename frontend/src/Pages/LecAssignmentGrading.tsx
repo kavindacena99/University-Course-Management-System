@@ -1,285 +1,285 @@
-import { useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import type { Assessment, Submission, SubmissionDetail } from "../types/api";
+import {
+  downloadSubmission,
+  getAssessment,
+  getSubmission,
+  listSubmissions,
+  releaseGrade,
+  saveGrade,
+} from "../services/assessments";
+import { logout } from "../services/auth";
 import "./LecAssignmentGrading.css";
 
-const assets = "/assets";
-
-const navigation = [
-  { label: "Dashboard", icon: "57bc3.png" },
-  { label: "My Courses", icon: "45c82.png" },
-  { label: "Assignments", icon: "2c8cd.png" },
-  { label: "Results and Grades", icon: "1cad0.png" },
-  { label: "Class Analysis", icon: "4ebe4.png" },
-  { label: "Academic Calender", icon: "2e776.png" },
-  { label: "Notice Board", icon: "4c71a.png" },
-];
-
-type Submission = {
-  id: number;
-  name: string;
-  status: "Submitted" | "Late Submitted" | "Not submitted";
-  selected: boolean;
-  grade: boolean;
-  modified: string;
-  file: string;
-  feedback: boolean;
-};
-
-const initialSubmissions: Submission[] = [
-  {
-    id: 1,
-    name: "Mr. XYZ",
-    status: "Submitted",
-    selected: false,
-    grade: false,
-    modified: "",
-    file: "",
-    feedback: false,
-  },
-  {
-    id: 2,
-    name: "Mr. XYZ",
-    status: "Late Submitted",
-    selected: false,
-    grade: false,
-    modified: "",
-    file: "",
-    feedback: false,
-  },
-];
+const pageSize = 100;
 
 export default function LecAssignmentGrading() {
-  const [activeNav, setActiveNav] = useState("Results and Grades");
-  const [activeTab, setActiveTab] = useState("Submissions");
-  const [statusFilter, setStatusFilter] = useState("All statuses");
-  const [submissions, setSubmissions] = useState(initialSubmissions);
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const assessmentId = searchParams.get("assessmentId") ?? "";
+  const [assessment, setAssessment] = useState<Assessment | null>(null);
+  const [submissions, setSubmissions] = useState<Submission[]>([]);
+  const [total, setTotal] = useState(0);
+  const [offset, setOffset] = useState(0);
+  const [statusFilter, setStatusFilter] = useState<"all" | Submission["status"]>("all");
+  const [selected, setSelected] = useState<SubmissionDetail | null>(null);
+  const [mark, setMark] = useState("");
+  const [feedback, setFeedback] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
   const [message, setMessage] = useState("");
 
+  useEffect(() => {
+    let active = true;
+    if (!assessmentId) {
+      setError("Choose an assessment from the assessment list before opening grading.");
+      setLoading(false);
+      return () => {
+        active = false;
+      };
+    }
+
+    Promise.all([getAssessment(assessmentId), listSubmissions(assessmentId, offset)])
+      .then(([assessmentResponse, submissionResponse]) => {
+        if (!active) return;
+        setAssessment(assessmentResponse.assessment);
+        setSubmissions(submissionResponse.submissions);
+        setTotal(submissionResponse.total);
+      })
+      .catch((requestError) => {
+        if (active) {
+          setError(requestError instanceof Error ? requestError.message : "Unable to load submissions.");
+        }
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [assessmentId, offset]);
+
   const visibleSubmissions = useMemo(
-    () =>
-      statusFilter === "All statuses"
-        ? submissions
-        : submissions.filter((submission) => submission.status === statusFilter),
+    () => statusFilter === "all"
+      ? submissions
+      : submissions.filter((submission) => submission.status === statusFilter),
     [statusFilter, submissions],
   );
 
-  const updateSubmission = <K extends keyof Submission>(
-    id: number,
-    key: K,
-    value: Submission[K],
-  ) => {
-    setSubmissions((current) =>
-      current.map((submission) =>
-        submission.id === id ? { ...submission, [key]: value } : submission,
-      ),
-    );
-  };
+  async function openSubmission(submissionId: string) {
+    setError("");
+    try {
+      const response = await getSubmission(submissionId);
+      setSelected(response);
+      setMark(response.grade ? String(response.grade.mark) : "");
+      setFeedback(response.grade?.feedback ?? "");
+      setMessage("");
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Unable to load this submission.");
+    }
+  }
 
-  const clearAll = () => {
-    setSubmissions(
-      initialSubmissions.map((submission) => ({
-        ...submission,
-        selected: false,
-        grade: false,
-        modified: "",
-        file: "",
-        feedback: false,
-      })),
-    );
-    setStatusFilter("All statuses");
-    setMessage("Submission fields have been cleared.");
-  };
+  async function handleSave(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!selected || !assessment) return;
+    setError("");
+    setSaving(true);
+    try {
+      const response = await saveGrade(selected.submission.id, {
+        version: selected.grade?.version ?? 0,
+        mark: Number(mark),
+        feedback: feedback.trim(),
+      });
+      setSelected({ ...selected, grade: response.grade });
+      setMessage("Grade saved as a draft.");
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Unable to save the grade.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleRelease() {
+    if (!selected?.grade) return;
+    setError("");
+    setSaving(true);
+    try {
+      const response = await releaseGrade(selected.submission.id, selected.grade.version);
+      setSelected({ ...selected, grade: response.grade });
+      setMessage("Grade released to the student.");
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Unable to release the grade.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function downloadFile(submission: Submission) {
+    setError("");
+    try {
+      const blob = await downloadSubmission(submission.id);
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = submission.original_filename || "submission";
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Unable to download submission.");
+    }
+  }
+
+  async function signOut() {
+    try {
+      await logout();
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Unable to sign out.");
+    } finally {
+      navigate("/login");
+    }
+  }
 
   return (
-    <main className="app-shell">
-      <aside className="sidebar" aria-label="Main navigation">
-        <div className="brand">
-          <img src={`${assets}/580ec.png`} alt="" className="brand-mark" />
-          <p>
-            University Course
-            <span>Management System</span>
-          </p>
-        </div>
-
-        <nav className="side-navigation">
-          {navigation.map((item) => {
-            const active = item.label === activeNav;
-            return (
-              <button
-                className={`nav-item ${active ? "active" : ""}`}
-                type="button"
-                key={item.label}
-                onClick={() => {
-                  setActiveNav(item.label);
-                  setMessage(`${item.label} selected.`);
-                }}
-              >
-                <img src={`${assets}/${item.icon}`} alt="" />
-                <span>{item.label}</span>
-              </button>
-            );
-          })}
+    <div className="grading-page">
+      <aside className="grading-page__sidebar">
+        <Link className="grading-page__brand" to="/lecturer/dashboard">
+          <span aria-hidden="true">UC</span>
+          <strong>University Course<br />Management System</strong>
+        </Link>
+        <nav aria-label="Lecturer navigation">
+          <Link to="/lecturer/dashboard">Dashboard</Link>
+          <Link to="/lecturer/courses">My courses</Link>
+          <Link className="is-active" to="/lecturer/assignments">Assignments</Link>
         </nav>
-
-        <button
-          type="button"
-          className="logout"
-          onClick={() => setMessage("You have been logged out.")}
-        >
-          <img src={`${assets}/c8ef2.svg`} alt="" />
-          <span>LOGOUT</span>
-        </button>
+        <button className="grading-page__logout" onClick={signOut} type="button">Sign out</button>
       </aside>
 
-      <section className="workspace">
-        <article className="assignment-card">
-          <header>
-            <p className="breadcrumb">
-              School of Computing / HND in Computing/ Cohorts / HND in Computing - UOK 001 / First
-              Semester Assignments/ Programming Assignment
-            </p>
-            <h1>
-              <img src={`${assets}/11c57.png`} alt="" />
-              Unit 01 : Programming Assignment
-            </h1>
-            <nav className="tabs" aria-label="Assignment sections">
-              {["Assignments", "Settings", "Submissions"].map((tab) => (
-                <button
-                  type="button"
-                  className={activeTab === tab ? "active" : ""}
-                  key={tab}
-                  onClick={() => {
-                    setActiveTab(tab);
-                    setMessage(`${tab} tab selected.`);
-                  }}
-                >
-                  {tab}
-                </button>
-              ))}
-            </nav>
-          </header>
+      <main className="grading-page__main">
+        <header className="grading-page__header">
+          <div>
+            <p>Assessment submissions</p>
+            <h1>{assessment?.title ?? "Grade submissions"}</h1>
+          </div>
+          <Link to="/lecturer/assignments">Back to assessments</Link>
+        </header>
 
-          <div className="submissions-heading">
-            <h2>Submissions</h2>
-            <label className="status-filter">
-              <span>Status</span>
-              <span className="select-wrap">
+        {error && <p className="grading-page__error" role="alert">{error}</p>}
+        {loading ? (
+          <p role="status">Loading submissions...</p>
+        ) : assessment ? (
+          <section className="grading-page__workspace">
+            <div className="grading-page__toolbar">
+              <p>
+                {assessment.max_mark} marks · Due {new Date(assessment.due_at).toLocaleString()}
+              </p>
+              <label>
+                Status
                 <select
+                  onChange={(event) => setStatusFilter(event.target.value as typeof statusFilter)}
                   value={statusFilter}
-                  onChange={(event) => setStatusFilter(event.target.value)}
                 >
-                  <option>All statuses</option>
-                  <option>Submitted</option>
-                  <option>Late Submitted</option>
-                  <option>Not submitted</option>
+                  <option value="all">All submitted</option>
+                  <option value="submitted">On time</option>
+                  <option value="late">Late</option>
                 </select>
-                <img src={`${assets}/0d534.svg`} alt="" />
-              </span>
-            </label>
-            <button type="button" className="clear-button" onClick={clearAll}>
-              Clear All
-            </button>
-          </div>
+              </label>
+            </div>
 
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Select</th>
-                  <th>Name</th>
-                  <th>Status</th>
-                  <th>Grade</th>
-                  <th>Last Modified Date</th>
-                  <th>File Submissions</th>
-                  <th>Feedback</th>
-                </tr>
-              </thead>
-              <tbody>
-                {visibleSubmissions.map((submission) => (
-                  <tr key={submission.id}>
-                    <td>
+            <div className="grading-page__table-wrap">
+              <table>
+                <thead>
+                  <tr><th>Student ID</th><th>Attempt</th><th>Status</th><th>File</th><th>Submitted</th><th>Grade</th><th>Actions</th></tr>
+                </thead>
+                <tbody>
+                  {visibleSubmissions.map((submission) => (
+                    <tr key={submission.id}>
+                      <td title={submission.student_user_id}>{submission.student_user_id.slice(0, 8)}…</td>
+                      <td>{submission.attempt_no}</td>
+                      <td><span className={`grading-page__status grading-page__status--${submission.status}`}>{submission.status}</span></td>
+                      <td>{submission.original_filename}</td>
+                      <td>{new Date(submission.submitted_at).toLocaleString()}</td>
+                      <td>
+                        {selected?.submission.id === submission.id
+                          ? selected.grade ? `${selected.grade.mark} / ${assessment.max_mark}` : "Not graded"
+                          : "Select to view"}
+                      </td>
+                      <td className="grading-page__row-actions">
+                        <button onClick={() => void openSubmission(submission.id)} type="button">Grade</button>
+                        <button className="grading-page__secondary" onClick={() => void downloadFile(submission)} type="button">Download</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {!visibleSubmissions.length && <p className="grading-page__empty">No submissions match this filter.</p>}
+            </div>
+
+            <div className="grading-page__pagination">
+              <span>Showing {total ? offset + 1 : 0}–{Math.min(offset + pageSize, total)} of {total}</span>
+              <div>
+                <button disabled={offset === 0 || loading} onClick={() => setOffset(Math.max(0, offset - pageSize))} type="button">Previous</button>
+                <button disabled={offset + pageSize >= total || loading} onClick={() => setOffset(offset + pageSize)} type="button">Next</button>
+              </div>
+            </div>
+
+            {selected && (
+              <section className="grading-page__editor" aria-labelledby="grade-editor-title">
+                <div className="grading-page__editor-heading">
+                  <div>
+                    <h2 id="grade-editor-title">Grade submission</h2>
+                    <p>Student {selected.submission.student_user_id} · {selected.submission.original_filename}</p>
+                  </div>
+                  <button type="button" onClick={() => setSelected(null)}>Close</button>
+                </div>
+                {message && <p className="grading-page__message" role="status">{message}</p>}
+                <form onSubmit={handleSave}>
+                  <label>
+                    Mark (maximum {assessment.max_mark})
+                    <input
+                      max={assessment.max_mark}
+                      min="0"
+                      onChange={(event) => setMark(event.target.value)}
+                      required
+                      step="0.01"
+                      type="number"
+                      value={mark}
+                      disabled={selected.grade?.status === "released"}
+                    />
+                  </label>
+                  <label>
+                    Feedback
+                    <textarea
+                      maxLength={10000}
+                      onChange={(event) => setFeedback(event.target.value)}
+                      rows={4}
+                      value={feedback}
+                      disabled={selected.grade?.status === "released"}
+                    />
+                  </label>
+                  {selected.grade?.status === "released" ? (
+                    <p className="grading-page__message">This grade has already been released.</p>
+                  ) : (
+                    <div className="grading-page__editor-actions">
+                      <button disabled={saving} type="submit">{saving ? "Saving..." : "Save draft grade"}</button>
                       <button
+                        disabled={saving || !selected.grade || selected.grade.status !== "draft"}
+                        onClick={() => void handleRelease()}
                         type="button"
-                        className={`image-checkbox ${submission.selected ? "checked" : ""}`}
-                        aria-label={`Select ${submission.name}`}
-                        aria-pressed={submission.selected}
-                        onClick={() =>
-                          updateSubmission(submission.id, "selected", !submission.selected)
-                        }
                       >
-                        <img src={`${assets}/110ec.png`} alt="" />
+                        Release grade
                       </button>
-                    </td>
-                    <td>{submission.name}</td>
-                    <td>
-                      <select
-                        className="status-cell"
-                        aria-label={`Status for ${submission.name}`}
-                        value={submission.status}
-                        onChange={(event) =>
-                          updateSubmission(
-                            submission.id,
-                            "status",
-                            event.target.value as Submission["status"],
-                          )
-                        }
-                      >
-                        <option>Submitted</option>
-                        <option>Late Submitted</option>
-                        <option>Not submitted</option>
-                      </select>
-                    </td>
-                    <td>
-                      <button
-                        type="button"
-                        className="grade-toggle"
-                        aria-pressed={submission.grade}
-                        onClick={() => updateSubmission(submission.id, "grade", !submission.grade)}
-                      >
-                        A <span className={submission.grade ? "checked" : ""} />
-                      </button>
-                    </td>
-                    <td>
-                      <input
-                        aria-label={`Last modified date for ${submission.name}`}
-                        value={submission.modified}
-                        onChange={(event) =>
-                          updateSubmission(submission.id, "modified", event.target.value)
-                        }
-                      />
-                    </td>
-                    <td>
-                      <input
-                        aria-label={`File submission for ${submission.name}`}
-                        value={submission.file}
-                        onChange={(event) =>
-                          updateSubmission(submission.id, "file", event.target.value)
-                        }
-                      />
-                    </td>
-                    <td>
-                      <button
-                        type="button"
-                        className={`feedback-toggle ${submission.feedback ? "checked" : ""}`}
-                        aria-label={`Feedback for ${submission.name}`}
-                        aria-pressed={submission.feedback}
-                        onClick={() =>
-                          updateSubmission(submission.id, "feedback", !submission.feedback)
-                        }
-                      />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            {visibleSubmissions.length === 0 && (
-              <p className="empty-state">No submissions match this status.</p>
+                    </div>
+                  )}
+                </form>
+              </section>
             )}
-          </div>
-          <p className="sr-only" aria-live="polite">
-            {message}
-          </p>
-        </article>
-      </section>
-    </main>
+          </section>
+        ) : null}
+      </main>
+    </div>
   );
 }

@@ -1,216 +1,429 @@
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
+import type { Course, CourseOffering } from "../types/api";
+import {
+  assignOfferingLecturer,
+  changeOfferingStatus,
+  createOffering,
+  getCourse,
+  listCourseOfferings,
+  updateOffering,
+} from "../services/courses";
+import { getCurrentUser } from "../services/auth";
 import "./LecViewCourses.css";
 
-const assets = "/assets";
-
-const navItems = [
-  { label: "Dashboard", icon: "57bc3.png" },
-  { label: "My Courses", icon: "45c82.png" },
-  { label: "Assignments", icon: "2c8cd.png" },
-  { label: "Results and Grades", icon: "1cad0.png" },
-  { label: "Class Analysis", icon: "4ebe4.png" },
-  { label: "Academic Calender", icon: "2e776.png" },
-  { label: "Notice Board", icon: "4c71a.png" },
-];
-
-const initialSections = [
-  "General",
-  "Attendance",
-  "First Semester Course Content",
-  "First Semester Assignments",
-];
-
-const sectionDetails: Record<string, string> = {
-  General: "Course announcements, overview, and learning resources.",
-  Attendance: "Review attendance records and participation summaries.",
-  "First Semester Course Content":
-    "Lectures, reading material, and practical resources for semester one.",
-  "First Semester Assignments": "Assignment briefs, due dates, and submission information.",
+type OfferingFormState = {
+  academic_year: string;
+  semester: string;
+  start_date: string;
+  end_date: string;
+  enrollment_opens_at: string;
+  enrollment_closes_at: string;
+  enrollment_capacity: string;
+  lecturer_user_id: string;
 };
 
-export default function LecViewCourse() {
+function asLocalDateTime(value?: string | null) {
+  if (!value) return "";
+  const date = new Date(value);
+  const pad = (part: number) => String(part).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
 
-  const [activeNav, setActiveNav] = useState("My Courses");
-  const [activeTab, setActiveTab] = useState("Course");
-  const [editMode, setEditMode] = useState(true);
-  const [sections, setSections] = useState(initialSections);
-  const [openSections, setOpenSections] = useState<string[]>([]);
-  const [isAdding, setIsAdding] = useState(false);
-  const [newSection, setNewSection] = useState("");
-  const [notice, setNotice] = useState("");
+function toIsoDateTime(value: string) {
+  return value ? new Date(value).toISOString() : null;
+}
 
-  const toggleSection = (section: string) => {
-    setOpenSections((current) =>
-      current.includes(section)
-        ? current.filter((item) => item !== section)
-        : [...current, section],
-    );
+function OfferingManager({
+  offering,
+  canManage,
+  isAdmin,
+  onUpdated,
+}: {
+  offering: CourseOffering;
+  canManage: boolean;
+  isAdmin: boolean;
+  onUpdated: (offering: CourseOffering) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [form, setForm] = useState<OfferingFormState>({
+    academic_year: offering.academic_year,
+    semester: offering.semester,
+    start_date: offering.start_date,
+    end_date: offering.end_date,
+    enrollment_opens_at: asLocalDateTime(offering.enrollment_opens_at),
+    enrollment_closes_at: asLocalDateTime(offering.enrollment_closes_at),
+    enrollment_capacity: offering.enrollment_capacity ? String(offering.enrollment_capacity) : "",
+    lecturer_user_id: offering.lecturer_user_id ?? "",
+  });
+
+  const setField = (field: keyof OfferingFormState, value: string) => {
+    setForm((current) => ({ ...current, [field]: value }));
   };
 
-  const addSection = (event: FormEvent) => {
+  async function saveDetails(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const name = newSection.trim();
-    if (!name) return;
-    setSections((current) => [...current, name]);
-    setOpenSections((current) => [...current, name]);
-    setNewSection("");
-    setIsAdding(false);
-  };
+    setError("");
+    const capacity = form.enrollment_capacity ? Number(form.enrollment_capacity) : null;
+    if (
+      !form.academic_year.trim() ||
+      !form.semester.trim() ||
+      !form.start_date ||
+      !form.end_date ||
+      form.end_date < form.start_date ||
+      (capacity !== null && (!Number.isInteger(capacity) || capacity < 1 || capacity > 100000)) ||
+      (form.enrollment_opens_at && form.enrollment_closes_at && form.enrollment_closes_at <= form.enrollment_opens_at)
+    ) {
+      setError("Enter a valid academic period, date range, enrollment window, and capacity.");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const { offering: updated } = await updateOffering(offering.id, {
+        version: offering.version,
+        academic_year: form.academic_year.trim(),
+        semester: form.semester.trim(),
+        start_date: form.start_date,
+        end_date: form.end_date,
+        enrollment_opens_at: toIsoDateTime(form.enrollment_opens_at),
+        enrollment_closes_at: toIsoDateTime(form.enrollment_closes_at),
+        enrollment_capacity: capacity,
+      });
+      onUpdated(updated);
+      setOpen(false);
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Unable to update the offering.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function assignLecturer() {
+    setError("");
+    if (!form.lecturer_user_id.trim()) {
+      setError("Enter the approved lecturer's user ID.");
+      return;
+    }
+    setSaving(true);
+    try {
+      const { offering: updated } = await assignOfferingLecturer(
+        offering.id,
+        offering.version,
+        form.lecturer_user_id.trim(),
+      );
+      onUpdated(updated);
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Unable to assign the lecturer.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function setStatus(action: "publish" | "close" | "archive" | "restore") {
+    setError("");
+    setSaving(true);
+    try {
+      const { offering: updated } = await changeOfferingStatus(offering, action);
+      onUpdated(updated);
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Unable to update the offering status.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (!canManage) return null;
 
   return (
-    <div className="app-shell">
-      <aside className="sidebar" aria-label="Primary navigation">
-        <div className="brand">
-          <img className="brand-mark" src={`${assets}/580ec.png`} alt="" width="104" height="104" />
-          <div className="brand-name">
-            <span>University Course</span>
-            <span>Management System</span>
-          </div>
+    <div className="course-details__offering-management">
+      <button type="button" disabled={saving} onClick={() => setOpen((value) => !value)}>
+        {open ? "Hide offering settings" : "Manage offering"}
+      </button>
+      {offering.status === "draft" && (
+        <button type="button" disabled={saving} onClick={() => void setStatus("publish")}>Publish</button>
+      )}
+      {offering.status === "published" && (
+        <button type="button" disabled={saving} onClick={() => void setStatus("close")}>Close enrollment</button>
+      )}
+      {["published", "closed"].includes(offering.status) && (
+        <button type="button" disabled={saving} onClick={() => void setStatus("archive")}>Archive</button>
+      )}
+      {offering.status === "archived" && isAdmin && (
+        <button type="button" disabled={saving} onClick={() => void setStatus("restore")}>Restore</button>
+      )}
+      {open && (
+        <form className="course-details__offering-form" onSubmit={saveDetails}>
+          <label>
+            Academic year
+            <input maxLength={20} required value={form.academic_year} onChange={(event) => setField("academic_year", event.target.value)} />
+          </label>
+          <label>
+            Semester
+            <input maxLength={20} required value={form.semester} onChange={(event) => setField("semester", event.target.value)} />
+          </label>
+          <label>
+            Start date
+            <input type="date" required value={form.start_date} onChange={(event) => setField("start_date", event.target.value)} />
+          </label>
+          <label>
+            End date
+            <input type="date" required value={form.end_date} onChange={(event) => setField("end_date", event.target.value)} />
+          </label>
+          <label>
+            Enrollment opens
+            <input type="datetime-local" value={form.enrollment_opens_at} onChange={(event) => setField("enrollment_opens_at", event.target.value)} />
+          </label>
+          <label>
+            Enrollment closes
+            <input type="datetime-local" value={form.enrollment_closes_at} onChange={(event) => setField("enrollment_closes_at", event.target.value)} />
+          </label>
+          <label>
+            Enrollment capacity
+            <input type="number" min="1" max="100000" step="1" value={form.enrollment_capacity} onChange={(event) => setField("enrollment_capacity", event.target.value)} />
+          </label>
+          <button type="submit" disabled={saving}>{saving ? "Saving..." : "Save offering"}</button>
+          {isAdmin && (
+            <>
+              <label>
+                Lecturer user ID
+                <input value={form.lecturer_user_id} onChange={(event) => setField("lecturer_user_id", event.target.value)} />
+              </label>
+              <button type="button" disabled={saving} onClick={() => void assignLecturer()}>
+                Assign lecturer
+              </button>
+            </>
+          )}
+          {error && <p role="alert">{error}</p>}
+        </form>
+      )}
+      {!open && error && <p role="alert">{error}</p>}
+    </div>
+  );
+}
+
+export default function LecViewCourse() {
+  const [searchParams] = useSearchParams();
+  const courseId = searchParams.get("courseId") ?? "";
+  const [course, setCourse] = useState<Course | null>(null);
+  const [offerings, setOfferings] = useState<CourseOffering[]>([]);
+  const [currentUserId, setCurrentUserId] = useState("");
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [canManageFinalResults, setCanManageFinalResults] = useState(false);
+  const [canManageAssessments, setCanManageAssessments] = useState(false);
+  const [creatingOffering, setCreatingOffering] = useState(false);
+  const [offeringError, setOfferingError] = useState("");
+  const [newOffering, setNewOffering] = useState({
+    academic_year: "2026/2027",
+    semester: "2",
+    start_date: "2027-01-01",
+    end_date: "2027-06-30",
+    enrollment_opens_at: "",
+    enrollment_closes_at: "",
+    enrollment_capacity: "",
+    lecturer_user_id: "",
+  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    if (!courseId) {
+      setError("Select a course from the course directory to view its details.");
+      setLoading(false);
+      return () => {
+        active = false;
+      };
+    }
+
+    Promise.all([
+      getCourse(courseId),
+      listCourseOfferings(courseId),
+      getCurrentUser(),
+    ])
+      .then(([courseResponse, offeringResponse, user]) => {
+        if (!active) return;
+        setCourse(courseResponse.course);
+        setOfferings(offeringResponse.offerings);
+        setCurrentUserId(user.id);
+        setIsAdmin(user.roles.includes("ADMIN"));
+        setCanManageFinalResults(
+          user.roles.includes("ADMIN") &&
+            user.permissions?.includes("assessments:student:read") === true &&
+            user.permissions?.includes("assessments:results:import") === true,
+        );
+        setCanManageAssessments(
+          user.roles.includes("LECTURER") || user.roles.includes("ADMIN"),
+        );
+      })
+      .catch((requestError) => {
+        if (active) {
+          setError(requestError instanceof Error ? requestError.message : "Unable to load course details.");
+        }
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [courseId]);
+
+  async function createCourseOffering(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setOfferingError("");
+    if (!course || course.status !== "active") {
+      setOfferingError("Publish this course before creating an offering.");
+      return;
+    }
+    const capacity = newOffering.enrollment_capacity
+      ? Number(newOffering.enrollment_capacity)
+      : null;
+    if (
+      !newOffering.academic_year.trim() ||
+      !newOffering.semester.trim() ||
+      !newOffering.start_date ||
+      !newOffering.end_date ||
+      newOffering.end_date < newOffering.start_date ||
+      (capacity !== null && (!Number.isInteger(capacity) || capacity < 1 || capacity > 100000)) ||
+      (newOffering.enrollment_opens_at &&
+        newOffering.enrollment_closes_at &&
+        newOffering.enrollment_closes_at <= newOffering.enrollment_opens_at)
+    ) {
+      setOfferingError("Enter a valid academic period, date range, enrollment window, and capacity.");
+      return;
+    }
+    setCreatingOffering(true);
+    try {
+      const { offering } = await createOffering({
+        course_id: course.id,
+        academic_year: newOffering.academic_year.trim(),
+        semester: newOffering.semester.trim(),
+        start_date: newOffering.start_date,
+        end_date: newOffering.end_date,
+        enrollment_opens_at: toIsoDateTime(newOffering.enrollment_opens_at),
+        enrollment_closes_at: toIsoDateTime(newOffering.enrollment_closes_at),
+        enrollment_capacity: capacity,
+        lecturer_user_id: newOffering.lecturer_user_id.trim() || null,
+      });
+      setOfferings((current) => [offering, ...current]);
+      setNewOffering((current) => ({ ...current, lecturer_user_id: "" }));
+    } catch (requestError) {
+      setOfferingError(requestError instanceof Error ? requestError.message : "Unable to create the offering.");
+    } finally {
+      setCreatingOffering(false);
+    }
+  }
+
+  return (
+    <main className="course-details">
+      <header className="course-details__header">
+        <div>
+          <p>Course directory</p>
+          <h1>{course ? `${course.code} - ${course.title}` : "Course details"}</h1>
         </div>
+        <Link to="/courses">Back to courses</Link>
+      </header>
 
-        <nav className="nav-list">
-          {navItems.map((item) => {
-            const active = activeNav === item.label;
-            return (
-              <button
-                className={`nav-item${active ? " active" : ""}`}
-                key={item.label}
-                type="button"
-                aria-current={active ? "page" : undefined}
-                onClick={() => {
-                  setActiveNav(item.label);
-                  setNotice(`Viewing ${item.label}`);
-                }}
-              >
-                <img src={`${assets}/${item.icon}`} alt="" width="48" height="48" />
-                <span>{item.label}</span>
-              </button>
-            );
-          })}
-        </nav>
-
-        <button
-          className="logout"
-          type="button"
-          onClick={() => setNotice("You have been logged out.")}
-        >
-          <img src={`${assets}/c8ef2.svg`} alt="" />
-          <span>LOGOUT</span>
-        </button>
-      </aside>
-
-      <main className="main-content">
-        <section className="course-card" aria-labelledby="course-title">
-          <div className="course-heading">
-            <div>
-              <p className="breadcrumb">School of Computing / HND in Computing/ Cohorts</p>
-              <h1 id="course-title">HND in Computing - UOK001</h1>
-            </div>
-            <label className="edit-toggle">
-              <span>Edit Mode</span>
-              <input
-                type="checkbox"
-                checked={editMode}
-                onChange={(event) => setEditMode(event.target.checked)}
-              />
-              <span className={`switch-image${editMode ? " on" : ""}`} aria-hidden="true">
-                <img src={`${assets}/01f55.png`} alt="" width="45" height="45" />
-              </span>
-            </label>
-          </div>
-
-          <div className="course-tabs" role="tablist" aria-label="Course pages">
-            {["Course", "Participants", "Grades", "Reports"].map((tab) => (
-              <button
-                key={tab}
-                type="button"
-                role="tab"
-                aria-selected={activeTab === tab}
-                className={activeTab === tab ? "selected" : ""}
-                onClick={() => setActiveTab(tab)}
-              >
-                {tab}
-              </button>
-            ))}
-          </div>
-          <img className="heading-line" src={`${assets}/1b0db.svg`} alt="" />
-
-          <div className="sections" aria-live="polite">
-            {activeTab !== "Course" && (
-              <div className="tab-message">
-                <strong>{activeTab}</strong>
-                <span>This course view is ready for your content.</span>
-              </div>
-            )}
-
-            {activeTab === "Course" &&
-              sections.map((section) => {
-                const isOpen = openSections.includes(section);
-                return (
-                  <div className={`section-row${isOpen ? " expanded" : ""}`} key={section}>
-                    <button
-                      className="section-button"
-                      type="button"
-                      aria-expanded={isOpen}
-                      onClick={() => toggleSection(section)}
-                    >
-                      <img
-                        className="arrow"
-                        src={`${assets}/2cb9f.png`}
-                        alt=""
-                        width="30"
-                        height="30"
-                      />
-                      <span>{section}</span>
-                    </button>
-                    {isOpen && (
-                      <div className="section-detail">
-                        {sectionDetails[section] ?? "New course section. Add your content here."}
-                      </div>
+      {error && <p className="course-details__error" role="alert">{error}</p>}
+      {loading ? (
+        <p role="status">Loading course details...</p>
+      ) : course ? (
+        <>
+          <section className="course-details__summary">
+            <article><span>Status</span><strong>{course.status}</strong></article>
+            <article><span>Credits</span><strong>{course.credits}</strong></article>
+            <article><span>Last updated</span><strong>{new Date(course.updated_at).toLocaleDateString()}</strong></article>
+          </section>
+          {course.description && (
+            <section className="course-details__panel">
+              <h2>About this course</h2>
+              <p>{course.description}</p>
+            </section>
+          )}
+          <section className="course-details__panel">
+            <h2>Course offerings</h2>
+            {offerings.length ? (
+              <div className="course-details__offerings">
+                {offerings.map((offering) => (
+                  <article key={offering.id}>
+                    <div>
+                      <strong>{offering.academic_year} · {offering.semester}</strong>
+                      <span>{offering.start_date} to {offering.end_date}</span>
+                    </div>
+                    <span className={`course-details__status course-details__status--${offering.status}`}>
+                      {offering.status}
+                    </span>
+                    <OfferingManager
+                      offering={offering}
+                      canManage={isAdmin || offering.lecturer_user_id === currentUserId}
+                      isAdmin={isAdmin}
+                      onUpdated={(updated) => {
+                        setOfferings((current) =>
+                          current.map((item) => item.id === updated.id ? updated : item),
+                        );
+                      }}
+                    />
+                    {canManageAssessments && (
+                      <Link to={`/lecturer/assignments?offeringId=${encodeURIComponent(offering.id)}`}>
+                        Assessments
+                      </Link>
                     )}
-                  </div>
-                );
-              })}
-
-            {activeTab === "Course" && isAdding && (
-              <form className="add-form" onSubmit={addSection}>
-                <label htmlFor="section-name">Section name</label>
-                <div>
-                  <input
-                    id="section-name"
-                    autoFocus
-                    value={newSection}
-                    onChange={(event) => setNewSection(event.target.value)}
-                    placeholder="Enter a section name"
-                  />
-                  <button type="submit">Add</button>
-                  <button type="button" onClick={() => setIsAdding(false)}>
-                    Cancel
-                  </button>
-                </div>
+                    {canManageFinalResults && (
+                      <Link to={`/admin/final-results?offeringId=${encodeURIComponent(offering.id)}`}>
+                        Final results
+                      </Link>
+                    )}
+                  </article>
+                ))}
+              </div>
+            ) : <p className="course-details__empty">No offerings are available for this course.</p>}
+            {isAdmin && (
+              <form className="course-details__offering-form" onSubmit={createCourseOffering}>
+                <h3>Create offering</h3>
+                <label>
+                  Academic year
+                  <input maxLength={20} required value={newOffering.academic_year} onChange={(event) => setNewOffering((current) => ({ ...current, academic_year: event.target.value }))} />
+                </label>
+                <label>
+                  Semester
+                  <input maxLength={20} required value={newOffering.semester} onChange={(event) => setNewOffering((current) => ({ ...current, semester: event.target.value }))} />
+                </label>
+                <label>
+                  Start date
+                  <input type="date" required value={newOffering.start_date} onChange={(event) => setNewOffering((current) => ({ ...current, start_date: event.target.value }))} />
+                </label>
+                <label>
+                  End date
+                  <input type="date" required value={newOffering.end_date} onChange={(event) => setNewOffering((current) => ({ ...current, end_date: event.target.value }))} />
+                </label>
+                <label>
+                  Enrollment opens
+                  <input type="datetime-local" value={newOffering.enrollment_opens_at} onChange={(event) => setNewOffering((current) => ({ ...current, enrollment_opens_at: event.target.value }))} />
+                </label>
+                <label>
+                  Enrollment closes
+                  <input type="datetime-local" value={newOffering.enrollment_closes_at} onChange={(event) => setNewOffering((current) => ({ ...current, enrollment_closes_at: event.target.value }))} />
+                </label>
+                <label>
+                  Enrollment capacity
+                  <input type="number" min="1" max="100000" step="1" value={newOffering.enrollment_capacity} onChange={(event) => setNewOffering((current) => ({ ...current, enrollment_capacity: event.target.value }))} />
+                </label>
+                <label>
+                  Lecturer user ID (optional)
+                  <input value={newOffering.lecturer_user_id} onChange={(event) => setNewOffering((current) => ({ ...current, lecturer_user_id: event.target.value }))} />
+                </label>
+                <button type="submit" disabled={creatingOffering || course.status !== "active"}>
+                  {creatingOffering ? "Creating..." : "Create draft offering"}
+                </button>
+                {offeringError && <p role="alert">{offeringError}</p>}
               </form>
             )}
-
-            {activeTab === "Course" && !isAdding && (
-              <button
-                className="add-section"
-                type="button"
-                disabled={!editMode}
-                onClick={() => setIsAdding(true)}
-              >
-                + Add New Section
-              </button>
-            )}
-          </div>
-
-          {notice && (
-            <button className="notice" type="button" onClick={() => setNotice("")}>
-              {notice}
-              <span aria-hidden="true">×</span>
-            </button>
-          )}
-        </section>
-      </main>
-    </div>
+          </section>
+        </>
+      ) : null}
+    </main>
   );
 }

@@ -1,21 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import "./Courses.css";
-import type { Course } from "../types/api";
+import type { Course, UserSummary } from "../types/api";
 import { listCourses } from "../services/courses";
-import { logout } from "../services/auth";
+import { getCurrentUser, logout } from "../services/auth";
 
 const assets = "/assets";
-
-const navItems = [
-  ["Dashboard", "57bc3.png"],
-  ["My Courses", "45c82.png"],
-  ["Assignments", "2c8cd.png"],
-  ["Results and Grades", "1cad0.png"],
-  ["Class Analysis", "4ebe4.png"],
-  ["Academic Calender", "2e776.png"],
-  ["Notice Board", "4c71a.png"],
-];
 
 export default function Courses() {
   const navigate = useNavigate();
@@ -24,18 +14,21 @@ export default function Courses() {
   const [category, setCategory] = useState<"All" | Course["status"]>("All");
   const [sort, setSort] = useState("default");
   const [activeNav, setActiveNav] = useState("My Courses");
-  const [menuCourse, setMenuCourse] = useState<string | null>(null);
   const [profileOpen, setProfileOpen] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [courses, setCourses] = useState<Course[]>([]);
+  const [user, setUser] = useState<UserSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
     let cancelled = false;
-    listCourses()
-      .then((response) => {
-        if (!cancelled) setCourses(response.courses);
+    Promise.all([listCourses(), getCurrentUser()])
+      .then(([response, currentUser]) => {
+        if (!cancelled) {
+          setCourses(response.courses);
+          setUser(currentUser);
+        }
       })
       .catch((requestError) => {
         if (!cancelled) setError(requestError instanceof Error ? requestError.message : "Unable to load courses.");
@@ -63,9 +56,32 @@ export default function Courses() {
   }, [category, courses, globalQuery, query, sort]);
 
   function chooseNav(label: string) {
+    if (label === "Dashboard") {
+      navigate(user?.roles.includes("ADMIN") ? "/admin" : "/lecturer/dashboard");
+      return;
+    }
+    if (label === "Assignments") {
+      navigate(user?.roles.includes("STUDENT") ? "/student/assignments" : "/lecturer/assignments");
+      return;
+    }
+    if (label === "Results and Grades") {
+      navigate("/student/results");
+      return;
+    }
+    if (label === "Enroll in courses") {
+      navigate("/student/enrollments");
+      return;
+    }
     setActiveNav(label);
     setMobileNavOpen(false);
   }
+
+  const navItems = user?.roles.includes("ADMIN")
+    ? [["Dashboard", "57bc3.png"], ["My Courses", "45c82.png"]]
+    : user?.roles.includes("LECTURER")
+      ? [["Dashboard", "57bc3.png"], ["My Courses", "45c82.png"], ["Assignments", "2c8cd.png"]]
+      : [["My Courses", "45c82.png"], ["Assignments", "2c8cd.png"], ["Results and Grades", "1cad0.png"], ["Enroll in courses", "45c82.png"]];
+  const canCreateCourse = Boolean(user?.permissions?.includes("courses:manage"));
 
   return (
     <div className="app-shell">
@@ -144,17 +160,18 @@ export default function Courses() {
             type="button"
             aria-expanded={profileOpen}
           >
-            <span className="avatar">DS</span>
+            <span className="avatar">
+              {user ? `${user.first_name[0] ?? ""}${user.last_name[0] ?? ""}`.toUpperCase() : ""}
+            </span>
             <span className="profile-copy">
-              <strong>Ms Dileeshi Sathsarani</strong>
-              <small>Lecturer in IT</small>
+              <strong>{user ? `${user.first_name} ${user.last_name}` : "Account"}</strong>
+              <small>{user?.email}</small>
             </span>
             <img src={`${assets}/0d534.svg`} alt="" />
           </button>
           {profileOpen && (
             <div className="profile-menu">
-              <button type="button">View profile</button>
-              <button type="button">Account settings</button>
+              <Link to="/account" onClick={() => setProfileOpen(false)}>Profile and security</Link>
             </div>
           )}
         </div>
@@ -165,7 +182,7 @@ export default function Courses() {
         {activeNav === "My Courses" ? (
           <section className="course-panel" aria-labelledby="overview-title">
             <div className="panel-heading">
-              <h2 id="overview-title">Hii Dileeshi !</h2>
+              <h2 id="overview-title">Welcome{user?.first_name ? `, ${user.first_name}` : ""}</h2>
               <p>Course Overview</p>
             </div>
             <div className="heading-rule" aria-hidden="true" />
@@ -179,7 +196,7 @@ export default function Courses() {
                 >
                   <option>All</option>
                   <option value="draft">Draft</option>
-                  <option value="published">Published</option>
+                  <option value="active">Active</option>
                   <option value="archived">Archived</option>
                 </select>
               </label>
@@ -212,26 +229,20 @@ export default function Courses() {
                 <article className="course-card" key={course.id}>
                   <button
                     className="card-main"
-                    onClick={() => navigate("/lecturer/courses/view")}
+                    onClick={() => navigate(`/lecturer/courses/view?courseId=${encodeURIComponent(course.id)}`)}
                     type="button"
                   >
                     <span className="course-banner" />
                     <strong>{course.code} - {course.title}</strong>
                   </button>
-                  <button
-                    className="course-menu-button"
-                    aria-label={`More options for ${course.title}`}
-                    aria-expanded={menuCourse === course.id}
-                    onClick={() => setMenuCourse(menuCourse === course.id ? null : course.id)}
-                    type="button"
-                  >
-                    <span aria-hidden="true">•••</span>
-                  </button>
-                  {menuCourse === course.id && (
-                    <div className="course-menu">
-                      <button type="button">View course</button>
-                      <button type="button">Edit details</button>
-                    </div>
+                  {canCreateCourse && (
+                    <button
+                      className="course-edit-button"
+                      onClick={() => navigate(`/lecturer/courses/edit?courseId=${encodeURIComponent(course.id)}`)}
+                      type="button"
+                    >
+                      Edit course
+                    </button>
                   )}
                 </article>
               ))}
@@ -240,14 +251,14 @@ export default function Courses() {
               )}
             </div>
 
-            <button
+            {canCreateCourse && <button
               className="add-course"
               onClick={() => navigate("/lecturer/courses/create")}
               aria-label="Add a course"
               type="button"
             >
               <span aria-hidden="true">+</span>
-            </button>
+            </button>}
           </section>
         ) : (
           <section className="placeholder-panel">

@@ -1,0 +1,125 @@
+.admin-final-results {
+  width: min(1120px, 100%);
+  min-height: 100dvh;
+  margin: 0 auto;
+  padding: clamp(20px, 4vw, 48px);
+  color: #172554;
+}
+
+.admin-final-results > header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.admin-final-results > header p {
+  margin: 0 0 5px;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.admin-final-results h1 {
+  margin: 0 0 5px;
+  color: #0f172a;
+  font-size: clamp(24px, 3vw, 34px);
+}
+
+.admin-final-results > header span,
+.admin-final-results section > p {
+  color: #64748b;
+  font-size: 13px;
+}
+
+.admin-final-results > header a {
+  color: #1d4ed8;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.admin-final-results section {
+  margin-bottom: 18px;
+  padding: clamp(18px, 3vw, 26px);
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  background: white;
+  box-shadow: 0 8px 24px rgb(15 23 42 / 4%);
+}
+
+.admin-final-results h2 {
+  margin: 0 0 12px;
+  color: #0f172a;
+  font-size: 18px;
+}
+
+.admin-final-results section:first-of-type label {
+  display: grid;
+  gap: 7px;
+  margin: 16px 0 10px;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.admin-final-results button {
+  min-height: 40px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 8px;
+  color: white;
+  background: #1d4ed8;
+  font-weight: 600;
+}
+
+.admin-final-results button:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+.admin-final-results__filename {
+  display: block;
+  margin: 0 0 10px;
+  color: #475569;
+  font-size: 13px;
+}
+
+.admin-final-results__table-wrap {
+  overflow-x: auto;
+}
+
+.admin-final-results table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.admin-final-results th,
+.admin-final-results td {
+  padding: 11px 9px;
+  border-bottom: 1px solid #e2e8f0;
+  font-size: 13px;
+}
+
+.admin-final-results th {
+  color: #64748b;
+}
+
+.admin-final-results__message {
+  padding: 12px 14px;
+  border-radius: 9px;
+  background: #dcfce7;
+  color: #166534;
+}
+
+.admin-final-results__message--error {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+@media (max-width: 640px) {
+  .admin-final-results > header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

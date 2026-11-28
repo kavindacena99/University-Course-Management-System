@@ -103,6 +103,7 @@ func parseFinalResultCSV(content []byte) ([]FinalResultInput, error) {
 	for i := range header {
 		header[i] = strings.TrimSpace(header[i])
 	}
+	header[0] = strings.TrimPrefix(header[0], "\uFEFF")
 	if header[0] != "student_user_id" || header[1] != "final_mark" || header[2] != "max_mark" {
 		return nil, newValidationError("file", "CSV header must be student_user_id,final_mark,max_mark")
 	}

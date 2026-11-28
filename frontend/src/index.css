@@ -22,48 +22,6 @@
   --radius-control: 10px;
 }
 
-@font-face {
-  font-family: "Inter:Bold Italic";
-  src: url("https://static.figma.com/font/Inter_1") format("woff2");
-  font-style: italic;
-  font-weight: 700;
-}
-
-@font-face {
-  font-family: "Inter:Bold";
-  src: url("https://static.figma.com/font/Inter_1") format("woff2");
-  font-style: normal;
-  font-weight: 700;
-}
-
-@font-face {
-  font-family: "Inter:Medium";
-  src: url("https://static.figma.com/font/Inter_1") format("woff2");
-  font-style: normal;
-  font-weight: 500;
-}
-
-@font-face {
-  font-family: "Inter:Regular";
-  src: url("https://static.figma.com/font/Inter_1") format("woff2");
-  font-style: normal;
-  font-weight: 400;
-}
-
-@font-face {
-  font-family: "Inter:Semi Bold Italic";
-  src: url("https://static.figma.com/font/Inter_1") format("woff2");
-  font-style: italic;
-  font-weight: 600;
-}
-
-@font-face {
-  font-family: "Inter:Semi Bold";
-  src: url("https://static.figma.com/font/Inter_1") format("woff2");
-  font-style: normal;
-  font-weight: 600;
-}
-
 @layer base {
   html {
     min-width: 320px;
@@ -135,6 +93,20 @@ textarea::placeholder {
   color: var(--color-navy);
 }
 
+.route-state {
+  display: grid;
+  min-height: 100dvh;
+  place-content: center;
+  gap: 12px;
+  padding: 24px;
+  color: var(--color-text);
+  text-align: center;
+}
+
+.route-state a {
+  color: var(--color-primary);
+}
+
 .login-page {
   display: flex;
   min-height: 100dvh;
@@ -167,7 +139,7 @@ textarea::placeholder {
 }
 
 .brand h1 {
-  font-family: "Inter:Bold", Arial, sans-serif;
+  font-family: Inter, ui-sans-serif, system-ui, "Segoe UI", sans-serif;
   font-size: 26px;
   font-weight: 700;
   line-height: normal;
@@ -176,7 +148,7 @@ textarea::placeholder {
 .brand p {
   margin-top: 5px;
   color: #2c698d;
-  font-family: "Inter:Semi Bold Italic", Arial, sans-serif;
+  font-family: Inter, ui-sans-serif, system-ui, "Segoe UI", sans-serif;
   font-size: 20px;
   font-style: italic;
   font-weight: 600;
@@ -221,7 +193,7 @@ textarea::placeholder {
 
 .welcome-copy h2 {
   color: #2c698d;
-  font-family: "Inter:Bold", Arial, sans-serif;
+  font-family: Inter, ui-sans-serif, system-ui, "Segoe UI", sans-serif;
   font-size: 40px;
   font-weight: 700;
   line-height: normal;
@@ -245,7 +217,7 @@ textarea::placeholder {
   display: block;
   margin-bottom: 8px;
   margin-left: 54px;
-  font-family: "Inter:Bold", Arial, sans-serif;
+  font-family: Inter, ui-sans-serif, system-ui, "Segoe UI", sans-serif;
   font-size: 10px;
   font-weight: 700;
   line-height: normal;
@@ -280,7 +252,7 @@ textarea::placeholder {
   padding: 0 14px;
   box-shadow: 0 4px 4px rgb(0 0 0 / 25%);
   color: #272643;
-  font-family: "Inter:Medium", Arial, sans-serif;
+  font-family: Inter, ui-sans-serif, system-ui, "Segoe UI", sans-serif;
   font-size: 11px;
   font-weight: 500;
   transition:
@@ -290,7 +262,7 @@ textarea::placeholder {
 
 .field-row input::placeholder {
   color: rgb(0 0 0 / 18%);
-  font-family: "Inter:Bold", Arial, sans-serif;
+  font-family: Inter, ui-sans-serif, system-ui, "Segoe UI", sans-serif;
   font-size: 10px;
   font-weight: 700;
 }
@@ -311,7 +283,7 @@ textarea::placeholder {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  font-family: "Inter:Bold", Arial, sans-serif;
+  font-family: Inter, ui-sans-serif, system-ui, "Segoe UI", sans-serif;
   font-size: 10px;
   font-weight: 700;
 }
@@ -326,7 +298,7 @@ textarea::placeholder {
   border: 0;
   background: transparent;
   color: #272643;
-  font-family: "Inter:Semi Bold", Arial, sans-serif;
+  font-family: Inter, ui-sans-serif, system-ui, "Segoe UI", sans-serif;
   font-size: inherit;
   font-weight: 600;
   padding: 0;
@@ -339,7 +311,7 @@ textarea::placeholder {
 }
 
 .forgot {
-  font-family: "Inter:Bold Italic", Arial, sans-serif;
+  font-family: Inter, ui-sans-serif, system-ui, "Segoe UI", sans-serif;
   font-size: 10px;
   font-style: italic;
   font-weight: 700;
@@ -356,7 +328,7 @@ textarea::placeholder {
   margin-left: 53px;
   border: 0;
   border-radius: 8px;
-  font-family: "Inter:Medium", Arial, sans-serif;
+  font-family: Inter, ui-sans-serif, system-ui, "Segoe UI", sans-serif;
   font-size: 14px;
   font-weight: 500;
   transition:

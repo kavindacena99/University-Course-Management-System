@@ -1,5 +1,20 @@
 # Phase 4 implementation — GHCR publishing
 
+## Latest application image publication — 2026-11-28
+
+After PR #30 merged, protected-main
+[run 46153596004](https://github.com/kavindacena99/University-Course-Management-System/actions/runs/46153596004)
+published nine application images for source
+`91f53ba8b3b68c74b4de99c70baa20639102c181`. The downloaded manifest
+validated, with nine matching publication records, digest files, passed build
+and registry scans, and passed registry pulls. The retained manifest is under
+`release-manifests/phase-4/91f53ba8b3b68c74b4de99c70baa20639102c181/`;
+its SHA-256 is
+`9babf035033ee644f5eaedd65fe3578f4f55c3fe07e3d8c980e90494c9c1b234`.
+The earlier successful publication for `50963ad` is retained but predates
+new application inputs and is not the RC3 source. This publication does not
+establish QA acceptance. The raw Silo HIGH CVE-2026-39414 is still recorded.
+
 Date: 2026-11-24. Source baseline: `main` at `69947a6` (merged PR #13).
 Verdict: **PARTIALLY COMPLETED — BLOCKED BY PREREQUISITES**.
 The pipeline is implemented and locally validated. No image was published.

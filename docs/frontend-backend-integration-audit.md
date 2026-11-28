@@ -1,174 +1,30 @@
-# Frontend / Backend Integration Audit
+# Frontend/backend integration audit — Phase 6 source state
 
-## Service map
+Audited at source commit `784552aa48332f6777706e99b5fd758ebd7bb1b7` before the Phase 6 changes, then verified against merged main `b1db98eb39a2167c28128c9836db6029d7fc1418` and a live DEV gateway on 2026-11-28. The previous version of this audit predated the email login, shared API client, and live course list. The architecture document also predates the same-origin frontend Nginx `/api/` proxy. The Go handlers, current routes, and OpenAPI contracts were checked directly.
 
-The public gateway is `http://localhost:8080` by default. The frontend should use
-`VITE_API_BASE_URL` and send cookie credentials. Unsafe cookie-authenticated
-requests must include `X-CSRF-Token`.
+The browser calls only same-origin `/api/v1/*`. Auth issues HttpOnly access and refresh cookies plus a readable CSRF cookie. Access tokens are verified by every service. The frontend uses `GET /auth/me` on load and rotating `/auth/refresh` when needed. It takes the CSRF value from the Auth response, including on page restoration, because cookie names differ by environment. It does not persist bearer or refresh tokens in web storage. React route rules improve navigation; Go authorization remains authoritative.
 
-| Service | Port | Public prefix |
-|---|---:|---|
-| Authentication | 8081 | `/api/v1/auth`, `/api/v1/admin/auth` |
-| User | 8082 | `/api/v1/users`, `/api/v1/admin/users` |
-| Course | 8083 | `/api/v1/courses`, `/api/v1/offerings`, `/api/v1/admin/courses`, `/api/v1/admin/offerings` |
-| Enrollment | 8084 | `/api/v1/enrollments`, `/api/v1/students`, `/api/v1/offerings/:id/enrollments` |
-| Assessment | 8085 | `/api/v1/offerings`, `/api/v1/assessments`, `/api/v1/submissions` |
-| Analytics | 8086 | `/api/v1/analytics` |
+| Feature | Frontend page | Existing API | Current status | Required work | Test |
+|---|---|---|---|---|---|
+| Email login and session | `Login`, `session.tsx` | `/auth/login`, `/auth/me`, `/auth/refresh`, `/auth/logout` | Live DEV login, refresh, reload and logout passed | Repeat with QA digest set | Live browser auth suite |
+| Registration and recovery | `AccountFlows` | `/users`, `/auth/password/forgot`, `/auth/password/reset`, `/auth/activate` | Added on newer protected main and preserved in this branch | Live account lifecycle test | Browser and API tests |
+| Route access | `App.tsx`, `Protected` | Auth roles and permissions from `/auth/me` | Student, lecturer, admin and anonymous DEV checks passed | Repeat in QA | Direct navigation, 401/403 |
+| Course and offering catalog | `CoursesPage`, `CoursePage`, `OfferingsPage` | `/courses`, `/courses/:id`, `/courses/:id/offerings`, `/offerings`, `/offerings/:id` | Real records, IDs, pagination | Live data validation | Browser network and reload |
+| Course creation | `CreateCoursePage` | `POST /admin/courses` | Restricted to `courses:manage`; real request | Live admin test | Admin success, student/lecturer denial |
+| Lecturer offerings | `LecturerOfferingsPage`, `OfferingPage` | `/offerings/assigned`, `/offerings/:id`, `/:id/enrollments` | Assigned access and unassigned denial passed in DEV | Repeat in QA | Negative browser/API test |
+| Lecturer overview and assessment list | `LecDashboard`, `LecModuleAssignment` | `/offerings/assigned`, offering assessments | Added on newer protected main and registered behind session guards | Live assignment/navigation test | Browser network test |
+| Student enrolment | `StudentEnrollments`, `OfferingPage` | `/students/:id/enrollments`, `POST /enrollments`, enrollment cancel | Self ID and real requests wired; DEV self-list returned 200 | Verify new-page enroll/cancel actions and QA persistence | Browser create/reload |
+| Assessments | `LecAssignmentSubmissionSettings`, `AssessmentPage` | Offering assessment list/create, assessment detail/publish | DEV create/publish/reload passed | Repeat in QA | Browser create/publish/reload |
+| Submission files | `AssessmentPage`, `StudentSubmissionPage`, `SubmissionPage` | Assessment submit, submission detail, protected `/file` | DEV multipart upload, idempotency, protected byte-for-byte download and reload passed | Repeat in QA | Browser upload/download/reload |
+| Grades | `SubmissionPage` | `PUT /grade`, `POST /release` | DEV persisted grade, release and student reload passed | Repeat in QA | Browser save/release/reload |
+| Analytics | `StudentResults`, lecturer offering report, `Admin_Dashboard` | `/analytics/students/me`, `/analytics/lecturer/offerings/:id`, `/analytics/admin/summary` | Renders response data without sample metrics | Verify projection availability and rebuilding behavior | Browser and API tests |
+| Student assignments and results | `StudentAssignments`, `StudentResults` | Self enrollments, offering assessments, submission, student report | Added on newer protected main and preserved in this branch | Live student workflow test | Browser upload/report test |
+| Administrator dashboard | `Admin_Dashboard` | Admin summary, courses, users | Added on newer protected main and registered with role/permission guard | Live admin test | Browser/API authorization test |
+| Account settings | `AccountSettings` | `/users/me`, `/auth/password/change`, `/auth/sessions`, `/auth/logout-all` | Newer main uses real requests | Live profile, password and session management checks | Browser/API test pending |
+| Administrator final results | `AdminFinalResults` | Offering final-result list and CSV import | Newer main uses Assessment API; CSV BOM parser fix in service | Live import, permission and student result checks | Browser/API test pending |
 
-## Public endpoint inventory
+Protected main advanced during this branch with account, student, lecturer and administrator screens that make real API calls. Those pages were merged and their functional routes preserved. The older `LecAssignmentSubmission` and `AssignmentSubmissionSetting` placeholder paths are not registered; the latter was removed by the newer main branch. The backend has no matching contract for an academic calendar, notice board, or Google sign-in, so these controls are not presented as live operations.
 
-Detailed payload and response schemas are in:
+## Verification boundary
 
-- [Authentication OpenAPI](openapi/auth-service.yaml)
-- [Course OpenAPI](openapi/course-service.yaml)
-- [Enrollment OpenAPI](openapi/enrollment-service.yaml)
-- [Assessment OpenAPI](openapi/assessment-service.yaml)
-- [Analytics OpenAPI](openapi/analytics-service.yaml)
-- [User API documentation](api-documentation.md)
-
-### Authentication
-
-| Method | Path | Authentication / authorization |
-|---|---|---|
-| POST | `/api/v1/auth/login` | Public; login rate limit |
-| POST | `/api/v1/auth/refresh` | Refresh token |
-| POST | `/api/v1/auth/logout` | Refresh token |
-| POST | `/api/v1/auth/logout-all` | Authenticated |
-| GET | `/api/v1/auth/sessions` | Authenticated |
-| DELETE | `/api/v1/auth/sessions/:id` | Authenticated |
-| GET | `/api/v1/auth/me` | Authenticated |
-| POST | `/api/v1/auth/activate` | Action token |
-| POST | `/api/v1/auth/password/change` | Authenticated |
-| POST | `/api/v1/auth/password/forgot` | Public; forgot rate limit |
-| POST | `/api/v1/auth/password/reset` | Action token |
-
-Login JSON: `{ "email": string, "password": string }`.
-Login response: `{ "user": UserSummary, "access_token?", "refresh_token?",
-"token_type", "expires_in", "refresh_expires_in", "csrf_token?" }`.
-
-### User
-
-| Method | Path | Authorization |
-|---|---|---|
-| POST | `/api/v1/users` | Public registration; registration rate limit |
-| GET | `/api/v1/users/me` | Authenticated |
-| PATCH | `/api/v1/users/me` | Authenticated |
-| GET | `/api/v1/users/:id` | Self or `users:read` |
-| GET | `/api/v1/admin/users` | `users:read` |
-| GET | `/api/v1/admin/users/:id` | `users:read` |
-| GET | `/api/v1/admin/users/:id/history` | `users:read` |
-| POST | `/api/v1/admin/users/:id/approve` | `users:manage` |
-| POST | `/api/v1/admin/users/:id/reject` | `users:manage` |
-| POST | `/api/v1/admin/users/:id/suspend` | `users:manage` |
-| POST | `/api/v1/admin/users/:id/reinstate` | `users:manage` |
-
-Query parameters for user admin list: `status`, `search`, `limit`, `offset`.
-
-### Course
-
-| Method | Path | Authorization |
-|---|---|---|
-| GET | `/api/v1/courses` | Authenticated |
-| GET | `/api/v1/courses/:id` | Authenticated |
-| GET | `/api/v1/courses/:id/offerings` | Authenticated |
-| GET | `/api/v1/offerings` | Authenticated |
-| GET | `/api/v1/offerings/assigned` | Authenticated |
-| GET | `/api/v1/offerings/:id` | Authenticated |
-| PUT | `/api/v1/offerings/:id` | `offerings:manage` |
-| POST | `/api/v1/offerings/:id/publish` | `offerings:manage` |
-| POST | `/api/v1/offerings/:id/close` | `offerings:manage` |
-| POST | `/api/v1/offerings/:id/archive` | `offerings:manage` |
-| POST | `/api/v1/admin/courses` | `courses:manage` |
-| PUT | `/api/v1/admin/courses/:id` | `courses:manage` |
-| POST | `/api/v1/admin/courses/:id/publish` | `courses:manage` |
-| POST | `/api/v1/admin/courses/:id/archive` | `courses:manage` |
-| POST | `/api/v1/admin/courses/:id/restore` | `courses:manage` |
-| POST | `/api/v1/admin/offerings` | `courses:manage` |
-| PUT | `/api/v1/admin/offerings/:id/lecturer` | `courses:manage` |
-| POST | `/api/v1/admin/offerings/:id/restore` | `courses:manage` |
-
-Create-course payload:
-`{ "code": string, "title": string, "description": string, "credits": number }`.
-
-Course list filters: `status`, `search`, `limit`, `offset`, `sort`, `order`.
-
-### Enrollment
-
-| Method | Path | Authorization |
-|---|---|---|
-| POST | `/api/v1/enrollments` | Student self or `enrollments:manage` |
-| GET | `/api/v1/enrollments/:id` | Student owner, admin/lecturer |
-| POST | `/api/v1/enrollments/:id/cancel` | Student owner or admin |
-| GET | `/api/v1/students/:id/enrollments` | Student owner or `enrollments:read` |
-| GET | `/api/v1/offerings/:id/enrollments` | Admin or eligible assigned lecturer |
-
-Create-enrollment payload:
-`{ "offering_id": UUID, "student_user_id": UUID }`.
-
-### Assessment
-
-| Method | Path | Authorization |
-|---|---|---|
-| POST | `/api/v1/offerings/:offering_id/assessments` | Authenticated |
-| GET | `/api/v1/offerings/:offering_id/assessments` | Authenticated |
-| GET | `/api/v1/offerings/:offering_id/results` | Authenticated |
-| POST | `/api/v1/offerings/:offering_id/results/import` | Authenticated |
-| GET | `/api/v1/assessments/:id` | Authenticated |
-| POST | `/api/v1/assessments/:id/publish` | Authenticated |
-| POST | `/api/v1/assessments/:id/close` | Authenticated |
-| POST | `/api/v1/assessments/:id/extensions` | Authenticated |
-| POST | `/api/v1/assessments/:id/submissions` | Authenticated |
-| GET | `/api/v1/assessments/:id/submissions` | Authenticated |
-| GET | `/api/v1/submissions/:id` | Authenticated |
-| GET | `/api/v1/submissions/:id/file` | Authenticated |
-| PUT | `/api/v1/submissions/:id/grade` | Authenticated |
-| POST | `/api/v1/submissions/:id/release` | Authenticated |
-
-### Analytics
-
-| Method | Path | Authorization |
-|---|---|---|
-| GET | `/api/v1/analytics/students/me` | Student |
-| GET | `/api/v1/analytics/lecturer/offerings/:id` | Lecturer |
-| GET | `/api/v1/analytics/admin/summary` | Admin |
-| GET | `/api/v1/analytics/admin/grade-bands` | Admin |
-| PUT | `/api/v1/analytics/admin/grade-bands` | Admin |
-| GET | `/api/v1/analytics/admin/programmes` | Admin |
-| POST | `/api/v1/analytics/admin/programmes` | Admin |
-| PUT | `/api/v1/analytics/admin/programmes/:id` | Admin |
-| PUT | `/api/v1/analytics/admin/students/:id/programme` | Admin |
-| GET | `/api/v1/analytics/admin/students/:id` | Admin |
-| POST | `/api/v1/analytics/admin/rebuild` | Admin |
-
-## Frontend findings
-
-- 7 routes currently exist, but only static/mock state is implemented.
-- Login uses `username` and never calls the authentication API; the backend requires `email`.
-- The frontend has no API client, auth context, domain types, loading/error hooks, or shared layout.
-- `Courses.tsx` and `LecMyCourses.tsx` implement nearly identical course pages.
-- `LecCreateCourse.tsx` imports `Courses.css` and submits `{ title, code, department, capacity, coordinator, description }`; the backend expects `{ code, title, description, credits }`.
-- `LecModuleAssignment.tsx` references `/assets/course-management/...` while public assets are `/assets/...`, so icons can resolve to missing paths.
-- Several screens use repeated sidebar/header implementations and placeholder `window.alert`/local-only state.
-- Route names use uppercase and inconsistent paths (`/LecMyCourses`, `/LecCreateCourse`). Canonical lowercase routes should be added while preserving compatibility aliases.
-- Public assets include many Figma-exported files; not all are referenced and no evidence proves which are duplicate/dead.
-
-## Duplicate / cleanup candidates
-
-Remove `LecMyCourses.tsx` after routes are consolidated because `Courses.tsx`
-and it duplicate the course overview. The existing course, module, view, and
-submission CSS files are distinct and should remain until each view is audited
-visually. Remove only confirmed dead commented code, not asset exports without
-runtime verification.
-
-## Proposed design palette
-
-- Navy: `#1E293B`
-- Primary blue: `#2563EB`
-- Secondary teal: `#0F766E`
-- Surface: `#F8FAFC`
-- Text: `#0F172A`
-- Muted text: `#64748B`
-- Success: `#15803D`
-- Warning: `#B45309`
-- Error: `#B91C1C`
-- Border: `#CBD5E1`
+The frontend production image build and TypeScript check passed in Docker. Five of five Playwright tests passed against the real DEV gateway with dedicated synthetic accounts and offering records; none were skipped. The suite observed real API responses and persisted state after reload, including the exact bytes of a protected submission download. Its report and traces are under ignored `tests/browser-phase6/artifacts/`. Registration/password recovery, pagination extremes, projection rebuilding, and a new QA digest deployment remain outside this DEV acceptance run. DEV success is not a QA verdict or production readiness claim.
