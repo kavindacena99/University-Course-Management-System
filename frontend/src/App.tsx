@@ -459,7 +459,8 @@ export default function App() {
           path="/StudentLearning_HubBrowseCatalog"
           element={<StudentLearning_HubBrowseCatalog />}
         />  
-      </Routes>
-    </Router>
+        </Routes>
+      </SessionProvider>
+    </BrowserRouter>      
   );
 }
