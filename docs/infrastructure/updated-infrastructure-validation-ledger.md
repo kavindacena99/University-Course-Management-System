@@ -92,6 +92,23 @@ the final generated-credential leakage/preservation check covers completed repor
   Desktop settings or competing Docker Engine were changed.
 - Cloud/TLS/SSH/remote deployment: **DEFERRED**, no servers/providers selected.
 
+## 2026-11-28 Phase 4 publication close-out
+
+The historical entries above remain unchanged for their 2026-11-23 checkpoint.
+Protected-main [CI run 46108269083](https://github.com/kavindacena99/University-Course-Management-System/actions/runs/46108269083)
+at `e83d2d131136624024175d16d2f41e1501d0b385` completed all 20 jobs
+successfully. The actual
+[manifest artifact](https://github.com/kavindacena99/University-Course-Management-System/actions/runs/46108269083/artifacts/15248428875)
+and [publication evidence artifact](https://github.com/kavindacena99/University-Course-Management-System/actions/runs/46108269083/artifacts/15248269004)
+were downloaded. The manifest passed `registry_pipeline.py validate`; nine
+publication JSON files, digest files, and `images.env` entries matched it.
+Independent GHCR SHA-tag resolution matched all nine registry digests. The
+manifest records successful pulls and post-publication scans, with unsigned
+SPDX/SLSA references. The non-secret manifest and image references are kept in
+`release-manifests/phase-4/`; Actions artifact retention is 90 days.
+**PHASE 4: COMPLETED** for application image publication. QA and PROD-like
+runtime deployment remain separate stages and approvals.
+
 ## Historical ledger snapshot — preserved verbatim below
 
 The following is a snapshot of the original `validation-ledger.md` as it stood

@@ -3,14 +3,14 @@
   "repository": "kavindacena99/University-Course-Management-System",
   "default_branch": "main",
   "platform": "linux/amd64",
-  "registry_access_verified": false,
+  "registry_access_verified": true,
   "registry_bootstrap_mode": "first_verified_application_upload",
   "phase3_remote_verified": true,
   "storage_release_scope_approved": true,
   "approval_owner": "Kavinda Supun Dissanayake (kavindacena99)",
   "review_by": "2026-12-28",
   "evidence": {
-    "registry": "2026-11-27: CLI package list still HTTP 403 without read:packages; GITHUB_TOKEN write access will be verified by first scanned application upload and subsequent digest, pull and scan checks",
+    "registry": "2026-11-28: protected-main workflow run 46108269083 at e83d2d131136624024175d16d2f41e1501d0b385 published all nine application images. Downloaded manifest artifact 15248428875 (SHA-256 2716a60fd606b4f9cdee39806b03741d228ce71d48b9b157862cd86790fc616b) and publication evidence artifact 15248269004 record matching registry digests, successful pulls and registry scans. All nine SHA tags independently resolved to those digests. The complete manifest is retained under release-manifests/phase-4/.",
     "protection": "2026-11-27: public main protected by active ruleset 28252583 targeting ~DEFAULT_BRANCH; hosted run 46047552300 reported GITHUB_REF_PROTECTED=true",
     "storage": "2026-11-28: owner approved Phase 4 application image publication only for target storage image pgsty/silo:RELEASE.2026-11-12T00-00-00Z@sha256:c20d112390b9a9ce8c11b8af95ad35bcaa62f4759663c09c936cd8d2b511f329, with the S3 Select guard mandatory. CVE-2026-39414 raw HIGH scan finding remains recorded. Approval does not authorize runtime deployment or a broader storage security exception; review by 2026-12-28",
     "phase3": "2026-11-27 hosted CI run 46047552300 on main 92fce6b02c15def11c9194137eca5387bfefa6dd: six backend, frontend, infrastructure and ten image build/scan jobs passed; publication prerequisite failed only on registry-access policy before GHCR use"

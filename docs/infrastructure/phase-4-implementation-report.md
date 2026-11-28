@@ -384,3 +384,65 @@ No GHCR package, registry digest, image manifest or registry pull has yet been
 produced in this continuation. The changes are being prepared for a reviewed
 branch and a new protected-main publishing run; Phase 4 is not complete at
 this checkpoint.
+
+## 2026-11-28 formal close-out
+
+The historical checkpoints above remain accurate for their dates. PR #18 merged
+the narrow storage publication approval into protected `main`. The subsequent
+[workflow run 46108269083](https://github.com/kavindacena99/University-Course-Management-System/actions/runs/46108269083)
+used commit `e83d2d131136624024175d16d2f41e1501d0b385` and completed
+**20 of 20 jobs successfully**: six backend jobs, frontend, infrastructure,
+ten image build/scan jobs (nine application images and supporting PostgreSQL),
+the prerequisite gate, and the publisher. The protected-main gate passed before
+registry authentication.
+
+The downloaded [manifest artifact](https://github.com/kavindacena99/University-Course-Management-System/actions/runs/46108269083/artifacts/15248428875)
+contains `publication_complete=true`, `registry_access_verified=true`, nine
+successful build/prepublication scan/registry scan/pull records, and the exact
+source/run identity. Its SHA-256 is
+`2716a60fd606b4f9cdee39806b03741d228ce71d48b9b157862cd86790fc616b`.
+The downloaded [publication evidence artifact](https://github.com/kavindacena99/University-Course-Management-System/actions/runs/46108269083/artifacts/15248269004)
+contains a matching `publication.json`, digest file, and registry scan for each
+application image. `registry_pipeline.py validate` accepted the actual manifest.
+Each of the nine GHCR SHA tags was independently resolved with
+`docker buildx imagetools inspect` and matched the manifest's registry digest.
+The complete manifest and `images.env` are retained under
+`release-manifests/phase-4/e83d2d131136624024175d16d2f41e1501d0b385/`.
+GitHub Actions artifacts retain 90 days; these repository copies preserve the
+non-secret release identity beyond that window.
+
+The nine exact registry digests are listed in
+[the GHCR inventory](ghcr-image-registry.md). BuildKit SPDX SBOM and SLSA
+provenance references are present and subject-checked, but
+`signed_attestation=false`; no signed GitHub attestation is claimed. The raw
+Silo CVE-2026-39414 HIGH finding remains visible. The owner's storage decision
+covers application image publication only and requires the S3 Select guard;
+runtime deployment needs separate approval.
+
+### Final Phase 4 acceptance
+
+| Criterion | Final status | Evidence |
+| --- | --- | --- |
+| P4-01 inventory | PASS | Nine application images; PostgreSQL and Silo excluded |
+| P4-02 naming | PASS | Nine lowercase GHCR package names in actual manifest |
+| P4-03 publishing workflow | PASS | Protected-main run 46108269083 |
+| P4-04 least privilege | PASS | Publisher alone received package write in successful run |
+| P4-05 untrusted PR exclusion | PASS | PR publication skipped; protected-main gate passed |
+| P4-06 remote required checks | PASS | Six backend, frontend, infrastructure and ten image jobs succeeded |
+| P4-07 eligible builds | PASS | Nine same-run OCI archives passed identity checks |
+| P4-08 prepublication scan | PASS | Nine strict scans passed before upload |
+| P4-09 publication | PASS | Nine application images uploaded and verified |
+| P4-10 full SHA tags | PASS | Nine `sha-e83d2d...` tags independently resolved |
+| P4-11 actual registry digests | PASS | Manifest and GHCR responses agree for nine images |
+| P4-12 complete manifest | PASS | Actual downloaded JSON validates; repository copy retained |
+| P4-13 evidence retention | PASS | Manifest and publication artifacts present; 90-day Actions retention |
+| P4-14 SBOM | PASS | SPDX references recorded for all nine |
+| P4-15 provenance/attestation | PASS, unsigned | SLSA references recorded; no signature claim |
+| P4-16 pull by digest | PASS | Nine registry pulls and post-upload scans passed |
+| P4-17 infrastructure references | PASS | Nine digest-pinned `images.env` entries validated |
+| P4-18 documentation | PASS | This dated close-out and linked evidence added |
+| P4-19 data safety | PASS | GitHub publication did not deploy or alter local volumes |
+| P4-20 earlier findings | PASS, retained | Historical failures and raw supporting-image risks remain documented |
+
+**PHASE 4: COMPLETED.** This verdict covers image publication and its evidence,
+not QA, PROD-like, or Production runtime deployment.
