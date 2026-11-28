@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import "./LecMyCourse.css";
 
 const assets = "/assets";
 
