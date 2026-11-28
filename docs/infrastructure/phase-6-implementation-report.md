@@ -1,5 +1,57 @@
 # Phase 6 — consolidated QA target
 
+## 2026-11-28 live DEV acceptance update
+
+After PR #29 merged, main advanced again to
+`b1db98eb39a2167c28128c9836db6029d7fc1418` with additional frontend
+account, enrolment and results screens and a small Assessment CSV parser fix.
+The frontend and Assessment images were rebuilt locally. The DEV controller
+again reported 15 healthy containers, seven successful jobs and 12 passing
+HTTP probes. The same five live Playwright scenarios passed against this newer
+source with no skips. The new student enrolment screen loads asynchronously;
+the test now waits for its HTTP 200 self-enrolment response before navigation.
+The Assessment Go suite, frontend production build and Docker-based TypeScript
+check passed. Infrastructure unittest discovery passed 51 tests.
+This later run supersedes the earlier source-specific acceptance result for
+release selection. The successful GHCR publication for PR #29's merge commit
+`50963ad753ff9c7f4b27c6bae74eb4348da02130` predates these application
+changes and must not be used as the new RC image set.
+
+PR #28 merged at `b6a8935a341cc29808a93dc61f822ca106762c98`.
+The preexisting DEV stack was started without deleting or replacing volumes;
+its controller reported 15 healthy containers, seven completed setup jobs and
+12 successful HTTP probes. Only the frontend image was rebuilt from merged
+source for the live test. Dedicated synthetic admin, lecturer and student
+accounts, two courses, two offerings and one enrollment were created through
+the existing User, Auth, Course and Enrollment APIs. The second offering was
+left unpublished because the Course service correctly rejects publishing an
+offering without a lecturer. A failed first setup attempt left additional
+synthetic DEV records; those records were retained, not silently removed.
+
+Playwright against `http://localhost:3000` passed **5/5 tests, zero skips**.
+Observed requests covered login, session restoration and refresh, logout,
+anonymous and role denial, lecturer assigned and unassigned access, student
+enrollment and report, lecturer/admin analytics, assessment creation and
+publication, multipart file submission, protected byte-for-byte download,
+grade save and release, and result persistence after reload. Student,
+lecturer and administrator analytics each returned HTTP 200. The test runner
+used installed Chrome; its local HTML report and traces remain ignored under
+`tests/browser-phase6/artifacts/`. The run also checked anonymous backend
+denial and student 403 access to administrator analytics. A protected draft
+offering is hidden with a not-found response, while its enrollment endpoint
+denies the lecturer with 403.
+
+The frontend production image build and Docker-based TypeScript check passed.
+Infrastructure unittest discovery passed 51 tests; ten Compose models passed;
+both edited Playwright files passed `node --check`; and `git diff --check`
+passed. The secret scan found no leaks in 50 reachable commits or 552
+tracked/nonignored working-tree files. No Go service code changed in this
+follow-up. These are DEV acceptance results; a new reviewed source commit,
+protected-main image publication, new immutable RC, fresh verified external
+QA backup, and full QA validation are still required. RC1/RC2 evidence remains
+immutable. The recorded Silo HIGH CVE-2026-39414 and exact-digest guarded
+runtime exception remain visible.
+
 ## Preparation and safety state
 
 The prepared target is `platform-qa-target` with frontend port 3001 and
@@ -65,3 +117,122 @@ previous bytes were retained in ignored `.infra-state/releases/config-backups/qa
 Credentials, signing keys, target data volumes and DEV remained unchanged.
 RC2 deployment requires a verified external backup of the now-existing QA
 PostgreSQL and object volumes before migrations.
+
+## RC2 QA execution and failed verdict — 2026-11-28
+
+The annotated [RC2 tag](https://github.com/kavindacena99/University-Course-Management-System/releases/tag/v0.1.0-rc.2) points to source commit
+`1d76667cfb27077568f5dca283352386b67d6f02`. The GitHub prerelease is
+downloadable; its release manifest and `images.env` hashes matched the
+repository copies. The deployed manifest SHA-256 was
+`eb58d421135506f8c9e16d019e2bf65b805b09aaac06f68812fc88037a5b94dc`.
+
+Preflight found 19 stopped RC1 target containers and two existing target
+volumes. A protected external backup of all six logical PostgreSQL databases
+passed `pg_restore --list` checks. The submissions bucket was empty, and the
+guarded object export correctly recorded an empty copy. The backup manifest
+SHA-256 was `48819db48224221284b52fbbff3a2121237dd4baa74b2d16b69c4301a60e8a9e`.
+The backup is outside the repository and synced directories; credentials and
+signing keys were not copied into it. The first backup attempt exposed an
+empty-bucket handling defect in `targetctl.py`; no backup marker was issued
+until the corrected retry verified all files. The failed partial attempt was
+retained rather than silently treated as a valid backup.
+
+RC2 then pulled nine digest-pinned images and deployed without rebuilding.
+All 19 target components passed their required runtime/job states and the
+nine running image IDs matched the release manifest. SQL role, ownership,
+cross-database denial, DDL restriction and migration checks passed for six
+databases. S3 Select was denied and the unguarded Silo listener was not
+reachable from the gateway. A scoped synthetic object passed upload, checksum
+readback and deletion through the guard. Gateway health returned 200, frontend
+returned 200, frontend `/api/v1/auth/me` returned 401, and six unauthenticated
+backend routes all returned 401. The latter probes took about 2.0–3.5 seconds
+each; no load test was performed. Selected container memory samples were about
+108 MiB for PostgreSQL and 103 MiB for Silo.
+
+Playwright with installed Chrome rendered the login and course pages without
+page errors. The course API request used `http://localhost:3001/api/...`, the
+frontend's same-origin proxy, and displayed an unauthenticated error. However,
+`/lecturer/assignments`, `/lecturer/submissions`, and
+`/lecturer/courses/view` rendered without login and made **no API requests**.
+Their source uses local placeholder data/state. Required authenticated
+enrollment, assessment/file, analytics and full browser workflows therefore
+were not demonstrated. This is a release blocker, not an accepted limitation.
+
+The [machine-readable RC2 QA verdict](../../release-manifests/v0.1.0-rc.2/qa-validation.json)
+is **failed**. RC2 is not eligible for stable promotion. QA was stopped
+gracefully; no `platform-qa-target` container remains running, and both target
+volumes and all DEV volumes remain present. No PROD-like target was started.
+**Phase 6 remains IN PROGRESS.** A reviewed application fix, fresh publication,
+new RC and repeat full QA are required before acceptance.
+
+## Authenticated application remediation branch — pending live acceptance
+
+The RC2 browser failure was caused by registered lecturer routes rendering static
+pages without authentication or API traffic. This branch replaces registered
+operational routes with protected, lowercase, ID-based pages. A later protected
+main commit also added live account, student, lecturer and administrator pages;
+these were merged and their functional routes retained. The remaining static
+placeholder paths are not registered. Existing email login, course API use,
+and the same-origin proxy were recognized as existing work rather than rebuilt.
+
+Authentication now uses a shared session provider. It calls `/api/v1/auth/me`
+at startup, uses rotating cookie refresh after a 401, obtains the CSRF token
+from the Auth response for unsafe methods, and calls backend logout. The unused
+access token and user copies in session storage were removed. Role and
+permission guards protect direct URL navigation. The backend continues to
+enforce identity, permissions, assigned lecturer checks, enrollment ownership,
+CSRF, submission file access, and version transitions.
+
+The [updated integration matrix](../frontend-backend-integration-audit.md)
+lists all current pages, endpoints, source status, and required tests. The
+frontend now requests course and offering records, self enrollments, assigned
+offering enrollments, assessments, submissions, protected files, grades, and
+student/lecturer/admin analytics. Assessment publication and grade release send
+persisted versions; upload uses multipart form data and an `Idempotency-Key`.
+The submission UI checks the default 20 MiB bound and allowed extension while
+the service remains responsible for content-type and authorization validation.
+No GPA, grades, enrollment counts, or analytics are generated locally.
+
+TypeScript validation and production build passed on an isolated copy of the
+frontend source and committed npm lockfile. The repository's OneDrive
+`node_modules` directory contained a locked native binary, preventing an
+in-place dependency install. The committed pnpm lockfile was also rejected by
+the local minimum-release-age policy for `lucide-react@1.83.0`; this did not
+change the lockfile. The temporary build is evidence of source compilation,
+not a live workflow pass.
+
+A Playwright suite under `tests/browser-phase6/` now covers anonymous route and
+backend denial, lecturer assignment and analytics, student self reports and
+role denial, then real draft creation, publication, file upload, protected
+download, grade save, release, and reload persistence, plus an optional
+administrator dashboard check. The suite uses only environment-supplied
+dedicated account credentials. Its test runner installed with zero npm audit
+findings and discovered five tests; all five skipped
+because no running gateway or synthetic account configuration was available.
+The skips are recorded as **no browser acceptance evidence**.
+
+Local non-runtime gates passed: 51 infrastructure tests, all ten Compose
+models, `git diff --check`, formatting of changed frontend files, and a scan
+of 49 reachable commits plus 552 tracked/non-ignored working-tree files with
+no secret findings. The built frontend assets contained no direct service or
+environment-specific API URL. No Go service source changed, so the Go test
+matrix was checked by the PR's required CI jobs.
+
+Draft [PR #28](https://github.com/kavindacena99/University-Course-Management-System/pull/28)
+is mergeable. Its 19 application/infrastructure/image-input and image-build
+checks passed, including all six Go service jobs, frontend, infrastructure,
+and ten image-build jobs. Publication prerequisite/publish jobs were skipped
+for this PR as intended. This CI result does not replace the five skipped live
+Playwright tests, a reviewed merge, new immutable publication, or full QA
+acceptance.
+
+`docker ps` showed no running service stack. No QA or PROD-like target was
+started, so authenticated browser tests, API persistence checks, negative
+authorization tests with dedicated accounts, and projection rebuilding checks
+remain unexecuted. The application cannot be accepted as Phase 6 complete or
+as a new RC on this evidence. Before a new candidate, complete the live
+Playwright matrix, resolve any defects it finds, pass CI, merge after review,
+publish nine immutable images, and obtain a fresh verified external backup of
+the existing QA PostgreSQL and object-store data before any QA migration or
+potentially destructive change. RC1/RC2 evidence and the storage guard remain
+unchanged. Phase 5 remains in progress; Phase 7 remains blocked by QA acceptance.

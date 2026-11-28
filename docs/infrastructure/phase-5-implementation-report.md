@@ -1,5 +1,20 @@
 # Phase 5 — semantic versioning and release candidates
 
+## RC3 candidate preparation — 2026-11-28
+
+The current application source at PR #30 merge commit
+`91f53ba8b3b68c74b4de99c70baa20639102c181` passed five live DEV
+Playwright workflows with no skips. Protected-main manual
+[publication run 46153596004](https://github.com/kavindacena99/University-Course-Management-System/actions/runs/46153596004)
+then completed successfully. Its downloaded manifest and evidence artifacts
+contain nine matching publication records and digest files; every application
+image build scan, registry scan and registry pull status is passed. The Phase 4
+manifest SHA-256 is
+`9babf035033ee644f5eaedd65fe3578f4f55c3fe07e3d8c980e90494c9c1b234`.
+The validated `v0.1.0-rc.3` release manifest imports that exact publication;
+its initial QA status is pending. RC1 and RC2 remain unchanged. A tag,
+prerelease and QA verdict are recorded only after those operations complete.
+
 ## 2026-11-28 implementation state
 
 No earlier semantic Git tags or GitHub releases existed at the start of this
@@ -57,3 +72,32 @@ tag independently resolved on GHCR to the manifest's digest. The manifest's
 SHA-256 is `bd95ab4398ae8a107e87b8d30f0caca059ead1bf5ba41e846baee1fc07e1228e`.
 The RC2 record under `release-manifests/v0.1.0-rc.2/` refers to this exact
 source and image set; QA status remains pending. No RC1 tag or digest changed.
+
+## RC2 prerelease and QA outcome
+
+The annotated `v0.1.0-rc.2` tag points to the exact publication source commit
+`1d76667cfb27077568f5dca283352386b67d6f02`. Its
+[GitHub prerelease](https://github.com/kavindacena99/University-Course-Management-System/releases/tag/v0.1.0-rc.2)
+contains the real release manifest and nine-image `images.env`. Both assets
+were downloaded and SHA-256 matched their repository copies. RC2 deployed
+in QA, but the [QA verdict](../../release-manifests/v0.1.0-rc.2/qa-validation.json)
+failed on unauthenticated, static lecturer pages. The RC2 tag, image digests and
+failure evidence remain preserved. No stable tag or release was created.
+Phase 5 remains **IN PROGRESS** because the stable transition cannot pass
+without accepted QA.
+
+## Later main application source — publication without promotion
+
+PR #24 added new frontend pages and changed application inputs after RC2. PR
+#26 repaired its pnpm lockfile and build errors; all 19 executed PR checks
+passed. The merged source is `9cc70c16d60854a4c987e226cb201aaa237369a9`.
+Protected-main [run 46141408825](https://github.com/kavindacena99/University-Course-Management-System/actions/runs/46141408825)
+completed 21/21 jobs successfully and published nine new immutable images.
+Its downloaded [manifest artifact](https://github.com/kavindacena99/University-Course-Management-System/actions/runs/46141408825/artifacts/15262505569)
+and [publication evidence](https://github.com/kavindacena99/University-Course-Management-System/actions/runs/46141408825/artifacts/15261709765)
+matched all nine publication records, digest files, registry scans, SHA-tag
+resolutions and `images.env`. The nonsecret manifest is retained at
+`release-manifests/phase-4/9cc70c16d60854a4c987e226cb201aaa237369a9/`.
+This does not create an RC3 or change RC2's failed verdict. The new frontend
+pages still use local state rather than backend APIs; their authenticated
+business workflows require an application fix before a new QA candidate.

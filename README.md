@@ -18,7 +18,7 @@ The codebase currently includes:
 - `infrastructure/nginx` for the public API gateway
 - `infrastructure/docker` for the local Compose stack, with its environment template in `infrastructure/environments`
 
-The frontend is a static React application served by Nginx. It currently has no API integration; when wired, it calls the gateway directly at `VITE_API_BASE_URL` (default `http://localhost:8080`). Course remains the authority for lecturer assignment; Assessment remains the authority for grades and final results.
+The frontend is a React application served by Nginx and integrated with the API gateway for authentication and account flows, course management, assessments and grading, student submissions and results, and administrator workflows. Local Vite development proxies `/api` requests to the gateway at `http://127.0.0.1:8080`; deployed builds use the same-origin Nginx API route. `VITE_API_BASE_URL` can override the API base when needed. Course remains the authority for lecturer assignment; Assessment remains the authority for grades and final results.
 
 ## Documentation
 

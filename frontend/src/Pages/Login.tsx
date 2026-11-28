@@ -1,6 +1,7 @@
 import { FormEvent, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { login } from "../services/auth";
+import { useSession } from "../session";
+import UniversityIllustration from "./UniversityIllustration";
 
 const assetPathPrefix = "/assets";
 
@@ -13,6 +14,7 @@ export default function Login() {
   const [notice, setNotice] = useState<Notice>(null);
   const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
+  const { signIn } = useSession();
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -27,12 +29,18 @@ export default function Login() {
 
     setSubmitting(true);
     try {
-      const response = await login(email, password);
+      const user = await signIn(email, password);
       setNotice({
         tone: "success",
-        text: `Welcome back, ${response.user.first_name || email}.`,
+        text: "Welcome back.",
       });
-      navigate("/courses");
+      navigate(
+        user.roles.includes("ADMIN")
+          ? "/admin/dashboard"
+          : user.roles.includes("LECTURER")
+            ? "/lecturer/dashboard"
+            : "/courses",
+      );
     } catch (error) {
       setNotice({
         tone: "error",
@@ -52,14 +60,13 @@ export default function Login() {
         </header>
 
         <div className="illustration-panel" aria-hidden="true">
-          <img className="illustration-backdrop" src={`${assetPathPrefix}/804da.svg`} alt="" />
-          <img className="illustration" src={`${assetPathPrefix}/23ae0.png`} alt="" />
+          <UniversityIllustration />
         </div>
 
         <div className="form-panel">
           <div className="welcome-copy">
             <h2>WELCOME</h2>
-            <p>Enter your User Name and Password to access your account</p>
+            <p>Enter your university email and password to access your account</p>
           </div>
 
           <form onSubmit={handleSubmit} noValidate>
@@ -94,19 +101,10 @@ export default function Login() {
             </div>
 
             <div className="form-options">
-              <label className="remember">
-                <input name="remember" type="checkbox" />
-                <span>Remember me</span>
-              </label>
               <button
                 className="text-button forgot"
                 type="button"
-                onClick={() =>
-                  setNotice({
-                    tone: "info",
-                    text: "Password recovery instructions will be sent to your university email.",
-                  })
-                }
+                onClick={() => navigate("/forgot-password")}
               >
                 Forgot Password
               </button>
@@ -114,20 +112,6 @@ export default function Login() {
 
             <button className="primary-button" type="submit" disabled={submitting}>
               {submitting ? "Signing in..." : "Sign In"}
-            </button>
-
-            <button
-              className="google-button"
-              type="button"
-              onClick={() =>
-                setNotice({
-                  tone: "info",
-                  text: "Google sign-in is ready to connect to your university account.",
-                })
-              }
-            >
-              <img src={`${assetPathPrefix}/027c9.png`} alt="" />
-              <span>Sign In with Google</span>
             </button>
 
             <div
@@ -142,16 +126,7 @@ export default function Login() {
 
           <p className="signup-copy">
             <span>Don’t have an account?</span>{" "}
-            <button
-              className="text-button"
-              type="button"
-              onClick={() =>
-                setNotice({
-                  tone: "info",
-                  text: "Account registration is ready for new students and faculty.",
-                })
-              }
-            >
+            <button className="text-button" type="button" onClick={() => navigate("/register")}>
               Sign up
             </button>
           </p>

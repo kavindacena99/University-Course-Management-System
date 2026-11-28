@@ -289,8 +289,7 @@ body,
   opacity: 0.6 !important;
 }
 
-.app-shell .profile-menu,
-.app-shell .course-menu {
+.app-shell .profile-menu {
   position: absolute !important;
   z-index: 50 !important;
   display: flex !important;
@@ -308,8 +307,8 @@ body,
   width: 170px !important;
 }
 
-.app-shell .profile-menu button,
-.app-shell .course-menu button {
+.app-shell .profile-menu a {
+  display: block;
   padding: 8px 12px !important;
   border-radius: 6px !important;
   background: transparent !important;
@@ -317,10 +316,10 @@ body,
   font-size: 13px !important;
   font-weight: 500 !important;
   text-align: left !important;
+  text-decoration: none !important;
 }
 
-.app-shell .profile-menu button:hover,
-.app-shell .course-menu button:hover {
+.app-shell .profile-menu a:hover {
   background: #f1f5f9 !important;
   color: #0d9488 !important;
 }
@@ -526,40 +525,21 @@ body,
   line-height: 1.4 !important;
 }
 
-.app-shell .course-menu-button {
+.app-shell .course-edit-button {
   position: absolute !important;
-  right: 8px !important;
-  bottom: 12px !important;
-  width: 28px !important;
-  height: 28px !important;
-  display: grid !important;
-  place-items: center !important;
-  border-radius: 6px !important;
-  background: transparent !important;
+  top: 10px !important;
+  right: 10px !important;
+  padding: 6px 10px !important;
+  border: 1px solid rgba(255, 255, 255, 0.75) !important;
+  border-radius: 8px !important;
+  background: rgba(15, 23, 42, 0.78) !important;
+  color: #ffffff !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
 }
 
-.app-shell .course-menu-button:hover {
-  background: #f1f5f9 !important;
-}
-
-.app-shell .course-menu-button img {
-  width: 16px !important;
-  height: 16px !important;
-  object-fit: contain !important;
-  opacity: 0.7 !important;
-}
-
-.app-shell .course-menu-button span {
-  color: #64748b !important;
-  font-size: 15px !important;
-  letter-spacing: 1px !important;
-  line-height: 1 !important;
-}
-
-.app-shell .course-menu {
-  right: 8px !important;
-  bottom: -68px !important;
-  width: 135px !important;
+.app-shell .course-edit-button:hover {
+  background: #0f172a !important;
 }
 
 .app-shell .empty-state {
