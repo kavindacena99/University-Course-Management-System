@@ -3,6 +3,7 @@ from pathlib import Path
 import sys
 import tempfile
 import unittest
+from types import SimpleNamespace
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -29,6 +30,24 @@ class TargetSafety(unittest.TestCase):
             with patch.object(targetctl, 'release', return_value={'tag': 'v0.1.0-rc.1'}), \
                  self.assertRaisesRegex(RuntimeError, 'Previous deployment'):
                 targetctl.rollback('qa', 'candidate.json')
+
+    def test_frontend_config_sync_preserves_original(self):
+        with tempfile.TemporaryDirectory() as directory, patch.object(targetctl, 'ROOT', Path(directory)):
+            root = Path(directory)
+            state = root / '.infra-state/phase123/targets/qa'
+            state.mkdir(parents=True)
+            (state / 'rehearsal.env').write_text('PG_PROJECT=platform-qa-target\n')
+            (state / 'frontend.conf').write_bytes(b'old frontend config')
+            source = root / 'frontend/nginx.conf'
+            source.parent.mkdir()
+            source.write_bytes(b'new same-origin proxy config')
+            with patch.object(targetctl, 'engine'), \
+                 patch.object(targetctl, 'run', return_value=SimpleNamespace(stdout='')):
+                targetctl.sync_config('qa')
+            self.assertEqual((state / 'frontend.conf').read_bytes(), source.read_bytes())
+            backups = list((root / '.infra-state/releases/config-backups/qa').glob('frontend-*.conf'))
+            self.assertEqual(len(backups), 1)
+            self.assertEqual(backups[0].read_bytes(), b'old frontend config')
 
 
 if __name__ == '__main__':

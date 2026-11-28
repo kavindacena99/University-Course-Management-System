@@ -28,3 +28,29 @@ network, or volume had been created.
 The frontend has some real API integration, but many route components remain
 static or incomplete; full browser and business acceptance must be observed
 after an authorized runtime starts. **Phase 6 is not complete.**
+
+## RC1 QA execution and failed verdict
+
+The owner separately approved the exact Silo digest for isolated local QA and
+PROD-like runtime use with the guard mandatory. RC1 was deployed into the
+prepared `platform-qa-target` using the nine digest-pinned GHCR images, the
+reviewed local PostgreSQL candidate and Silo image. Initial target volumes did
+not exist, so no existing target data required a predeployment backup. The six
+migration jobs, storage bootstrap, and final DB permissions job exited 0.
+Ten runtimes were healthy, and the controller matched all nine running image
+IDs against the release references. SQL ownership, non-superuser roles,
+cross-database denial, runtime DDL denial and migration versions passed for
+all six logical databases. The guard returned 403 for an S3 Select POST, and
+the unguarded port 19000 was unreachable from the gateway. Gateway/frontend
+Nginx syntax and limited HTTP smoke probes passed.
+
+QA acceptance **failed** when the published frontend asset was found to contain
+`http://localhost:8080`, while QA's gateway is at `http://localhost:8081`.
+Browser API requests from the QA frontend would target the wrong environment.
+This is a release blocker; full authenticated business and browser tests were
+not run and cannot be counted as passes. The machine-readable failed verdict
+is retained at `.infra-state/releases/v0.1.0-rc.1/qa-validation.json`.
+QA was gracefully stopped. No QA target container remains running; the
+`platform-qa-target_postgres-data` and `platform-qa-target_minio-data` volumes
+remain, as do the legacy and DEV volumes. RC1 remains an immutable prerelease.
+A reviewed source fix and new Phase 4 publication are required for RC2.

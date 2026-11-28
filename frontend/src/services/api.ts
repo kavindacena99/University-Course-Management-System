@@ -1,6 +1,8 @@
 import type { ApiError } from "../types/api";
 
-const baseUrl = (import.meta.env.VITE_API_BASE_URL || "http://localhost:8080").replace(/\/$/, "");
+// Published images use the same-origin Nginx /api proxy so one image works
+// unchanged in QA and PROD-like. Local development may explicitly override it.
+const baseUrl = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
 
 let csrfToken = "";
 
