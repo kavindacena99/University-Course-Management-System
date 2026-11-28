@@ -2,6 +2,21 @@
 
 ## 2026-11-28 live DEV acceptance update
 
+After PR #29 merged, main advanced again to
+`b1db98eb39a2167c28128c9836db6029d7fc1418` with additional frontend
+account, enrolment and results screens and a small Assessment CSV parser fix.
+The frontend and Assessment images were rebuilt locally. The DEV controller
+again reported 15 healthy containers, seven successful jobs and 12 passing
+HTTP probes. The same five live Playwright scenarios passed against this newer
+source with no skips. The new student enrolment screen loads asynchronously;
+the test now waits for its HTTP 200 self-enrolment response before navigation.
+The Assessment Go suite, frontend production build and Docker-based TypeScript
+check passed. Infrastructure unittest discovery passed 51 tests.
+This later run supersedes the earlier source-specific acceptance result for
+release selection. The successful GHCR publication for PR #29's merge commit
+`50963ad753ff9c7f4b27c6bae74eb4348da02130` predates these application
+changes and must not be used as the new RC image set.
+
 PR #28 merged at `b6a8935a341cc29808a93dc61f822ca106762c98`.
 The preexisting DEV stack was started without deleting or replacing volumes;
 its controller reported 15 healthy containers, seven completed setup jobs and
