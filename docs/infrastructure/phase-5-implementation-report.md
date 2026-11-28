@@ -1,5 +1,20 @@
 # Phase 5 — semantic versioning and release candidates
 
+## RC3 candidate preparation — 2026-11-28
+
+The current application source at PR #30 merge commit
+`91f53ba8b3b68c74b4de99c70baa20639102c181` passed five live DEV
+Playwright workflows with no skips. Protected-main manual
+[publication run 46153596004](https://github.com/kavindacena99/University-Course-Management-System/actions/runs/46153596004)
+then completed successfully. Its downloaded manifest and evidence artifacts
+contain nine matching publication records and digest files; every application
+image build scan, registry scan and registry pull status is passed. The Phase 4
+manifest SHA-256 is
+`9babf035033ee644f5eaedd65fe3578f4f55c3fe07e3d8c980e90494c9c1b234`.
+The validated `v0.1.0-rc.3` release manifest imports that exact publication;
+its initial QA status is pending. RC1 and RC2 remain unchanged. A tag,
+prerelease and QA verdict are recorded only after those operations complete.
+
 ## 2026-11-28 implementation state
 
 No earlier semantic Git tags or GitHub releases existed at the start of this
