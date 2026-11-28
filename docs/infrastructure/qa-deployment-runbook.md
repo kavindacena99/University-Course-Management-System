@@ -30,3 +30,13 @@ container alone is insufficient acceptance. Stop QA with the controller's
 
 If any required test fails, retain its evidence, keep the RC in prerelease,
 and do not promote it. A source fix needs a new published commit and RC number.
+
+After RC1 failed on its fixed browser API origin, the environment-neutral
+frontend Nginx proxy is a reviewed source change. Before deploying RC2, run
+`targetctl.ps1 -Action sync-config` while QA is stopped; this saves the previous
+non-secret `frontend.conf` and updates only that routing file. Existing QA
+PostgreSQL and object volumes must receive a verified external backup before
+RC2 migrations. The controller's `start-support` action starts only PostgreSQL
+and guarded Silo for that backup; `backup` creates six logical dumps and a
+guarded submissions copy outside the synced repository. Stop support services
+again before normal deployment. Existing credentials and keys are preserved.

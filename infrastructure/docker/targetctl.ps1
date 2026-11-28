@@ -1,6 +1,6 @@
 param(
     [Parameter(Mandatory=$true)]
-    [ValidateSet('config','preflight','pull','backup','migrate','deploy','health','validate','smoke','stop','status','rollback')]
+    [ValidateSet('config','preflight','pull','backup','migrate','deploy','health','validate','smoke','stop','status','rollback','sync-config','start-support')]
     [string]$Action,
     [Parameter(Mandatory=$true)]
     [ValidateSet('qa','prodlike')]

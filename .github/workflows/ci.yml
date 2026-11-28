@@ -98,6 +98,12 @@ jobs:
         env:
           CI: 'true'
       - run: pnpm build
+      - name: Require environment-neutral browser API routing
+        run: |
+          if grep -R -E 'http://localhost:8080|http://(auth|user|course|enrollment|assessment|analytics):808[1-6]' dist/assets; then
+            echo 'Browser bundle contains an environment-specific or direct-service API origin' >&2
+            exit 1
+          fi
       - run: pnpm audit --prod --audit-level high
       - name: Frontend result
         if: always()

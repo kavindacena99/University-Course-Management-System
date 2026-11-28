@@ -24,3 +24,21 @@ stable-before-QA rejection, source/image mismatch rejection, and overwrite
 refusal. A real RC Git tag, prerelease, downloadable assets, and QA/stable
 transition are recorded in a later execution section only after their GitHub
 operations complete. Until then, **Phase 5 is in progress**.
+
+## RC1 GitHub operation and advancement
+
+After PR #19 merged at `3cc681a773941607db7e960136b4b1c1c19c71ad`,
+the annotated `v0.1.0-rc.1` tag was created at the published source commit
+`e83d2d131136624024175d16d2f41e1501d0b385`. GitHub confirms the tag
+object points to that commit. The
+[GitHub prerelease](https://github.com/kavindacena99/University-Course-Management-System/releases/tag/v0.1.0-rc.1)
+is not a draft and has downloadable `release-manifest.json` and `images.env`
+assets. Both were downloaded and their hashes matched the repository copies.
+No GHCR semantic alias or image rebuild was made.
+
+QA found a release-blocking frontend API-base defect in the published RC1
+bundle. The failed RC and evidence remain intact. The fix changes frontend
+source and Nginx routing, so a reviewed new commit, complete CI publication,
+new manifest and `v0.1.0-rc.2` are required. RC1 is not eligible for stable
+promotion. Phase 5 remains in progress until the next candidate and QA/stable
+transition are validated.

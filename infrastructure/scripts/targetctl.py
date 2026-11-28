@@ -193,6 +193,31 @@ def preflight(env, manifest):
     return m, info
 
 
+def sync_config(env):
+    """Update only the generated non-secret frontend routing file while stopped."""
+    engine()
+    project = TARGETS[env][0]
+    if run(['docker', 'ps', '-q', '--filter', f'label=com.docker.compose.project={project}']).stdout.strip():
+        raise RuntimeError('Stop target before changing its frontend routing file')
+    target = state(env) / 'frontend.conf'
+    if not target.is_file() or not (state(env) / 'rehearsal.env').is_file():
+        raise RuntimeError('Prepared target inputs missing; never regenerate them here')
+    current = target.read_bytes()
+    desired = (ROOT / 'frontend/nginx.conf').read_bytes()
+    if current == desired:
+        print('PASS frontend routing already current:', project)
+        return
+    backup_dir = ROOT / '.infra-state/releases/config-backups' / env
+    backup_dir.mkdir(parents=True, exist_ok=True)
+    backup_path = backup_dir / ('frontend-' + hashlib.sha256(current).hexdigest() + '.conf')
+    with backup_path.open('xb') as stream:
+        stream.write(current)
+    target.write_bytes(desired)
+    if target.read_bytes() != desired:
+        raise RuntimeError('Frontend routing update verification failed')
+    print('PASS frontend routing updated with original retained:', project)
+
+
 def pull(env, manifest):
     m, _ = preflight(env, manifest)
     for row in m['images']:
@@ -206,6 +231,15 @@ def pull(env, manifest):
         raise RuntimeError('Reviewed local PostgreSQL candidate ID mismatch')
     run(['docker', 'pull', '--platform', 'linux/amd64', SILO])
     print('PASS release and supporting image pulls; no container started')
+
+
+def start_support(env, manifest):
+    with lock(env):
+        preflight(env, manifest)
+        approval(env)
+        run(compose(env, manifest) + ['up', '-d', '--no-build', '--wait', '--wait-timeout', '180',
+                                      'postgres', 'minio', 'storage-guard'])
+        print('PASS target PostgreSQL and guarded storage started for backup; applications remain stopped')
 
 
 def ps(env, manifest):
@@ -408,7 +442,8 @@ def rollback(env, manifest):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('action', choices=['config', 'preflight', 'pull', 'backup', 'migrate', 'deploy',
-                                          'health', 'validate', 'smoke', 'stop', 'status', 'rollback'])
+                                          'health', 'validate', 'smoke', 'stop', 'status', 'rollback', 'sync-config',
+                                          'start-support'])
     parser.add_argument('--environment', required=True, choices=TARGETS)
     parser.add_argument('--release', required=True, type=Path)
     args = parser.parse_args()
@@ -416,10 +451,14 @@ def main():
     if args.action == 'config':
         verify_model(env, manifest, model(env, manifest))
         print('PASS consolidated target model:', TARGETS[env][0])
+    elif args.action == 'sync-config':
+        sync_config(env)
     elif args.action == 'preflight':
         preflight(env, manifest)
     elif args.action == 'pull':
         pull(env, manifest)
+    elif args.action == 'start-support':
+        start_support(env, manifest)
     elif args.action == 'backup':
         backup(env, manifest)
     elif args.action == 'migrate':
