@@ -533,3 +533,18 @@ The exact outcomes and nine digests are in
 `release-manifests/v0.1.0-rc.2/qa-validation.json`. QA was stopped; its two
 target volumes and all DEV volumes remain. No stable release or PROD-like
 promotion occurred. Phases 5 and 6 remain in progress; Phase 7 is pending.
+
+## 2026-11-28 later main publication (not QA acceptance)
+
+After unrelated frontend additions on main, PR #26 repaired their lockfile and
+build errors and passed 19 executed CI checks. Main source commit
+`9cc70c16d60854a4c987e226cb201aaa237369a9` then passed 21/21 jobs in
+[run 46141408825](https://github.com/kavindacena99/University-Course-Management-System/actions/runs/46141408825).
+The downloaded manifest and nine publication records, digest files, registry
+scans, registry SHA-tag resolutions and `images.env` agreed. Artifacts:
+[manifest](https://github.com/kavindacena99/University-Course-Management-System/actions/runs/46141408825/artifacts/15262505569),
+[publication evidence](https://github.com/kavindacena99/University-Course-Management-System/actions/runs/46141408825/artifacts/15261709765).
+The nonsecret manifest is retained in `release-manifests/phase-4/9cc70c16d60854a4c987e226cb201aaa237369a9/`.
+No RC tag, QA deployment, stable promotion or PROD-like deployment was made
+from this later source. RC2's failed QA evidence remains authoritative for
+RC2 alone.
