@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "UCM semantic release manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "version", "tag", "channel", "rc_number", "repository", "source_commit", "source_branch", "publication", "images", "qa_validation", "created_at"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "version": {"type": "string", "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(-rc\\.[1-9][0-9]*)?$"},
+    "tag": {"type": "string", "pattern": "^v(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(-rc\\.[1-9][0-9]*)?$"},
+    "channel": {"enum": ["rc", "stable"]},
+    "rc_number": {"type": ["integer", "null"], "minimum": 1},
+    "repository": {"const": "kavindacena99/University-Course-Management-System"},
+    "source_commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "source_branch": {"const": "main"},
+    "publication": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["workflow_run_id", "workflow_url", "image_manifest_path", "image_manifest_sha256", "manifest_artifact_url", "evidence_artifact_url", "published_at"],
+      "properties": {
+        "workflow_run_id": {"type": "string", "pattern": "^[0-9]+$"},
+        "workflow_url": {"type": "string", "format": "uri"},
+        "image_manifest_path": {"type": "string"},
+        "image_manifest_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "manifest_artifact_url": {"type": "string", "format": "uri"},
+        "evidence_artifact_url": {"type": "string", "format": "uri"},
+        "published_at": {"type": "string", "format": "date-time"}
+      }
+    },
+    "images": {"type": "array", "minItems": 9, "maxItems": 9, "items": {"type": "object"}},
+    "qa_validation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "reference"],
+      "properties": {
+        "status": {"enum": ["pending", "passed", "failed"]},
+        "reference": {"type": ["string", "null"]}
+      }
+    },
+    "created_at": {"type": "string", "format": "date-time"}
+  }
+}

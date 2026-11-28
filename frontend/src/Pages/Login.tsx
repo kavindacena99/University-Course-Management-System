@@ -1,4 +1,6 @@
 import { FormEvent, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { login } from "../services/auth";
 
 const assetPathPrefix = "/assets";
 
@@ -9,22 +11,36 @@ type Notice = {
 
 export default function Login() {
   const [notice, setNotice] = useState<Notice>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const navigate = useNavigate();
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
-    const username = String(form.get("username") ?? "").trim();
+    const email = String(form.get("email") ?? "").trim();
     const password = String(form.get("password") ?? "");
 
-    if (!username || !password) {
-      setNotice({ tone: "error", text: "Enter your user name and password." });
+    if (!email || !password) {
+      setNotice({ tone: "error", text: "Enter your email and password." });
       return;
     }
 
-    setNotice({
-      tone: "success",
-      text: `Welcome back, ${username}. Your sign-in details are ready.`,
-    });
+    setSubmitting(true);
+    try {
+      const response = await login(email, password);
+      setNotice({
+        tone: "success",
+        text: `Welcome back, ${response.user.first_name || email}.`,
+      });
+      navigate("/courses");
+    } catch (error) {
+      setNotice({
+        tone: "error",
+        text: error instanceof Error ? error.message : "Sign-in failed.",
+      });
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -48,15 +64,15 @@ export default function Login() {
 
           <form onSubmit={handleSubmit} noValidate>
             <div className="field-group">
-              <label htmlFor="username">User Name</label>
+              <label htmlFor="email">Email address</label>
               <div className="field-row">
                 <img src={`${assetPathPrefix}/eed30.png`} alt="" />
                 <input
-                  id="username"
-                  name="username"
-                  type="text"
-                  autoComplete="username"
-                  placeholder="Enter your user name"
+                  id="email"
+                  name="email"
+                  type="email"
+                  autoComplete="email"
+                  placeholder="Enter your university email"
                   aria-describedby="form-notice"
                 />
               </div>
@@ -96,8 +112,8 @@ export default function Login() {
               </button>
             </div>
 
-            <button className="primary-button" type="submit">
-              Sign In
+            <button className="primary-button" type="submit" disabled={submitting}>
+              {submitting ? "Signing in..." : "Sign In"}
             </button>
 
             <button

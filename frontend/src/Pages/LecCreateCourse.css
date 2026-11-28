@@ -11,7 +11,7 @@ body,
   overflow-x: hidden !important;
 }
 
-.app-shell {
+.app-shell:has(.sidebar-accent) {
   display: flex !important;
   min-height: 100vh !important;
   width: 100% !important;
@@ -21,26 +21,26 @@ body,
   box-sizing: border-box !important;
 }
 
-.app-shell *,
-.app-shell *::before,
-.app-shell *::after {
+.app-shell:has(.sidebar-accent) *,
+.app-shell:has(.sidebar-accent) *::before,
+.app-shell:has(.sidebar-accent) *::after {
   box-sizing: border-box !important;
 }
 
-.app-shell button,
-.app-shell input,
-.app-shell textarea,
-.app-shell select {
+.app-shell:has(.sidebar-accent) button,
+.app-shell:has(.sidebar-accent) input,
+.app-shell:has(.sidebar-accent) textarea,
+.app-shell:has(.sidebar-accent) select {
   font-family: inherit !important;
   outline: none;
 }
 
-.app-shell button {
+.app-shell:has(.sidebar-accent) button {
   cursor: pointer;
 }
 
 /* --- Sidebar --- */
-.app-shell .sidebar {
+.app-shell:has(.sidebar-accent) .sidebar {
   position: fixed !important;
   top: 0 !important;
   left: 0 !important;
@@ -63,15 +63,15 @@ body,
   scrollbar-width: none !important;
 }
 
-.app-shell .sidebar::-webkit-scrollbar {
+.app-shell:has(.sidebar-accent) .sidebar::-webkit-scrollbar {
   display: none !important;
 }
 
-.app-shell .sidebar-accent {
+.app-shell:has(.sidebar-accent) .sidebar-accent {
   display: none !important;
 }
 
-.app-shell .brand {
+.app-shell:has(.sidebar-accent) .brand {
   display: flex !important;
   flex-direction: column !important;
   align-items: center !important;
@@ -86,7 +86,7 @@ body,
   flex-shrink: 0 !important;
 }
 
-.app-shell .brand-mark img {
+.app-shell:has(.sidebar-accent) .brand-mark img {
   width: 44px !important;
   height: 44px !important;
   object-fit: contain !important;
@@ -97,7 +97,7 @@ body,
   display: block !important;
 }
 
-.app-shell .brand p {
+.app-shell:has(.sidebar-accent) .brand p {
   margin: 0 !important;
   color: #e2e8f0 !important;
   font-size: 12.5px !important;
@@ -105,7 +105,7 @@ body,
   line-height: 1.35 !important;
 }
 
-.app-shell .sidebar-nav {
+.app-shell:has(.sidebar-accent) .sidebar-nav {
   display: flex !important;
   flex-direction: column !important;
   gap: 4px !important;
@@ -115,7 +115,7 @@ body,
   flex: 0 0 auto !important;
 }
 
-.app-shell .sidebar .nav-item {
+.app-shell:has(.sidebar-accent) .sidebar .nav-item {
   display: flex !important;
   align-items: center !important;
   justify-content: flex-start !important;
@@ -135,19 +135,19 @@ body,
   transition: all 0.2s ease !important;
 }
 
-.app-shell .sidebar .nav-item:hover {
+.app-shell:has(.sidebar-accent) .sidebar .nav-item:hover {
   background: rgba(255, 255, 255, 0.08) !important;
   color: #ffffff !important;
 }
 
-.app-shell .sidebar .nav-item.active {
+.app-shell:has(.sidebar-accent) .sidebar .nav-item.active {
   background: linear-gradient(90deg, #0d9488 0%, #0284c7 100%) !important;
   color: #ffffff !important;
   font-weight: 600 !important;
   box-shadow: 0 4px 12px rgba(13, 148, 136, 0.35) !important;
 }
 
-.app-shell .sidebar .nav-item img {
+.app-shell:has(.sidebar-accent) .sidebar .nav-item img {
   width: 18px !important;
   height: 18px !important;
   object-fit: contain !important;
@@ -156,11 +156,11 @@ body,
   flex-shrink: 0 !important;
 }
 
-.app-shell .sidebar .nav-item.active img {
+.app-shell:has(.sidebar-accent) .sidebar .nav-item.active img {
   opacity: 1 !important;
 }
 
-.app-shell .sidebar .logout {
+.app-shell:has(.sidebar-accent) .sidebar .logout {
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
@@ -180,29 +180,29 @@ body,
   transition: all 0.2s ease !important;
 }
 
-.app-shell .sidebar .logout:hover {
+.app-shell:has(.sidebar-accent) .sidebar .logout:hover {
   background: #ef4444 !important;
   color: #ffffff !important;
 }
 
-.app-shell .logout-line {
+.app-shell:has(.sidebar-accent) .logout-line {
   display: none !important;
 }
 
-.app-shell .logout-content {
+.app-shell:has(.sidebar-accent) .logout-content {
   display: inline-flex !important;
   align-items: center !important;
   gap: 8px !important;
 }
 
-.app-shell .logout-content img {
+.app-shell:has(.sidebar-accent) .logout-content img {
   width: 17px !important;
   height: 17px !important;
   filter: brightness(0) invert(1) !important;
 }
 
 /* --- Workspace & Topbar --- */
-.app-shell .workspace {
+.app-shell:has(.sidebar-accent) .workspace {
   flex: 1 !important;
   margin-left: 280px !important;
   width: calc(100% - 280px) !important;
@@ -211,7 +211,7 @@ body,
   flex-direction: column !important;
 }
 
-.app-shell .topbar {
+.app-shell:has(.sidebar-accent) .topbar {
   position: sticky !important;
   top: 0 !important;
   z-index: 30 !important;
@@ -226,7 +226,7 @@ body,
   gap: 20px !important;
 }
 
-.app-shell .search {
+.app-shell:has(.sidebar-accent) .search {
   display: flex !important;
   align-items: center !important;
   gap: 10px !important;
@@ -239,20 +239,20 @@ body,
   transition: all 0.2s ease !important;
 }
 
-.app-shell .search:focus-within {
+.app-shell:has(.sidebar-accent) .search:focus-within {
   background: #ffffff !important;
   border-color: #0d9488 !important;
   box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.12) !important;
 }
 
-.app-shell .search img {
+.app-shell:has(.sidebar-accent) .search img {
   width: 16px !important;
   height: 16px !important;
   opacity: 0.6 !important;
   flex-shrink: 0 !important;
 }
 
-.app-shell .search input {
+.app-shell:has(.sidebar-accent) .search input {
   width: 100% !important;
   border: none !important;
   background: transparent !important;
@@ -260,12 +260,12 @@ body,
   color: #0f172a !important;
 }
 
-.app-shell .profile-wrap {
+.app-shell:has(.sidebar-accent) .profile-wrap {
   position: relative !important;
   flex-shrink: 0 !important;
 }
 
-.app-shell .profile {
+.app-shell:has(.sidebar-accent) .profile {
   display: flex !important;
   align-items: center !important;
   gap: 12px !important;
@@ -276,11 +276,11 @@ body,
   transition: background 0.2s ease !important;
 }
 
-.app-shell .profile:hover {
+.app-shell:has(.sidebar-accent) .profile:hover {
   background: #f1f5f9 !important;
 }
 
-.app-shell .profile .avatar {
+.app-shell:has(.sidebar-accent) .profile .avatar {
   width: 38px !important;
   height: 38px !important;
   border-radius: 50% !important;
@@ -288,34 +288,34 @@ body,
   flex-shrink: 0 !important;
 }
 
-.app-shell .profile > span {
+.app-shell:has(.sidebar-accent) .profile > span {
   display: flex !important;
   flex-direction: column !important;
   text-align: left !important;
   gap: 2px !important;
 }
 
-.app-shell .profile strong {
+.app-shell:has(.sidebar-accent) .profile strong {
   font-size: 13px !important;
   font-weight: 600 !important;
   color: #0f172a !important;
   white-space: nowrap !important;
 }
 
-.app-shell .profile small {
+.app-shell:has(.sidebar-accent) .profile small {
   font-size: 11.5px !important;
   color: #64748b !important;
   white-space: nowrap !important;
 }
 
-.app-shell .profile .chevron {
+.app-shell:has(.sidebar-accent) .profile .chevron {
   width: 14px !important;
   height: 14px !important;
   opacity: 0.65 !important;
   flex-shrink: 0 !important;
 }
 
-.app-shell .profile-menu {
+.app-shell:has(.sidebar-accent) .profile-menu {
   position: absolute !important;
   top: calc(100% + 8px) !important;
   right: 0 !important;
@@ -330,7 +330,7 @@ body,
   z-index: 50 !important;
 }
 
-.app-shell .profile-menu button {
+.app-shell:has(.sidebar-accent) .profile-menu button {
   padding: 8px 12px !important;
   border: none !important;
   border-radius: 7px !important;
@@ -341,12 +341,12 @@ body,
   text-align: left !important;
 }
 
-.app-shell .profile-menu button:hover {
+.app-shell:has(.sidebar-accent) .profile-menu button:hover {
   background: #f1f5f9 !important;
   color: #0d9488 !important;
 }
 
-.app-shell .search-status {
+.app-shell:has(.sidebar-accent) .search-status {
   margin: 18px 32px 0 !important;
   padding: 10px 16px !important;
   border-radius: 10px !important;
@@ -358,12 +358,12 @@ body,
 }
 
 /* --- Main Form Card --- */
-.app-shell .content {
+.app-shell:has(.sidebar-accent) .content {
   padding: 28px 32px 48px !important;
   width: 100% !important;
 }
 
-.app-shell .course-card {
+.app-shell:has(.sidebar-accent) .course-card {
   width: 100% !important;
   max-width: 960px !important;
   background: #ffffff !important;
@@ -373,7 +373,7 @@ body,
   box-shadow: 0 4px 20px rgba(15, 23, 42, 0.04) !important;
 }
 
-.app-shell .card-heading {
+.app-shell:has(.sidebar-accent) .card-heading {
   display: flex !important;
   align-items: center !important;
   justify-content: space-between !important;
@@ -384,7 +384,7 @@ body,
   flex-wrap: wrap !important;
 }
 
-.app-shell .card-heading h1 {
+.app-shell:has(.sidebar-accent) .card-heading h1 {
   margin: 0 !important;
   font-size: 24px !important;
   font-weight: 700 !important;
@@ -392,7 +392,7 @@ body,
   letter-spacing: -0.02em !important;
 }
 
-.app-shell .edit-toggle {
+.app-shell:has(.sidebar-accent) .edit-toggle {
   display: inline-flex !important;
   align-items: center !important;
   gap: 10px !important;
@@ -402,14 +402,14 @@ body,
   cursor: pointer !important;
 }
 
-.app-shell .edit-toggle input {
+.app-shell:has(.sidebar-accent) .edit-toggle input {
   position: absolute !important;
   opacity: 0 !important;
   width: 0 !important;
   height: 0 !important;
 }
 
-.app-shell .switch-track {
+.app-shell:has(.sidebar-accent) .switch-track {
   display: inline-flex !important;
   align-items: center !important;
   justify-content: flex-end !important;
@@ -421,7 +421,7 @@ body,
   transition: all 0.2s ease !important;
 }
 
-.app-shell .switch-track img {
+.app-shell:has(.sidebar-accent) .switch-track img {
   width: 20px !important;
   height: 20px !important;
   border-radius: 50% !important;
@@ -429,28 +429,28 @@ body,
   object-fit: contain !important;
 }
 
-.app-shell fieldset {
+.app-shell:has(.sidebar-accent) fieldset {
   border: none !important;
   padding: 0 !important;
   margin: 0 !important;
   min-width: 0 !important;
 }
 
-.app-shell .field {
+.app-shell:has(.sidebar-accent) .field {
   display: flex !important;
   flex-direction: column !important;
   gap: 6px !important;
   margin-bottom: 18px !important;
 }
 
-.app-shell .field label {
+.app-shell:has(.sidebar-accent) .field label {
   font-size: 13px !important;
   font-weight: 600 !important;
   color: #1e293b !important;
 }
 
-.app-shell .field input,
-.app-shell .field textarea {
+.app-shell:has(.sidebar-accent) .field input,
+.app-shell:has(.sidebar-accent) .field textarea {
   width: 100% !important;
   border: 1px solid #cbd5e1 !important;
   border-radius: 10px !important;
@@ -460,31 +460,31 @@ body,
   transition: all 0.2s ease !important;
 }
 
-.app-shell .field input {
+.app-shell:has(.sidebar-accent) .field input {
   height: 42px !important;
   padding: 0 14px !important;
 }
 
-.app-shell .field textarea {
+.app-shell:has(.sidebar-accent) .field textarea {
   min-height: 120px !important;
   padding: 12px 14px !important;
   resize: vertical !important;
 }
 
-.app-shell .field input:focus,
-.app-shell .field textarea:focus {
+.app-shell:has(.sidebar-accent) .field input:focus,
+.app-shell:has(.sidebar-accent) .field textarea:focus {
   background: #ffffff !important;
   border-color: #0d9488 !important;
   box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.12) !important;
 }
 
-.app-shell .form-grid {
+.app-shell:has(.sidebar-accent) .form-grid {
   display: grid !important;
   grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   gap: 0 20px !important;
 }
 
-.app-shell .form-error {
+.app-shell:has(.sidebar-accent) .form-error {
   margin: 8px 0 16px !important;
   padding: 10px 14px !important;
   border-radius: 10px !important;
@@ -495,7 +495,7 @@ body,
   font-weight: 500 !important;
 }
 
-.app-shell .form-actions {
+.app-shell:has(.sidebar-accent) .form-actions {
   display: flex !important;
   align-items: center !important;
   justify-content: flex-end !important;
@@ -505,7 +505,7 @@ body,
   border-top: 1px solid #f1f5f9 !important;
 }
 
-.app-shell .button {
+.app-shell:has(.sidebar-accent) .button {
   height: 42px !important;
   padding: 0 22px !important;
   border-radius: 10px !important;
@@ -514,36 +514,36 @@ body,
   transition: all 0.2s ease !important;
 }
 
-.app-shell .button.secondary {
+.app-shell:has(.sidebar-accent) .button.secondary {
   border: 1px solid #cbd5e1 !important;
   background: #ffffff !important;
   color: #334155 !important;
 }
 
-.app-shell .button.secondary:hover {
+.app-shell:has(.sidebar-accent) .button.secondary:hover {
   background: #f8fafc !important;
   border-color: #94a3b8 !important;
 }
 
-.app-shell .button.primary {
+.app-shell:has(.sidebar-accent) .button.primary {
   border: none !important;
   background: linear-gradient(90deg, #0d9488 0%, #0284c7 100%) !important;
   color: #ffffff !important;
   box-shadow: 0 4px 12px rgba(13, 148, 136, 0.28) !important;
 }
 
-.app-shell .button.primary:hover:not(:disabled) {
+.app-shell:has(.sidebar-accent) .button.primary:hover:not(:disabled) {
   transform: translateY(-1px) !important;
   box-shadow: 0 6px 16px rgba(13, 148, 136, 0.36) !important;
 }
 
-.app-shell .button:disabled {
+.app-shell:has(.sidebar-accent) .button:disabled {
   opacity: 0.45 !important;
   cursor: not-allowed !important;
 }
 
 /* --- Toast --- */
-.app-shell .toast {
+.app-shell:has(.sidebar-accent) .toast {
   position: fixed !important;
   right: 24px !important;
   bottom: 24px !important;
@@ -560,76 +560,76 @@ body,
 
 /* --- Responsive Breakpoints --- */
 @media (max-width: 960px) {
-  .app-shell .sidebar {
+  .app-shell:has(.sidebar-accent) .sidebar {
     transform: translateX(-100%) !important;
   }
 
-  .app-shell .workspace {
+  .app-shell:has(.sidebar-accent) .workspace {
     margin-left: 0 !important;
     width: 100% !important;
   }
 
-  .app-shell .topbar {
+  .app-shell:has(.sidebar-accent) .topbar {
     padding: 0 18px !important;
   }
 
-  .app-shell .content {
+  .app-shell:has(.sidebar-accent) .content {
     padding: 20px 18px 40px !important;
   }
 }
 
 @media (max-width: 680px) {
-  .app-shell .form-grid {
+  .app-shell:has(.sidebar-accent) .form-grid {
     grid-template-columns: 1fr !important;
   }
 
-  .app-shell .course-card {
+  .app-shell:has(.sidebar-accent) .course-card {
     padding: 20px 16px !important;
   }
 
-  .app-shell .profile > span,
-  .app-shell .profile .chevron {
+  .app-shell:has(.sidebar-accent) .profile > span,
+  .app-shell:has(.sidebar-accent) .profile .chevron {
     display: none !important;
   }
 
-  .app-shell .form-actions {
+  .app-shell:has(.sidebar-accent) .form-actions {
     flex-direction: column-reverse !important;
     align-items: stretch !important;
   }
 
-  .app-shell .button {
+  .app-shell:has(.sidebar-accent) .button {
     width: 100% !important;
   }
 }
 
 /* --- Fix Right Edge Clipping, Edit Mode Toggle & Save Course Button --- */
-.app-shell,
-.app-shell .workspace,
-.app-shell .content,
-.app-shell .course-card,
-.app-shell form,
-.app-shell fieldset,
-.app-shell .form-grid,
-.app-shell .field,
-.app-shell .form-actions {
+.app-shell:has(.sidebar-accent),
+.app-shell:has(.sidebar-accent) .workspace,
+.app-shell:has(.sidebar-accent) .content,
+.app-shell:has(.sidebar-accent) .course-card,
+.app-shell:has(.sidebar-accent) form,
+.app-shell:has(.sidebar-accent) fieldset,
+.app-shell:has(.sidebar-accent) .form-grid,
+.app-shell:has(.sidebar-accent) .field,
+.app-shell:has(.sidebar-accent) .form-actions {
   min-width: 0 !important;
   max-width: 100% !important;
 }
 
-.app-shell .content {
+.app-shell:has(.sidebar-accent) .content {
   padding: 24px 28px 48px !important;
   width: 100% !important;
   overflow-x: hidden !important;
 }
 
-.app-shell .course-card {
+.app-shell:has(.sidebar-accent) .course-card {
   width: 100% !important;
   max-width: 100% !important;
   padding: 24px 26px !important;
   overflow: hidden !important;
 }
 
-.app-shell .card-heading {
+.app-shell:has(.sidebar-accent) .card-heading {
   display: flex !important;
   align-items: center !important;
   justify-content: space-between !important;
@@ -638,27 +638,27 @@ body,
   flex-wrap: wrap !important;
 }
 
-.app-shell .edit-toggle {
+.app-shell:has(.sidebar-accent) .edit-toggle {
   flex-shrink: 0 !important;
   margin-right: 4px !important;
   padding: 6px 12px 6px 14px !important;
 }
 
-.app-shell .form-grid {
+.app-shell:has(.sidebar-accent) .form-grid {
   display: grid !important;
   grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   gap: 0 20px !important;
   width: 100% !important;
 }
 
-.app-shell .field input,
-.app-shell .field textarea {
+.app-shell:has(.sidebar-accent) .field input,
+.app-shell:has(.sidebar-accent) .field textarea {
   width: 100% !important;
   max-width: 100% !important;
   min-width: 0 !important;
 }
 
-.app-shell .form-actions {
+.app-shell:has(.sidebar-accent) .form-actions {
   display: flex !important;
   align-items: center !important;
   justify-content: flex-end !important;
@@ -668,20 +668,20 @@ body,
   padding-right: 4px !important;
 }
 
-.app-shell .button {
+.app-shell:has(.sidebar-accent) .button {
   flex-shrink: 0 !important;
   white-space: nowrap !important;
   padding: 0 20px !important;
 }
 
 @media (max-width: 720px) {
-  .app-shell .form-grid {
+  .app-shell:has(.sidebar-accent) .form-grid {
     grid-template-columns: 1fr !important;
   }
 }
 
 /* --- Remove Extra Left Gap & Center Course Card Cleanly --- */
-.app-shell .workspace {
+.app-shell:has(.sidebar-accent) .workspace {
   position: relative !important;
   margin-left: 280px !important;
   width: calc(100% - 280px) !important;
@@ -691,7 +691,7 @@ body,
   box-sizing: border-box !important;
 }
 
-.app-shell .topbar {
+.app-shell:has(.sidebar-accent) .topbar {
   position: sticky !important;
   top: 0 !important;
   left: 0 !important;
@@ -703,7 +703,7 @@ body,
   box-sizing: border-box !important;
 }
 
-.app-shell .content {
+.app-shell:has(.sidebar-accent) .content {
   display: flex !important;
   justify-content: center !important;
   align-items: flex-start !important;
@@ -715,7 +715,7 @@ body,
   box-sizing: border-box !important;
 }
 
-.app-shell .course-card {
+.app-shell:has(.sidebar-accent) .course-card {
   width: 100% !important;
   max-width: 880px !important;
   margin: 0 auto !important;
@@ -726,14 +726,14 @@ body,
   box-sizing: border-box !important;
 }
 
-.app-shell .form-grid {
+.app-shell:has(.sidebar-accent) .form-grid {
   display: grid !important;
   grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   gap: 0 20px !important;
   width: 100% !important;
 }
 
-.app-shell .form-actions {
+.app-shell:has(.sidebar-accent) .form-actions {
   display: flex !important;
   align-items: center !important;
   justify-content: flex-end !important;
@@ -742,30 +742,30 @@ body,
   flex-wrap: wrap !important;
 }
 
-.app-shell .button {
+.app-shell:has(.sidebar-accent) .button {
   flex-shrink: 0 !important;
   white-space: nowrap !important;
 }
 
 @media (max-width: 960px) {
-  .app-shell .workspace {
+  .app-shell:has(.sidebar-accent) .workspace {
     margin-left: 0 !important;
     width: 100% !important;
     max-width: 100% !important;
   }
 
-  .app-shell .content {
+  .app-shell:has(.sidebar-accent) .content {
     padding: 20px 16px 40px !important;
   }
 
-  .app-shell .course-card {
+  .app-shell:has(.sidebar-accent) .course-card {
     max-width: 100% !important;
     padding: 20px 18px !important;
   }
 }
 
 @media (max-width: 720px) {
-  .app-shell .form-grid {
+  .app-shell:has(.sidebar-accent) .form-grid {
     grid-template-columns: 1fr !important;
   }
 }

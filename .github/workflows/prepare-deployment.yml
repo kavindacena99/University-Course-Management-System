@@ -1,0 +1,17 @@
+name: Deployment preparation deferred
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deferred:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Fail safely until the release phase is approved
+        run: |
+          echo 'Publishing, release approval and deployment are intentionally deferred. This workflow has no credentials or mutation steps.'
+          exit 1

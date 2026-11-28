@@ -1,0 +1,17 @@
+node_modules/
+dist/
+build/
+.cache/
+.env
+.env.*
+.vite/
+*.tsbuildinfo
+*-debug.log*
+logs/
+*.log
+.claude-replay.*
+.tmp-*
+.figma/design-context/
+.git/
+.plugins/
+.opencode-skills/

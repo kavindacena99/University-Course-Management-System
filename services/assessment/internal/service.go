@@ -296,7 +296,7 @@ func (s *AssessmentService) Submit(
 	submission := &Submission{
 		ID: id, AssessmentID: item.ID, StudentUserID: actor.UserID,
 		IdempotencyKey: idempotencyKey,
-		ObjectKey: objectKey, OriginalFilename: filename, MediaType: upload.MediaType,
+		ObjectKey:      objectKey, OriginalFilename: filename, MediaType: upload.MediaType,
 		SizeBytes: upload.SizeBytes, ContentSHA256: hex.EncodeToString(hash.Sum(nil)),
 		Status: status, SubmittedAt: now,
 	}

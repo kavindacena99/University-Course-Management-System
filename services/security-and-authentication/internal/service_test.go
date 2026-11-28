@@ -3,6 +3,8 @@ package auth
 import (
 	"context"
 	"errors"
+	"reflect"
+	"slices"
 	"testing"
 	"time"
 
@@ -500,16 +502,33 @@ func TestServicePermissionsAndAudit(t *testing.T) {
 	if err != nil {
 		t.Fatalf("list permissions: %v", err)
 	}
-	if len(permissions) != len(AllPermissions) {
-		t.Fatalf("expected %d permissions, got %d", len(AllPermissions), len(permissions))
+	var codes []string
+	for _, permission := range permissions {
+		codes = append(codes, permission.Code)
+	}
+	wantCatalogue := slices.Clone(AllPermissions)
+	slices.Sort(wantCatalogue)
+	if !slices.Equal(codes, wantCatalogue) {
+		t.Fatalf("seeded catalogue %v differs from domain %v", codes, wantCatalogue)
 	}
 
 	adminPermissions, err := service.GetRolePermissions(ctx, RoleAdmin)
 	if err != nil {
 		t.Fatalf("get admin permissions: %v", err)
 	}
-	if len(adminPermissions) != len(AllPermissions) {
-		t.Fatalf("expected admin to have all permissions, got %v", adminPermissions)
+	// Migrations deliberately exclude student/lecturer-scoped analytics and
+	// individually controlled student-record access. Do not widen ADMIN grants
+	// just because the catalogue also contains these legitimate permissions.
+	wantAdmin := slices.DeleteFunc(slices.Clone(wantCatalogue), func(code string) bool {
+		return slices.Contains([]string{PermAssessmentsStudentRead, PermAnalyticsStudentRead,
+			PermAnalyticsLecturerRead, PermAnalyticsAdminStudentRead}, code)
+	})
+	if !slices.Equal(adminPermissions, wantAdmin) {
+		t.Fatalf("expected migration-defined admin grants %v, got %v", wantAdmin, adminPermissions)
+	}
+	previousStudent, err := service.GetRolePermissions(ctx, RoleStudent)
+	if err != nil {
+		t.Fatal(err)
 	}
 
 	claims := &AccessClaims{
@@ -525,7 +544,9 @@ func TestServicePermissionsAndAudit(t *testing.T) {
 		t.Fatalf("unexpected student permissions: %v", updated)
 	}
 	t.Cleanup(func() {
-		_, _ = service.SetRolePermissions(context.Background(), claims, RoleStudent, nil)
+		if _, err := service.SetRolePermissions(context.Background(), claims, RoleStudent, previousStudent); err != nil {
+			t.Errorf("restore student permission fixture: %v", err)
+		}
 	})
 
 	if _, err := service.SetRolePermissions(ctx, claims, RoleStudent,
@@ -539,6 +560,25 @@ func TestServicePermissionsAndAudit(t *testing.T) {
 	}
 	if total == 0 || len(events) == 0 {
 		t.Fatalf("expected audit events, got total=%d len=%d", total, len(events))
+	}
+	found := false
+	for _, event := range events {
+		if event.EventType != "role_permissions_updated" || event.ActorID == nil || *event.ActorID != admin.UserID {
+			continue
+		}
+		wantPrevious := make([]any, len(previousStudent))
+		for i, code := range previousStudent {
+			wantPrevious[i] = code
+		}
+		if !event.Success || event.Details["role"] != RoleStudent ||
+			!reflect.DeepEqual(event.Details["permissions"], []any{PermUsersRead}) ||
+			!reflect.DeepEqual(event.Details["previous_permissions"], wantPrevious) {
+			t.Fatalf("incorrect permission audit event: %+v", event)
+		}
+		found = true
+	}
+	if !found {
+		t.Fatal("missing permission-change audit event for actor")
 	}
 }
 

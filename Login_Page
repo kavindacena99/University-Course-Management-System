@@ -1,0 +1,809 @@
+import React, { useState } from 'react';
+import { Eye, EyeOff, CheckCircle2, AlertCircle, X, ArrowLeft } from 'lucide-react';
+
+/**
+ * Custom SVG Illustration matching the University Course Management System aesthetic:
+ * - Soft organic light-blue backdrop shape
+ * - Friendly student/instructor character with dark bob haircut, bangs, yellow round glasses,
+ *   orange blazer, white shirt, dark tie, and confident thumbs-up gesture
+ * - Modern angled blue-slate desktop monitor with stand
+ * - Floating blue unlocked padlock icon above the monitor
+ */
+const UniversityIllustration = () => (
+  <div className="relative w-full max-w-[380px] mx-auto bg-white rounded-[28px] p-4 sm:p-6 shadow-[0_8px_30px_rgba(37,102,137,0.06)] flex items-center justify-center overflow-visible">
+    <svg
+      viewBox="0 0 420 340"
+      className="w-full h-auto overflow-visible select-none"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      role="img"
+      aria-label="Illustration of a student giving a thumbs up in front of a computer with an unlocked security padlock"
+    >
+      <defs>
+        {/* Soft background blob gradient */}
+        <linearGradient id="blobGrad" x1="40" y1="140" x2="380" y2="300" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#e5f0f9" />
+          <stop offset="55%" stopColor="#eff6fc" />
+          <stop offset="100%" stopColor="#e2eef8" />
+        </linearGradient>
+
+        {/* Padlock gradients */}
+        <linearGradient id="lockBodyGrad" x1="255" y1="68" x2="315" y2="122" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#84a8dc" />
+          <stop offset="60%" stopColor="#567db9" />
+          <stop offset="100%" stopColor="#3b5d96" />
+        </linearGradient>
+        <linearGradient id="lockShackleGrad" x1="265" y1="26" x2="295" y2="75" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#d4e4f7" />
+          <stop offset="100%" stopColor="#8fb2e3" />
+        </linearGradient>
+
+        {/* Hair & Tie dark navy gradient */}
+        <linearGradient id="hairGrad" x1="115" y1="120" x2="205" y2="235" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#1b2056" />
+          <stop offset="100%" stopColor="#0f1238" />
+        </linearGradient>
+
+        {/* Skin tone warm coral-peach gradient */}
+        <linearGradient id="skinGrad" x1="125" y1="145" x2="185" y2="215" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#f69c93" />
+          <stop offset="55%" stopColor="#ec7d74" />
+          <stop offset="100%" stopColor="#dc6159" />
+        </linearGradient>
+        <linearGradient id="handGrad" x1="80" y1="205" x2="125" y2="275" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#f9b5ad" />
+          <stop offset="60%" stopColor="#f08980" />
+          <stop offset="100%" stopColor="#e36d64" />
+        </linearGradient>
+
+        {/* Orange Blazer gradient */}
+        <linearGradient id="blazerGrad" x1="75" y1="235" x2="225" y2="335" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#f26b3a" />
+          <stop offset="55%" stopColor="#e35224" />
+          <stop offset="100%" stopColor="#c93c14" />
+        </linearGradient>
+        <linearGradient id="lapelGrad" x1="115" y1="230" x2="195" y2="310" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#ff8856" />
+          <stop offset="100%" stopColor="#e65828" />
+        </linearGradient>
+
+        {/* Monitor casing & screen gradients */}
+        <linearGradient id="monitorBackGrad" x1="255" y1="175" x2="385" y2="310" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#3d5e94" />
+          <stop offset="50%" stopColor="#6589c2" />
+          <stop offset="100%" stopColor="#8eb2e5" />
+        </linearGradient>
+        <linearGradient id="monitorSideGrad" x1="220" y1="180" x2="265" y2="315" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#f7fbff" />
+          <stop offset="55%" stopColor="#c7daf2" />
+          <stop offset="100%" stopColor="#88aad9" />
+        </linearGradient>
+        <linearGradient id="standGrad" x1="255" y1="255" x2="335" y2="338" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#4c70a8" />
+          <stop offset="65%" stopColor="#87addf" />
+          <stop offset="100%" stopColor="#b9d4f5" />
+        </linearGradient>
+      </defs>
+
+      {/* Organic Light-Blue Backdrop Blob */}
+      <path
+        d="M52 288C16 276 -8 242 12 204C32 166 84 156 126 146C168 136 205 130 232 154C259 178 260 222 292 214C324 206 346 184 378 202C410 220 416 266 382 292C348 318 282 316 210 318C138 320 88 300 52 288Z"
+        fill="url(#blobGrad)"
+      />
+
+      {/* Soft Aura behind Padlock */}
+      <ellipse cx="288" cy="112" rx="38" ry="26" fill="#edf4fb" />
+
+      {/* Floating Unlocked Padlock */}
+      <g transform="translate(254, 28) rotate(-14)">
+        {/* Motion/sparkle lines */}
+        <line x1="56" y1="14" x2="64" y2="9" stroke="#9ebce6" strokeWidth="2.2" strokeLinecap="round" />
+        <line x1="60" y1="22" x2="69" y2="20" stroke="#9ebce6" strokeWidth="2.2" strokeLinecap="round" />
+        <line x1="52" y1="8" x2="56" y2="2" stroke="#9ebce6" strokeWidth="2.2" strokeLinecap="round" />
+
+        {/* Open Shackle */}
+        <path
+          d="M14 44V24C14 11.8 23.8 2 36 2C47.5 2 56.8 10.8 57.8 22"
+          stroke="url(#lockShackleGrad)"
+          strokeWidth="8.5"
+          strokeLinecap="round"
+        />
+        {/* Padlock Body */}
+        <rect x="4" y="40" width="54" height="44" rx="11" fill="url(#lockBodyGrad)" />
+        {/* Subtle 3D right edge highlight */}
+        <path
+          d="M47 40H49C54.5 40 58 44.5 58 50V74C58 79.5 54.5 84 49 84H47V40Z"
+          fill="#35558a"
+          opacity="0.45"
+        />
+        {/* Keyhole */}
+        <circle cx="29" cy="59" r="4.5" fill="#182a4e" />
+        <path d="M27.2 61L26.2 71H31.8L30.8 61H27.2Z" fill="#182a4e" />
+      </g>
+
+      {/* Character Back Hair */}
+      <path
+        d="M110 185C106 144 132 115 168 117C204 119 226 148 224 190C222 222 210 242 192 246L116 242C111 226 112 204 110 185Z"
+        fill="url(#hairGrad)"
+      />
+
+      {/* Character Neck */}
+      <path d="M144 198H168V236H144V198Z" fill="#df6860" />
+      <path d="M144 198C150 205 160 207 168 204V218C158 219 149 214 144 207V198Z" fill="#c74e47" opacity="0.55" />
+
+      {/* Character Face */}
+      <path
+        d="M132 156C132 136 148 124 168 126C188 128 200 144 198 168C196 190 183 206 165 206C146 206 132 188 132 156Z"
+        fill="url(#skinGrad)"
+      />
+
+      {/* Ear */}
+      <ellipse cx="128" cy="171" rx="6.5" ry="9.5" transform="rotate(-10 128 171)" fill="#ee8178" />
+      <path d="M127 167C125 170 126 174 129 175" stroke="#c8534b" strokeWidth="1.6" strokeLinecap="round" />
+
+      {/* Front Hair & Bangs */}
+      <path
+        d="M126 164C125 136 143 116 170 117C195 118 210 137 208 163C201 162 195 156 192 146C189 156 183 161 175 161C171 156 169 151 168 146C164 156 156 161 146 160C143 156 141 152 140 148C136 157 131 162 126 164Z"
+        fill="#1e2463"
+      />
+      {/* Hair Highlight Streak */}
+      <path
+        d="M145 127C156 122 172 122 184 128"
+        stroke="#4652a8"
+        strokeWidth="3.5"
+        strokeLinecap="round"
+        opacity="0.75"
+      />
+
+      {/* Eyes & Eyebrows */}
+      <path d="M148 159C152 157 157 157 161 159" stroke="#181d52" strokeWidth="2.2" strokeLinecap="round" />
+      <path d="M176 159C180 157 185 157 189 159" stroke="#181d52" strokeWidth="2.2" strokeLinecap="round" />
+      <circle cx="155" cy="167" r="2.6" fill="#181d52" />
+      <circle cx="182" cy="167" r="2.6" fill="#181d52" />
+
+      {/* Nose & Cheerful Smile */}
+      <path d="M169 167L172 176L167 178" stroke="#c9524a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path
+        d="M157 184C163 187 174 187 180 183C179 191 173 195 167 195C161 195 157 190 157 184Z"
+        fill="#ffffff"
+      />
+      <path
+        d="M157 184C163 187 174 187 180 183"
+        stroke="#b8423b"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+
+      {/* Round Yellow-Rimmed Glasses */}
+      <circle cx="154" cy="167" r="12.5" stroke="#f7c948" strokeWidth="2.5" fill="#ffffff" fillOpacity="0.12" />
+      <circle cx="183" cy="167" r="12.5" stroke="#f7c948" strokeWidth="2.5" fill="#ffffff" fillOpacity="0.12" />
+      <path d="M166.5 166.5C168 165.5 169.5 165.5 171 166.5" stroke="#f7c948" strokeWidth="2.5" strokeLinecap="round" />
+      <line x1="129" y1="167" x2="141.5" y2="167" stroke="#f7c948" strokeWidth="2.4" strokeLinecap="round" />
+
+      {/* White Dress Shirt & Dark Navy Tie */}
+      <path d="M136 226L156 232L178 226L194 282L134 282L136 226Z" fill="#f8fafd" />
+      {/* Shirt Collar */}
+      <path d="M142 224L156 234L146 246L136 230L142 224Z" fill="#e6eef8" />
+      <path d="M172 224L158 234L168 246L178 230L172 224Z" fill="#e6eef8" />
+      {/* Tie Knot & Blade */}
+      <path d="M152 233H162L160 241H154L152 233Z" fill="#141847" />
+      <path d="M154 241H160L171 292L158 302L147 290L154 241Z" fill="#141847" />
+      {/* Tie Diagonal Accent Stripe */}
+      <path d="M152 256L163 263L164 268L151 261L152 256Z" fill="#3a4c9e" />
+
+      {/* Orange Blazer Torso */}
+      <path
+        d="M94 260C102 239 121 228 138 225L156 286L174 225C192 228 212 242 218 272L228 326L74 328L94 260Z"
+        fill="url(#blazerGrad)"
+      />
+      {/* Blazer Lapels */}
+      <path d="M138 225L125 258L139 266L134 275L156 296L138 225Z" fill="url(#lapelGrad)" />
+      <path d="M174 225L188 258L175 266L180 275L156 296L174 225Z" fill="url(#lapelGrad)" />
+
+      {/* Raised Arm & Thumbs-Up Hand */}
+      <path
+        d="M72 328L79 262L118 268L114 328H72Z"
+        fill="#ea5b2b"
+      />
+      {/* White Shirt Cuff */}
+      <path d="M80 257L117 263L115 271L78 265L80 257Z" fill="#ffffff" />
+      {/* Hand & Thumb */}
+      <path
+        d="M82 258C80 247 83 236 89 231C92 228 92 218 93 211C94 205 99 204 101 209C103 215 102 224 103 229C109 229 116 232 117 238C118 242 117 246 116 250C116 254 115 258 113 262L82 258Z"
+        fill="url(#handGrad)"
+      />
+      {/* Subtle finger crease lines */}
+      <path d="M107 236H115" stroke="#d9675f" strokeWidth="1.5" strokeLinecap="round" />
+      <path d="M107 243H115" stroke="#d9675f" strokeWidth="1.5" strokeLinecap="round" />
+      <path d="M106 250H114" stroke="#d9675f" strokeWidth="1.5" strokeLinecap="round" />
+
+      {/* Sleek Angled Desktop Monitor */}
+      <g>
+        {/* Left/Front Bezel Edge (White/Light Silver) */}
+        <path
+          d="M254 176C258 172 265 173 268 179L244 316C242 322 234 323 230 318L225 308C222 302 222 295 224 288L254 176Z"
+          fill="url(#monitorSideGrad)"
+        />
+        {/* Monitor Back Shell */}
+        <path
+          d="M258 175L378 192C386 193 391 200 389 208L364 314C362 321 355 326 347 325L236 320C241 319 244 315 245 310L265 184C266 179 262 175 258 175Z"
+          fill="url(#monitorBackGrad)"
+        />
+        {/* Glossy Wave Highlight on Monitor Back */}
+        <path
+          d="M261 232C288 248 326 244 352 224C366 213 378 214 385 222L364 312C362 320 355 325 347 324L244 319L261 232Z"
+          fill="#89aee0"
+          opacity="0.45"
+        />
+        {/* Monitor Stand Arm & Base */}
+        <path
+          d="M312 252L330 254L306 332C304 337 299 340 293 340H253C250 340 248 338 248 335C248 333 250 331 253 331H287C291 331 294 328 296 324L312 252Z"
+          fill="url(#standGrad)"
+        />
+      </g>
+    </svg>
+  </div>
+);
+
+/**
+ * Blue Dual-User Profile Icon positioned to the left of the User Name input
+ */
+const DualUserIcon = () => (
+  <svg
+    width="22"
+    height="22"
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    aria-hidden="true"
+  >
+    {/* Secondary background user */}
+    <circle cx="15.5" cy="8.5" r="3" fill="#6395f2" />
+    <path
+      d="M15.5 13C18.2 13 20.5 14.4 21 16.5C21.1 17 20.7 17.5 20.2 17.5H16.5"
+      fill="#6395f2"
+    />
+    {/* Primary foreground user */}
+    <circle cx="9.5" cy="7.5" r="3.6" fill="#2364d2" />
+    <path
+      d="M3.2 17.8C3.7 14.9 6.3 13 9.5 13C12.7 13 15.3 14.9 15.8 17.8C15.9 18.4 15.4 19 14.8 19H4.2C3.6 19 3.1 18.4 3.2 17.8Z"
+      fill="#2364d2"
+    />
+  </svg>
+);
+
+/**
+ * Blue Security Padlock with Password Dots Icon positioned to the left of the Password input
+ */
+const PasswordLockIcon = () => (
+  <svg
+    width="22"
+    height="22"
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    aria-hidden="true"
+  >
+    {/* Shackle */}
+    <path
+      d="M8.5 10V7.2C8.5 5.1 10.1 3.5 12 3.5C13.9 3.5 15.5 5.1 15.5 7.2V10"
+      stroke="#2364d2"
+      strokeWidth="2.1"
+      strokeLinecap="round"
+    />
+    {/* Padlock body */}
+    <rect x="4.5" y="9.8" width="15" height="10.2" rx="3" fill="#2364d2" />
+    {/* Four white password dots */}
+    <circle cx="8.2" cy="14.9" r="1.05" fill="#ffffff" />
+    <circle cx="10.7" cy="14.9" r="1.05" fill="#ffffff" />
+    <circle cx="13.3" cy="14.9" r="1.05" fill="#ffffff" />
+    <circle cx="15.8" cy="14.9" r="1.05" fill="#ffffff" />
+  </svg>
+);
+
+/**
+ * Official Multi-color Google 'G' SVG Logo
+ */
+const GoogleLogo = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <path
+      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+      fill="#4285F4"
+    />
+    <path
+      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+      fill="#34A853"
+    />
+    <path
+      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+      fill="#FBBC05"
+    />
+    <path
+      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+      fill="#EA4335"
+    />
+  </svg>
+);
+
+export default function App() {
+  // Navigation view state: 'login' | 'signup' | 'forgot'
+  const [authMode, setAuthMode] = useState('login');
+
+  // Form inputs state
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+
+  // UI feedback states
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
+  const [toastNotification, setToastNotification] = useState(null);
+
+  const triggerToast = (title, message, type = 'success') => {
+    setToastNotification({ title, message, type });
+    setTimeout(() => {
+      setToastNotification(null);
+    }, 4500);
+  };
+
+  const handleModeSwitch = (mode) => {
+    setAuthMode(mode);
+    setErrorMsg('');
+    setShowPassword(false);
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    setErrorMsg('');
+
+    if (authMode === 'forgot') {
+      if (!email.trim()) {
+        setErrorMsg('Please enter your university email or user name.');
+        return;
+      }
+      setIsLoading(true);
+      setTimeout(() => {
+        setIsLoading(false);
+        triggerToast(
+          'Reset Link Sent',
+          `Password recovery instructions have been dispatched to ${email.trim()}.`
+        );
+        setEmail('');
+        setAuthMode('login');
+      }, 750);
+      return;
+    }
+
+    if (!username.trim()) {
+      setErrorMsg('Please enter your User Name.');
+      return;
+    }
+    if (!password.trim()) {
+      setErrorMsg('Please enter your Password.');
+      return;
+    }
+    if (authMode === 'signup' && password.length < 6) {
+      setErrorMsg('Password must be at least 6 characters long.');
+      return;
+    }
+
+    setIsLoading(true);
+    setTimeout(() => {
+      setIsLoading(false);
+      if (authMode === 'login') {
+        triggerToast(
+          `Welcome back, ${username.trim()}!`,
+          rememberMe
+            ? 'Signed in to University Course Management System (Session remembered).'
+            : 'Signed in to University Course Management System.'
+        );
+      } else {
+        triggerToast(
+          'Account Created!',
+          `Your student/faculty account "${username.trim()}" is ready. You can now sign in.`
+        );
+        setAuthMode('login');
+      }
+    }, 800);
+  };
+
+  const handleGoogleSignIn = () => {
+    setErrorMsg('');
+    setIsLoading(true);
+    setTimeout(() => {
+      setIsLoading(false);
+      triggerToast(
+        'Google SSO Connected',
+        'Authenticated via University Google Workspace account.'
+      );
+    }, 700);
+  };
+
+  return (
+    <div
+      className="min-h-screen w-full flex items-center justify-center p-4 sm:p-6 md:p-10 font-sans antialiased selection:bg-[#276486] selection:text-white relative overflow-x-hidden"
+      style={{
+        background:
+          'linear-gradient(125deg, #7c80d6 0%, #8ea4e6 32%, #76c5f2 68%, #87f0c8 100%)',
+      }}
+    >
+      {/* Subtle Ambient Mesh Glows matching the screenshot's soft gradient transitions */}
+      <div
+        className="pointer-events-none fixed inset-0 opacity-60"
+        style={{
+          background:
+            'radial-gradient(circle at 15% 20%, rgba(116, 121, 212, 0.55) 0%, transparent 45%), radial-gradient(circle at 88% 85%, rgba(135, 240, 200, 0.65) 0%, transparent 50%)',
+        }}
+      />
+
+      {/* Interactive Feedback Toast Banner */}
+      {toastNotification && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed top-5 right-5 z-50 max-w-sm w-[calc(100%-2.5rem)] bg-white/95 backdrop-blur-md border border-[#276486]/20 rounded-2xl shadow-xl p-4 flex items-start gap-3 transition-all duration-300"
+        >
+          <div className="mt-0.5 text-[#276486] shrink-0">
+            <CheckCircle2 className="w-5 h-5" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-bold text-[#23253a]">{toastNotification.title}</p>
+            <p className="text-xs text-slate-600 mt-0.5 leading-relaxed">
+              {toastNotification.message}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setToastNotification(null)}
+            className="text-slate-400 hover:text-slate-600 p-1 rounded-lg transition-colors"
+            aria-label="Dismiss notification"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
+      {/* Main Centered Card */}
+      <main className="relative z-10 w-full max-w-[960px] bg-[#fcf9f9] rounded-[24px] shadow-[0_22px_60px_rgba(30,45,90,0.16)] px-6 py-8 sm:px-10 sm:py-11 md:px-12 md:py-12 transition-all">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-center">
+          {/* LEFT COLUMN: Branding Header + Custom SVG Illustration */}
+          <section className="lg:col-span-6 flex flex-col items-center text-center">
+            <h1 className="text-[20px] sm:text-[23px] font-bold tracking-tight text-[#23253a] leading-snug">
+              University Course Management System
+            </h1>
+            <p className="mt-1.5 mb-6 sm:mb-7 text-[13.5px] sm:text-[14.5px] italic font-medium text-[#27698c]">
+              Connecting Minds, Shaping Tomorrow
+            </p>
+
+            {/* Illustration Card */}
+            <UniversityIllustration />
+          </section>
+
+          {/* RIGHT COLUMN: Welcome Form */}
+          <section className="lg:col-span-6 w-full max-w-[360px] mx-auto flex flex-col justify-center">
+            {authMode === 'login' && (
+              <>
+                <div className="text-center mb-6">
+                  <h2 className="text-[26px] sm:text-[29px] font-extrabold tracking-wide text-[#256689] uppercase">
+                    WELCOME
+                  </h2>
+                  <p className="mt-1 text-[11px] sm:text-[11.5px] text-slate-600 font-medium">
+                    Enter your User Name and Password to access your account
+                  </p>
+                </div>
+
+                {errorMsg && (
+                  <div
+                    role="alert"
+                    className="mb-4 px-3.5 py-2.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-2"
+                  >
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    <span>{errorMsg}</span>
+                  </div>
+                )}
+
+                <form onSubmit={handleSubmit} noValidate className="space-y-4">
+                  {/* User Name Field */}
+                  <div>
+                    <label
+                      htmlFor="username-input"
+                      className="block text-[11px] font-bold text-[#23253a] mb-1.5 pl-9"
+                    >
+                      User Name
+                    </label>
+                    <div className="flex items-center gap-3">
+                      <div className="w-6 flex items-center justify-center shrink-0">
+                        <DualUserIcon />
+                      </div>
+                      <div className="relative flex-1">
+                        <input
+                          id="username-input"
+                          type="text"
+                          autoComplete="username"
+                          value={username}
+                          onChange={(e) => setUsername(e.target.value)}
+                          placeholder="Enter your user name"
+                          className="w-full h-[38px] px-3.5 rounded-[10px] bg-[#f1f1f1] text-[12px] text-[#23253a] placeholder:text-[#b4b4b4] shadow-[0_2px_3px_rgba(0,0,0,0.12)] border border-transparent focus:border-[#276486]/40 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#276486]/15 transition-all"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Password Field */}
+                  <div>
+                    <label
+                      htmlFor="password-input"
+                      className="block text-[11px] font-bold text-[#23253a] mb-1.5 pl-9"
+                    >
+                      Password
+                    </label>
+                    <div className="flex items-center gap-3">
+                      <div className="w-6 flex items-center justify-center shrink-0">
+                        <PasswordLockIcon />
+                      </div>
+                      <div className="relative flex-1">
+                        <input
+                          id="password-input"
+                          type={showPassword ? 'text' : 'password'}
+                          autoComplete="current-password"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          placeholder="Enter your password"
+                          className="w-full h-[38px] pl-3.5 pr-9 rounded-[10px] bg-[#f1f1f1] text-[12px] text-[#23253a] placeholder:text-[#b4b4b4] shadow-[0_2px_3px_rgba(0,0,0,0.12)] border border-transparent focus:border-[#276486]/40 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#276486]/15 transition-all"
+                        />
+                        {password.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword((prev) => !prev)}
+                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[#276486] p-1 transition-colors"
+                            aria-label={showPassword ? 'Hide password' : 'Show password'}
+                          >
+                            {showPassword ? (
+                              <EyeOff className="w-3.5 h-3.5" />
+                            ) : (
+                              <Eye className="w-3.5 h-3.5" />
+                            )}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Remember Me & Forgot Password Row */}
+                  <div className="flex items-center justify-between pl-9 pt-0.5 text-[10.5px]">
+                    <label className="inline-flex items-center gap-2 cursor-pointer select-none text-[#23253a] font-semibold">
+                      <input
+                        type="checkbox"
+                        checked={rememberMe}
+                        onChange={(e) => setRememberMe(e.target.checked)}
+                        className="w-3.5 h-3.5 rounded-[3px] border border-[#23253a] accent-[#276486] cursor-pointer"
+                      />
+                      <span>Remember me</span>
+                    </label>
+
+                    <button
+                      type="button"
+                      onClick={() => handleModeSwitch('forgot')}
+                      className="italic font-bold text-[#23253a] hover:text-[#276486] transition-colors cursor-pointer"
+                    >
+                      Forgot Password?
+                    </button>
+                  </div>
+
+                  {/* Primary & Secondary Action Buttons */}
+                  <div className="pl-6 pt-3 space-y-2.5">
+                    <button
+                      type="submit"
+                      disabled={isLoading}
+                      className="w-full h-[36px] rounded-[9px] bg-[#276486] hover:bg-[#1f526e] active:scale-[0.99] disabled:opacity-60 text-white text-[12px] font-semibold shadow-sm transition-all cursor-pointer flex items-center justify-center"
+                    >
+                      {isLoading ? 'Signing In...' : 'Sign In'}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleGoogleSignIn}
+                      disabled={isLoading}
+                      className="w-full h-[36px] rounded-[9px] bg-[#e2e2e2] hover:bg-[#d6d6d6] active:scale-[0.99] disabled:opacity-60 text-[#23253a] text-[12px] font-semibold transition-all cursor-pointer flex items-center justify-center gap-2"
+                    >
+                      <GoogleLogo />
+                      <span>Sign In with Google</span>
+                    </button>
+                  </div>
+                </form>
+
+                {/* Footer Sign Up Link */}
+                <p className="mt-7 pl-6 text-center text-[11px] text-slate-500">
+                  Don&apos;t have an account?{' '}
+                  <button
+                    type="button"
+                    onClick={() => handleModeSwitch('signup')}
+                    className="font-bold text-[#23253a] hover:text-[#276486] transition-colors cursor-pointer"
+                  >
+                    Sign up
+                  </button>
+                </p>
+              </>
+            )}
+
+            {/* SIGN UP VIEW */}
+            {authMode === 'signup' && (
+              <>
+                <div className="text-center mb-5">
+                  <h2 className="text-[24px] sm:text-[27px] font-extrabold tracking-wide text-[#256689] uppercase">
+                    CREATE ACCOUNT
+                  </h2>
+                  <p className="mt-1 text-[11.5px] text-slate-600 font-medium">
+                    Register with your university credentials to get started
+                  </p>
+                </div>
+
+                {errorMsg && (
+                  <div
+                    role="alert"
+                    className="mb-4 px-3.5 py-2.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-2"
+                  >
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    <span>{errorMsg}</span>
+                  </div>
+                )}
+
+                <form onSubmit={handleSubmit} noValidate className="space-y-3.5">
+                  <div>
+                    <label
+                      htmlFor="signup-username"
+                      className="block text-[11px] font-bold text-[#23253a] mb-1 pl-9"
+                    >
+                      User Name
+                    </label>
+                    <div className="flex items-center gap-3">
+                      <div className="w-6 flex items-center justify-center shrink-0">
+                        <DualUserIcon />
+                      </div>
+                      <input
+                        id="signup-username"
+                        type="text"
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
+                        placeholder="Choose a user name"
+                        className="w-full h-[38px] px-3.5 rounded-[10px] bg-[#f1f1f1] text-[12px] text-[#23253a] placeholder:text-[#b4b4b4] shadow-[0_2px_3px_rgba(0,0,0,0.12)] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#276486]/20 transition-all"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="signup-password"
+                      className="block text-[11px] font-bold text-[#23253a] mb-1 pl-9"
+                    >
+                      Password
+                    </label>
+                    <div className="flex items-center gap-3">
+                      <div className="w-6 flex items-center justify-center shrink-0">
+                        <PasswordLockIcon />
+                      </div>
+                      <div className="relative flex-1">
+                        <input
+                          id="signup-password"
+                          type={showPassword ? 'text' : 'password'}
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          placeholder="Create a password (min 6 chars)"
+                          className="w-full h-[38px] pl-3.5 pr-9 rounded-[10px] bg-[#f1f1f1] text-[12px] text-[#23253a] placeholder:text-[#b4b4b4] shadow-[0_2px_3px_rgba(0,0,0,0.12)] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#276486]/20 transition-all"
+                        />
+                        {password.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword((prev) => !prev)}
+                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[#276486] p-1"
+                            aria-label={showPassword ? 'Hide password' : 'Show password'}
+                          >
+                            {showPassword ? (
+                              <EyeOff className="w-3.5 h-3.5" />
+                            ) : (
+                              <Eye className="w-3.5 h-3.5" />
+                            )}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pl-6 pt-3 space-y-2.5">
+                    <button
+                      type="submit"
+                      disabled={isLoading}
+                      className="w-full h-[36px] rounded-[9px] bg-[#276486] hover:bg-[#1f526e] text-white text-[12px] font-semibold shadow-sm transition-all cursor-pointer"
+                    >
+                      {isLoading ? 'Creating Account...' : 'Create Account'}
+                    </button>
+                  </div>
+                </form>
+
+                <p className="mt-6 pl-6 text-center text-[11px] text-slate-500">
+                  Already have an account?{' '}
+                  <button
+                    type="button"
+                    onClick={() => handleModeSwitch('login')}
+                    className="font-bold text-[#23253a] hover:text-[#276486] transition-colors cursor-pointer"
+                  >
+                    Sign in
+                  </button>
+                </p>
+              </>
+            )}
+
+            {/* FORGOT PASSWORD VIEW */}
+            {authMode === 'forgot' && (
+              <>
+                <div className="text-center mb-5">
+                  <h2 className="text-[23px] sm:text-[25px] font-extrabold tracking-wide text-[#256689] uppercase">
+                    RESET PASSWORD
+                  </h2>
+                  <p className="mt-1 text-[11.5px] text-slate-600 font-medium">
+                    Enter your User Name or university email to receive a reset link
+                  </p>
+                </div>
+
+                {errorMsg && (
+                  <div
+                    role="alert"
+                    className="mb-4 px-3.5 py-2.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-2"
+                  >
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    <span>{errorMsg}</span>
+                  </div>
+                )}
+
+                <form onSubmit={handleSubmit} noValidate className="space-y-4">
+                  <div>
+                    <label
+                      htmlFor="recovery-input"
+                      className="block text-[11px] font-bold text-[#23253a] mb-1.5 pl-9"
+                    >
+                      User Name or Email
+                    </label>
+                    <div className="flex items-center gap-3">
+                      <div className="w-6 flex items-center justify-center shrink-0">
+                        <DualUserIcon />
+                      </div>
+                      <input
+                        id="recovery-input"
+                        type="text"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="e.g., student@university.edu"
+                        className="w-full h-[38px] px-3.5 rounded-[10px] bg-[#f1f1f1] text-[12px] text-[#23253a] placeholder:text-[#b4b4b4] shadow-[0_2px_3px_rgba(0,0,0,0.12)] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#276486]/20 transition-all"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="pl-6 pt-2 space-y-2.5">
+                    <button
+                      type="submit"
+                      disabled={isLoading}
+                      className="w-full h-[36px] rounded-[9px] bg-[#276486] hover:bg-[#1f526e] text-white text-[12px] font-semibold shadow-sm transition-all cursor-pointer"
+                    >
+                      {isLoading ? 'Sending Link...' : 'Send Recovery Link'}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleModeSwitch('login')}
+                      className="w-full h-[36px] rounded-[9px] bg-[#e2e2e2] hover:bg-[#d6d6d6] text-[#23253a] text-[12px] font-semibold transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                    >
+                      <ArrowLeft className="w-3.5 h-3.5" />
+                      <span>Back to Sign In</span>
+                    </button>
+                  </div>
+                </form>
+              </>
+            )}
+          </section>
+        </div>
+      </main>
+    </div>
+  );
+}

@@ -1,0 +1,7 @@
+# Root context is used only for the Ansible control image.
+**
+!infrastructure/
+!infrastructure/ansible/
+!infrastructure/ansible/requirements.txt
+!infrastructure/scripts/
+!infrastructure/scripts/requirements.txt

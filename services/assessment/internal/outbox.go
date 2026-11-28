@@ -77,9 +77,9 @@ func (c *AnalyticsClient) Publish(ctx context.Context, event OutboxEvent) error 
 }
 
 type OutboxWorker struct {
-	store   OutboxStore
-	client  *AnalyticsClient
-	logger  *slog.Logger
+	store  OutboxStore
+	client *AnalyticsClient
+	logger *slog.Logger
 }
 
 func NewOutboxWorker(store OutboxStore, client *AnalyticsClient, logger *slog.Logger) *OutboxWorker {

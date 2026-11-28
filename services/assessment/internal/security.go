@@ -26,12 +26,12 @@ import (
 )
 
 const (
-	claimsContextKey      = "auth_claims"
-	requestIDContextKey   = "request_id"
-	outboundRequestIDKey  = "assessment_request_id"
-	HeaderServiceID       = "X-Service-Id"
+	claimsContextKey       = "auth_claims"
+	requestIDContextKey    = "request_id"
+	outboundRequestIDKey   = "assessment_request_id"
+	HeaderServiceID        = "X-Service-Id"
 	HeaderServiceTimestamp = "X-Service-Timestamp"
-	HeaderServiceNonce    = "X-Service-Nonce"
+	HeaderServiceNonce     = "X-Service-Nonce"
 	HeaderServiceSignature = "X-Service-Signature"
 )
 

@@ -1,0 +1,39 @@
+# Local development overrides.
+#
+# Use together with the base file:
+#   docker compose -f infrastructure/docker/compose.yaml \
+#     -f infrastructure/docker/compose.dev.yaml -p platform-dev up --build
+#
+# Keep environment-specific values in infrastructure/docker/.env and the
+# service-specific values in services/*/.env.
+
+services:
+  auth:
+    environment:
+      APP_ENV: development
+      LOG_LEVEL: debug
+
+  user:
+    environment:
+      APP_ENV: development
+      LOG_LEVEL: debug
+
+  course:
+    environment:
+      APP_ENV: development
+      LOG_LEVEL: debug
+
+  enrollment:
+    environment:
+      APP_ENV: development
+      LOG_LEVEL: debug
+
+  assessment:
+    environment:
+      APP_ENV: development
+      LOG_LEVEL: debug
+
+  analytics:
+    environment:
+      APP_ENV: development
+      LOG_LEVEL: debug

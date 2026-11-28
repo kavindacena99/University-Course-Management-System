@@ -1,0 +1,29 @@
+# Reusable supporting proxy, sharing ONLY its store's network namespace.
+# Silo itself MUST listen on 127.0.0.1:19000; port 9000 belongs solely to this guard.
+services:
+  storage-guard:
+    image: ${GATEWAY_IMAGE:?pin existing Nginx image}
+    entrypoint: [nginx]
+    command: [-g, "daemon off;"]
+    user: "101:101"
+    network_mode: service:minio
+    depends_on:
+      minio: {condition: service_started}
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 64m
+    cpus: 0.25
+    pids_limit: 32
+    tmpfs: ["/tmp:rw,noexec,nosuid,size=16m,mode=1777", "/var/cache/nginx:rw,noexec,nosuid,size=16m,mode=1777"]
+    volumes:
+      - ../object-storage/select-guard.conf:/etc/nginx/nginx.conf:ro
+    healthcheck:
+      test: [CMD, wget, -q, -O, /dev/null, http://127.0.0.1:9000/minio/health/live]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    logging:
+      driver: json-file
+      options: {max-size: 10m, max-file: '3'}
