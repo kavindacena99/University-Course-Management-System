@@ -42,3 +42,18 @@ source and Nginx routing, so a reviewed new commit, complete CI publication,
 new manifest and `v0.1.0-rc.2` are required. RC1 is not eligible for stable
 promotion. Phase 5 remains in progress until the next candidate and QA/stable
 transition are validated.
+
+## RC2 publication evidence
+
+The frontend fix merged under PR #20 at source commit
+`1d76667cfb27077568f5dca283352386b67d6f02`. Protected-main
+[CI run 46120731377](https://github.com/kavindacena99/University-Course-Management-System/actions/runs/46120731377)
+completed its required jobs and published a new nine-image set. The actual
+[manifest artifact](https://github.com/kavindacena99/University-Course-Management-System/actions/runs/46120731377/artifacts/15253576986)
+and [publication evidence](https://github.com/kavindacena99/University-Course-Management-System/actions/runs/46120731377/artifacts/15253417313)
+were downloaded. The manifest passed schema and semantic validation; all nine
+publication records, digest files and `images.env` entries agreed. Each SHA
+tag independently resolved on GHCR to the manifest's digest. The manifest's
+SHA-256 is `bd95ab4398ae8a107e87b8d30f0caca059ead1bf5ba41e846baee1fc07e1228e`.
+The RC2 record under `release-manifests/v0.1.0-rc.2/` refers to this exact
+source and image set; QA status remains pending. No RC1 tag or digest changed.

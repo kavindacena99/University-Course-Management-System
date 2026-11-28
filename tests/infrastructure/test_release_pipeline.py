@@ -19,6 +19,12 @@ class ReleaseContract(unittest.TestCase):
     def test_actual_candidate_matches_publication(self):
         source = release_pipeline.validate(self.manifest, self.path)
         self.assertEqual(len(source['images']), 9)
+        rc2 = ROOT / 'release-manifests/v0.1.0-rc.2/release-manifest.json'
+        next_manifest = json.loads(rc2.read_text(encoding='utf-8'))
+        next_source = release_pipeline.validate(next_manifest, rc2)
+        self.assertEqual(next_manifest['rc_number'], 2)
+        self.assertNotEqual(next_source['source']['commit'], source['source']['commit'])
+        self.assertNotEqual(next_manifest['images'], self.manifest['images'])
 
     def test_rc_number_and_channel_cannot_drift(self):
         for version, number in [('0.1.0-rc.2', 1), ('0.1.0-rc.1', 2)]:

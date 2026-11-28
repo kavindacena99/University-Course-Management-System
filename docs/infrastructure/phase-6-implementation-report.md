@@ -54,3 +54,14 @@ QA was gracefully stopped. No QA target container remains running; the
 `platform-qa-target_postgres-data` and `platform-qa-target_minio-data` volumes
 remain, as do the legacy and DEV volumes. RC1 remains an immutable prerelease.
 A reviewed source fix and new Phase 4 publication are required for RC2.
+
+## RC2 preparation
+
+PR #20 merged the frontend same-origin gateway proxy at
+`1d76667cfb27077568f5dca283352386b67d6f02`. Run 46120731377
+published and verified nine fresh images for that commit. The stopped QA
+target's non-secret `frontend.conf` was updated to the reviewed proxy; its
+previous bytes were retained in ignored `.infra-state/releases/config-backups/qa/`.
+Credentials, signing keys, target data volumes and DEV remained unchanged.
+RC2 deployment requires a verified external backup of the now-existing QA
+PostgreSQL and object volumes before migrations.
