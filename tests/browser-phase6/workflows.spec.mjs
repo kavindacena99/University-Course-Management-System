@@ -50,8 +50,10 @@ test('student enrolments, report and lecturer/admin denial use live APIs', async
   const calls = [];
   page.on('response', response => { if (response.url().includes('/api/v1/')) calls.push(response.url()); });
   await login(page, process.env.PHASE6_STUDENT_EMAIL, process.env.PHASE6_STUDENT_PASSWORD);
+  const studentEnrollments = page.waitForResponse(response => response.url().includes('/students/') && response.url().includes('/enrollments'));
   await page.goto('/student/enrollments');
   await expect(page.getByRole('heading', { name: 'My enrolments' })).toBeVisible();
+  expect((await studentEnrollments).status()).toBe(200);
   await page.reload();
   await expect(page.getByRole('heading', { name: 'My enrolments' })).toBeVisible();
   const studentAnalytics = page.waitForResponse(response => response.url().includes('/analytics/students/me'));
