@@ -1,7 +1,7 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import "./LecCreateCourse.css";
-import { createCourse } from "../services/courses";
+import { createCourse, getCourse, updateCourse } from "../services/courses";
 import { getCurrentUser, logout } from "../services/auth";
 import type { UserSummary } from "../types/api";
 
@@ -105,48 +105,118 @@ function Header({
   );
 }
 
-function CourseForm({ onSaved }: { onSaved: (message: string) => void }) {
+function CourseForm({
+  courseId,
+  onSaved,
+  onCancel,
+}: {
+  courseId: string | null;
+  onSaved: (message: string) => void;
+  onCancel: () => void;
+}) {
   const [form, setForm] = useState<FormState>(emptyForm);
+  const [courseVersion, setCourseVersion] = useState<number | null>(null);
   const [editMode, setEditMode] = useState(true);
   const [submitted, setSubmitted] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(Boolean(courseId));
 
   const setField = (field: keyof FormState, value: string) => {
     setForm((current) => ({ ...current, [field]: value }));
   };
 
+  useEffect(() => {
+    if (!courseId) {
+      setLoading(false);
+      setCourseVersion(null);
+      setForm(emptyForm);
+      return;
+    }
+
+    let active = true;
+    setLoading(true);
+    getCourse(courseId)
+      .then(({ course }) => {
+        if (!active) return;
+        setCourseVersion(course.version);
+        setForm({
+          title: course.title,
+          code: course.code,
+          description: course.description,
+          credits: String(course.credits),
+        });
+      })
+      .catch((error: unknown) => {
+        if (active) {
+          onSaved(error instanceof Error ? error.message : "Unable to load the course.");
+        }
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [courseId, onSaved]);
+
+  const normalizedCode = form.code.trim().toUpperCase();
+  const credits = Number(form.credits);
+  const invalidCode = !/^[A-Z0-9_-]{2,32}$/.test(normalizedCode);
+  const invalidCredits = !Number.isInteger(credits) || credits < 1 || credits > 30;
   const requiredMissing = useMemo(
     () =>
       submitted &&
-      (!form.title || !form.code || !form.credits || Number.isNaN(Number(form.credits))),
-    [form.code, form.credits, form.title, submitted],
+      (!form.title.trim() ||
+        form.title.length > 200 ||
+        invalidCode ||
+        invalidCredits ||
+        form.description.length > 5000),
+    [form.description.length, form.title, invalidCode, invalidCredits, submitted],
   );
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setSubmitted(true);
-    const credits = Number(form.credits);
-    if (!form.title || !form.code || !form.credits || !Number.isFinite(credits) || credits < 0) return;
+    const title = form.title.trim();
+    if (
+      !title ||
+      title.length > 200 ||
+      invalidCode ||
+      invalidCredits ||
+      form.description.length > 5000 ||
+      (courseId !== null && courseVersion === null)
+    ) return;
 
     setSaving(true);
     try {
-      await createCourse({
-        code: form.code,
-        title: form.title,
-        description: form.description,
+      const input = {
+        code: normalizedCode,
+        title,
+        description: form.description.trim(),
         credits,
-      });
-      onSaved(`${form.title} has been created successfully.`);
-      setForm(emptyForm);
-      setSubmitted(false);
+      };
+      if (courseId && courseVersion !== null) {
+        const { course } = await updateCourse(courseId, { ...input, version: courseVersion });
+        setCourseVersion(course.version);
+        onSaved(`${course.title} has been updated successfully.`);
+      } else {
+        const { course } = await createCourse(input);
+        onSaved(`${course.title} has been created successfully.`);
+        setForm(emptyForm);
+        setSubmitted(false);
+      }
     } catch (error) {
-      onSaved(error instanceof Error ? error.message : "Unable to create the course.");
+      onSaved(error instanceof Error ? error.message : "Unable to save the course.");
     } finally {
       setSaving(false);
     }
   };
 
   const cancel = () => {
+    if (courseId) {
+      onCancel();
+      return;
+    }
     setForm(emptyForm);
     setSubmitted(false);
     onSaved("Course form cleared.");
@@ -156,7 +226,7 @@ function CourseForm({ onSaved }: { onSaved: (message: string) => void }) {
     <main className="content">
       <section className="course-card" aria-labelledby="course-form-title">
         <div className="card-heading">
-          <h1 id="course-form-title">Create New Course</h1>
+          <h1 id="course-form-title">{courseId ? "Edit Course" : "Create New Course"}</h1>
           <label className="edit-toggle">
             <span>Edit Mode</span>
             <input
@@ -170,15 +240,17 @@ function CourseForm({ onSaved }: { onSaved: (message: string) => void }) {
           </label>
         </div>
 
+        {loading && <p role="status">Loading course...</p>}
         <form onSubmit={submit} noValidate>
-          <fieldset disabled={!editMode}>
+          <fieldset disabled={!editMode || loading || saving}>
             <div className="field field-full">
               <label htmlFor="title">Course Title</label>
               <input
                 id="title"
+                maxLength={200}
                 value={form.title}
                 onChange={(event) => setField("title", event.target.value)}
-                aria-invalid={submitted && !form.title}
+                aria-invalid={submitted && (!form.title.trim() || form.title.length > 200)}
               />
             </div>
 
@@ -187,9 +259,12 @@ function CourseForm({ onSaved }: { onSaved: (message: string) => void }) {
                 <label htmlFor="code">Course Code</label>
                 <input
                   id="code"
+                  minLength={2}
+                  maxLength={32}
+                  pattern="[A-Za-z0-9_-]{2,32}"
                   value={form.code}
                   onChange={(event) => setField("code", event.target.value)}
-                  aria-invalid={submitted && !form.code}
+                  aria-invalid={submitted && invalidCode}
                 />
               </div>
               <div className="field">
@@ -197,10 +272,12 @@ function CourseForm({ onSaved }: { onSaved: (message: string) => void }) {
                 <input
                   type="number"
                   id="credits"
-                  min="0"
+                  min="1"
+                  max="30"
+                  step="1"
                   value={form.credits}
                   onChange={(event) => setField("credits", event.target.value)}
-                  aria-invalid={submitted && (!form.credits || !Number.isFinite(Number(form.credits)))}
+                  aria-invalid={submitted && invalidCredits}
                 />
               </div>
             </div>
@@ -209,6 +286,7 @@ function CourseForm({ onSaved }: { onSaved: (message: string) => void }) {
               <label htmlFor="description">Description</label>
               <textarea
                 id="description"
+                maxLength={5000}
                 value={form.description}
                 onChange={(event) => setField("description", event.target.value)}
               />
@@ -217,7 +295,7 @@ function CourseForm({ onSaved }: { onSaved: (message: string) => void }) {
 
           {requiredMissing && (
             <p className="form-error" role="alert">
-              Please complete the course title, course code and a valid credit value.
+              Enter a title (up to 200 characters), a valid course code, 1–30 whole credits, and a description up to 5,000 characters.
             </p>
           )}
 
@@ -225,8 +303,8 @@ function CourseForm({ onSaved }: { onSaved: (message: string) => void }) {
             <button className="button secondary" type="button" onClick={cancel}>
               Cancel
             </button>
-            <button className="button primary" type="submit" disabled={!editMode || saving}>
-              {saving ? "Saving..." : "Save Course"}
+            <button className="button primary" type="submit" disabled={!editMode || loading || saving}>
+              {saving ? "Saving..." : courseId ? "Save Changes" : "Save Course"}
             </button>
           </div>
         </form>
@@ -237,9 +315,11 @@ function CourseForm({ onSaved }: { onSaved: (message: string) => void }) {
 
 export default function LecCreateCourse () {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [activeItem, setActiveItem] = useState("My Courses");
   const [notice, setNotice] = useState("");
   const [user, setUser] = useState<UserSummary | null>(null);
+  const courseId = searchParams.get("courseId");
 
   useEffect(() => {
     let active = true;
@@ -280,7 +360,11 @@ export default function LecCreateCourse () {
       <Sidebar activeItem={activeItem} onNavigate={navigateToItem} onLogout={handleLogout} />
       <div className="workspace">
         <Header user={user} />
-        <CourseForm onSaved={setNotice} />
+        <CourseForm
+          courseId={courseId}
+          onSaved={setNotice}
+          onCancel={() => navigate("/courses")}
+        />
       </div>
       {notice && (
         <button className="toast" type="button" role="status" onClick={() => setNotice("")}>

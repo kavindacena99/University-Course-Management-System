@@ -36,6 +36,7 @@ export default function StudentResults() {
           <h1>Results and grades</h1>
         </div>
         <Link to="/courses">Back to courses</Link>
+        <Link to="/student/enrollments">Course enrollment</Link>
       </header>
 
       {error && <p className="student-results__error" role="alert">{error}</p>}

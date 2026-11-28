@@ -7,9 +7,11 @@ import type {
   Course,
 } from "../types/api";
 import {
-  approveUser,
   changeCourseStatus,
+  changeUserStatus,
   getAdminSummary,
+  getAdminUserHistory,
+  listAdminUsers,
   listAdminCourses,
   listPendingUsers,
 } from "../services/admin";
@@ -18,15 +20,17 @@ import "./Admin_Dashboard.css";
 
 type AdminTab = "overview" | "courses" | "users";
 
-async function loadAdminData() {
-  const [summaryResponse, courseResponse, userResponse] = await Promise.all([
+async function loadAdminData(status: AdminUser["registration_status"]) {
+  const [summaryResponse, courseResponse, pendingResponse, userResponse] = await Promise.all([
     getAdminSummary(),
     listAdminCourses(),
     listPendingUsers(),
+    listAdminUsers(status),
   ]);
   return {
     summary: summaryResponse.summary,
     courses: courseResponse.courses,
+    pendingUsers: pendingResponse.users,
     users: userResponse.users,
   };
 }
@@ -38,18 +42,25 @@ export default function Admin_Dashboard() {
   const [summary, setSummary] = useState<AdminAnalyticsSummary | null>(null);
   const [courses, setCourses] = useState<Course[]>([]);
   const [users, setUsers] = useState<AdminUser[]>([]);
+  const [pendingUsers, setPendingUsers] = useState<AdminUser[]>([]);
+  const [userStatus, setUserStatus] = useState<AdminUser["registration_status"]>("pending");
+  const [historyUser, setHistoryUser] = useState<AdminUser | null>(null);
+  const [userHistory, setUserHistory] = useState<Awaited<ReturnType<typeof getAdminUserHistory>>["history"]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [usersLoading, setUsersLoading] = useState(false);
   const [actionId, setActionId] = useState("");
   const [error, setError] = useState("");
 
   useEffect(() => {
     let active = true;
-    loadAdminData()
+    loadAdminData("pending")
       .then((data) => {
         if (!active) return;
         setSummary(data.summary);
         setCourses(data.courses);
         setUsers(data.users);
+        setPendingUsers(data.pendingUsers);
       })
       .catch((requestError) => {
         if (active) {
@@ -64,6 +75,25 @@ export default function Admin_Dashboard() {
     };
   }, []);
 
+  useEffect(() => {
+    if (activeTab !== "users") return;
+    let active = true;
+    setUsersLoading(true);
+    listAdminUsers(userStatus)
+      .then((response) => {
+        if (active) setUsers(response.users);
+      })
+      .catch((requestError: unknown) => {
+        if (active) setError(requestError instanceof Error ? requestError.message : "Unable to load users.");
+      })
+      .finally(() => {
+        if (active) setUsersLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [activeTab, userStatus]);
+
   const query = search.trim().toLowerCase();
   const filteredCourses = useMemo(
     () =>
@@ -75,19 +105,19 @@ export default function Admin_Dashboard() {
       ),
     [courses, query],
   );
-  const filteredUsers = useMemo(
-    () =>
-      users.filter((user) =>
-        `${user.first_name} ${user.last_name} ${user.email}`.toLowerCase().includes(query),
-      ),
-    [users, query],
-  );
+  const filteredUsers = useMemo(() => {
+    const source = activeTab === "users" ? users : pendingUsers;
+    return source.filter((user) =>
+      `${user.first_name} ${user.last_name} ${user.email}`.toLowerCase().includes(query),
+    );
+  }, [activeTab, pendingUsers, query, users]);
 
   async function refresh() {
-    const data = await loadAdminData();
+    const data = await loadAdminData(userStatus);
     setSummary(data.summary);
     setCourses(data.courses);
     setUsers(data.users);
+    setPendingUsers(data.pendingUsers);
   }
 
   async function runAction(id: string, action: () => Promise<unknown>) {
@@ -100,6 +130,21 @@ export default function Admin_Dashboard() {
       setError(requestError instanceof Error ? requestError.message : "The action failed.");
     } finally {
       setActionId("");
+    }
+  }
+
+  async function showUserHistory(user: AdminUser) {
+    setHistoryUser(user);
+    setUserHistory([]);
+    setHistoryLoading(true);
+    setError("");
+    try {
+      const response = await getAdminUserHistory(user.id);
+      setUserHistory(response.history);
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Unable to load user history.");
+    } finally {
+      setHistoryLoading(false);
     }
   }
 
@@ -124,7 +169,7 @@ export default function Admin_Dashboard() {
           {([
             ["overview", "Overview", <TrendingUp key="overview" size={18} />],
             ["courses", "Courses", <BookOpen key="courses" size={18} />],
-            ["users", "Pending users", <Users key="users" size={18} />],
+            ["users", "Users", <Users key="users" size={18} />],
           ] as const).map(([tab, label, icon]) => (
             <button
               className={activeTab === tab ? "is-active" : ""}
@@ -133,7 +178,7 @@ export default function Admin_Dashboard() {
               type="button"
             >
               {icon}<span>{label}</span>
-              {tab === "users" && users.length > 0 && <small>{users.length}</small>}
+              {tab === "users" && pendingUsers.length > 0 && <small>{pendingUsers.length}</small>}
             </button>
           ))}
         </nav>
@@ -146,7 +191,7 @@ export default function Admin_Dashboard() {
         <header className="ucms-admin__header">
           <div>
             <p>Administration</p>
-            <h1>{activeTab === "overview" ? "Dashboard" : activeTab === "courses" ? "Courses" : "Pending users"}</h1>
+            <h1>{activeTab === "overview" ? "Dashboard" : activeTab === "courses" ? "Courses" : "Users"}</h1>
           </div>
           <label className="ucms-admin__search">
             <Search size={17} aria-hidden="true" />
@@ -181,7 +226,7 @@ export default function Admin_Dashboard() {
                   </article>
                   <article>
                     <span>Pending approvals</span>
-                    <strong>{users.length.toLocaleString()}</strong>
+                    <strong>{pendingUsers.length.toLocaleString()}</strong>
                   </article>
                 </section>
 
@@ -248,35 +293,119 @@ export default function Admin_Dashboard() {
               <section className="ucms-admin__panel">
                 <div className="ucms-admin__panel-heading">
                   <div>
-                    <h2>Pending registrations</h2>
-                    <p>Approve accounts submitted for university access.</p>
+                    <h2>{activeTab === "users" ? "User accounts" : "Pending registrations"}</h2>
+                    <p>{activeTab === "users" ? "Review account registration status and manage access." : "Approve accounts submitted for university access."}</p>
                   </div>
+                  {activeTab === "users" && (
+                    <label className="ucms-admin__user-filter">
+                      Status
+                      <select
+                        onChange={(event) => setUserStatus(event.target.value as AdminUser["registration_status"])}
+                        value={userStatus}
+                      >
+                        <option value="pending">Pending</option>
+                        <option value="approved">Approved</option>
+                        <option value="rejected">Rejected</option>
+                        <option value="suspended">Suspended</option>
+                      </select>
+                    </label>
+                  )}
                 </div>
                 <div className="ucms-admin__table-wrap">
                   <table>
-                    <thead><tr><th>Name</th><th>Email</th><th>Submitted</th><th>Action</th></tr></thead>
+                    <thead><tr><th>Name</th><th>Email</th><th>Status</th><th>Submitted</th><th>Action</th></tr></thead>
                     <tbody>
                       {filteredUsers.map((user) => (
                         <tr key={user.id}>
                           <td>{user.first_name} {user.last_name}</td>
                           <td>{user.email}</td>
+                          <td>{user.registration_status}</td>
                           <td>{new Date(user.created_at).toLocaleDateString()}</td>
                           <td>
+                            {user.registration_status === "pending" && (
+                              <>
+                                <button
+                                  className="ucms-admin__action"
+                                  disabled={actionId === user.id}
+                                  onClick={() => void runAction(user.id, () => changeUserStatus(user, "approve"))}
+                                  type="button"
+                                >
+                                  {actionId === user.id ? "Saving..." : "Approve"}
+                                </button>
+                                <button
+                                  className="ucms-admin__action ucms-admin__action--secondary"
+                                  disabled={actionId === user.id}
+                                  onClick={() => void runAction(user.id, () => changeUserStatus(user, "reject"))}
+                                  type="button"
+                                >
+                                  Reject
+                                </button>
+                              </>
+                            )}
+                            {user.registration_status === "approved" && (
+                              <button
+                                className="ucms-admin__action ucms-admin__action--secondary"
+                                disabled={actionId === user.id}
+                                onClick={() => void runAction(user.id, () => changeUserStatus(user, "suspend"))}
+                                type="button"
+                              >
+                                Suspend
+                              </button>
+                            )}
+                            {user.registration_status === "suspended" && (
+                              <button
+                                className="ucms-admin__action"
+                                disabled={actionId === user.id}
+                                onClick={() => void runAction(user.id, () => changeUserStatus(user, "reinstate"))}
+                                type="button"
+                              >
+                                Reinstate
+                              </button>
+                            )}
                             <button
-                              className="ucms-admin__action"
-                              disabled={actionId === user.id}
-                              onClick={() => void runAction(user.id, () => approveUser(user.id, user.version))}
+                              className="ucms-admin__action ucms-admin__action--secondary"
+                              onClick={() => void showUserHistory(user)}
                               type="button"
                             >
-                              {actionId === user.id ? "Approving..." : "Approve"}
+                              History
                             </button>
                           </td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
-                  {!filteredUsers.length && <p className="ucms-admin__state">No pending registrations.</p>}
+                  {usersLoading ? (
+                    <p className="ucms-admin__state" role="status">Loading users...</p>
+                  ) : !filteredUsers.length ? (
+                    <p className="ucms-admin__state">No matching users.</p>
+                  ) : null}
                 </div>
+                {activeTab === "users" && historyUser && (
+                  <section className="ucms-admin__history" aria-label="User status history">
+                    <div className="ucms-admin__panel-heading">
+                      <div>
+                        <h3>Status history: {historyUser.first_name} {historyUser.last_name}</h3>
+                        <p>{historyUser.email}</p>
+                      </div>
+                      <button className="ucms-admin__action ucms-admin__action--secondary" onClick={() => setHistoryUser(null)} type="button">
+                        Close
+                      </button>
+                    </div>
+                    {historyLoading ? (
+                      <p className="ucms-admin__state" role="status">Loading status history...</p>
+                    ) : userHistory.length ? (
+                      <ul>
+                        {userHistory.map((event) => (
+                          <li key={event.id}>
+                            <strong>{event.from_status || "Account created"} → {event.to_status}</strong>
+                            <span>{new Date(event.changed_at).toLocaleString()}</span>
+                            {event.reason && <p>{event.reason}</p>}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : <p className="ucms-admin__state">No status changes recorded.</p>}
+                  </section>
+                )}
               </section>
             )}
           </>

@@ -4,6 +4,12 @@ import type { CourseOffering } from "../types/api";
 import { createAssessment, listAssignedOfferings } from "../services/assessments";
 import "./LecAssignmentSubmissionSettings.css";
 
+const FILE_TYPE_OPTIONS = [
+  { extension: "pdf", media_type: "application/pdf" },
+  { extension: "docx", media_type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" },
+  { extension: "txt", media_type: "text/plain" },
+];
+
 export default function LecAssignmentSubmissionSettings() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -17,6 +23,7 @@ export default function LecAssignmentSubmissionSettings() {
   const [weightPercent, setWeightPercent] = useState("100");
   const [maxAttempts, setMaxAttempts] = useState("1");
   const [latePolicy, setLatePolicy] = useState<"accept" | "reject">("reject");
+  const [allowedExtensions, setAllowedExtensions] = useState(["pdf", "txt"]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -54,6 +61,10 @@ export default function LecAssignmentSubmissionSettings() {
       setError("Select an assigned course offering.");
       return;
     }
+    if (!allowedExtensions.length) {
+      setError("Select at least one allowed file type.");
+      return;
+    }
 
     setSaving(true);
     try {
@@ -66,7 +77,7 @@ export default function LecAssignmentSubmissionSettings() {
         weight_percent: Number(weightPercent),
         max_attempts: Number(maxAttempts),
         late_policy: latePolicy,
-        allowed_file_types: [],
+        allowed_file_types: FILE_TYPE_OPTIONS.filter((item) => allowedExtensions.includes(item.extension)),
       });
       navigate(`/lecturer/assignments?offeringId=${encodeURIComponent(offeringId)}`);
     } catch (requestError) {
@@ -174,8 +185,27 @@ export default function LecAssignmentSubmissionSettings() {
                 </label>
               </div>
 
+              <fieldset className="assessment-create__file-types">
+                <legend>Allowed file types</legend>
+                {FILE_TYPE_OPTIONS.map((fileType) => (
+                  <label key={fileType.extension}>
+                    <input
+                      checked={allowedExtensions.includes(fileType.extension)}
+                      onChange={(event) => {
+                        const checked = event.currentTarget.checked;
+                        setAllowedExtensions((current) => checked
+                          ? [...current, fileType.extension]
+                          : current.filter((extension) => extension !== fileType.extension));
+                      }}
+                      type="checkbox"
+                    />
+                    .{fileType.extension}
+                  </label>
+                ))}
+              </fieldset>
+
               <p className="assessment-create__hint">
-                New assessments start as drafts. Allowed file types use the service configuration. The backend does not currently support editing an existing assessment.
+                New assessments start as drafts. The backend does not currently support editing an existing assessment.
               </p>
               <div className="assessment-create__actions">
                 <Link to={`/lecturer/assignments?offeringId=${encodeURIComponent(offeringId)}`}>Cancel</Link>

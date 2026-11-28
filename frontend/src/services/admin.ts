@@ -1,5 +1,7 @@
 import type {
   AdminAnalyticsSummary,
+  AdminUser,
+  AdminUserStatusHistory,
   AdminUserList,
   Course,
 } from "../types/api";
@@ -25,17 +27,40 @@ export function changeCourseStatus(
 }
 
 export function listPendingUsers(search = ""): Promise<AdminUserList> {
-  const params = new URLSearchParams({ status: "pending", limit: "100", offset: "0" });
+  return listAdminUsers("pending", search);
+}
+
+export function listAdminUsers(
+  status: AdminUser["registration_status"],
+  search = "",
+): Promise<AdminUserList> {
+  const params = new URLSearchParams({ status, limit: "100", offset: "0" });
   if (search.trim()) params.set("search", search.trim());
   return apiRequest(`/api/v1/admin/users?${params.toString()}`);
 }
 
-export function approveUser(userId: string, version: number) {
+export type AdminUserAction = "approve" | "reject" | "suspend" | "reinstate";
+
+export function changeUserStatus(
+  user: AdminUser,
+  action: AdminUserAction,
+) {
   return apiRequest<{ user: AdminUserList["users"][number] }>(
-    `/api/v1/admin/users/${encodeURIComponent(userId)}/approve`,
+    `/api/v1/admin/users/${encodeURIComponent(user.id)}/${action}`,
     {
       method: "POST",
-      body: JSON.stringify({ version }),
+      body: JSON.stringify({ version: user.version }),
     },
+  );
+}
+
+export function getAdminUserHistory(userId: string): Promise<{
+  history: AdminUserStatusHistory[];
+  total: number;
+  limit: number;
+  offset: number;
+}> {
+  return apiRequest(
+    `/api/v1/admin/users/${encodeURIComponent(userId)}/history?limit=100&offset=0`,
   );
 }

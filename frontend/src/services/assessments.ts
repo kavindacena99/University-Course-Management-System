@@ -3,6 +3,7 @@ import type {
   AssessmentList,
   CourseOffering,
   EnrollmentList,
+  FinalResult,
   Grade,
   StudentReport,
   Submission,
@@ -12,6 +13,7 @@ import type {
 import { apiRequest } from "./api";
 
 const submissionKeys = new WeakMap<File, string>();
+const resultImportKeys = new WeakMap<File, string>();
 
 export type CreateAssessmentInput = Pick<
   Assessment,
@@ -145,6 +147,41 @@ export function submitAssignment(assessmentId: string, file: File) {
 
 export function getStudentReport(): Promise<{ report: StudentReport }> {
   return apiRequest("/api/v1/analytics/students/me");
+}
+
+export function listFinalResults(offeringId: string): Promise<{
+  results: FinalResult[];
+  total: number;
+  limit: number;
+  offset: number;
+}> {
+  return apiRequest(
+    `/api/v1/offerings/${encodeURIComponent(offeringId)}/results?limit=100&offset=0`,
+  );
+}
+
+export function importFinalResults(offeringId: string, file: File) {
+  let idempotencyKey = resultImportKeys.get(file);
+  if (!idempotencyKey) {
+    if (!globalThis.crypto?.randomUUID) {
+      throw new Error("Secure import identifiers are unavailable in this browser.");
+    }
+    idempotencyKey = globalThis.crypto.randomUUID();
+    resultImportKeys.set(file, idempotencyKey);
+  }
+  const body = new FormData();
+  body.append("file", file);
+  return apiRequest<{ import: { id: string; row_count: number; already_processed: boolean } }>(
+    `/api/v1/offerings/${encodeURIComponent(offeringId)}/results/import`,
+    {
+      method: "POST",
+      headers: { "Idempotency-Key": idempotencyKey },
+      body,
+    },
+  ).then((response) => {
+    resultImportKeys.delete(file);
+    return response;
+  });
 }
 
 export async function downloadSubmission(submissionId: string): Promise<Blob> {

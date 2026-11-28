@@ -6,7 +6,6 @@ import { getCurrentUser } from "./services/auth";
 import Login from "./Pages/Login";
 import Courses from "./Pages/Courses";
 import LecModuleAssignment from "./Pages/LecModuleAssignment";
-import LecAssignmentSubmission from "./Pages/LecAssignmentSubmission";
 import LecViewCourse from "./Pages/LecViewCourse";
 import LecCreateCourse from "./Pages/LecCreateCourse";
 import LecAssignmentGrading from "./Pages/LecAssignmentGrading";
@@ -15,6 +14,9 @@ import LecDashboard from "./Pages/LecDashboard";
 import Admin_Dashboard from "./Pages/Admin_Dashboard";
 import StudentResults from "./Pages/StudentResults";
 import StudentAssignments from "./Pages/StudentAssignments";
+import StudentEnrollments from "./Pages/StudentEnrollments";
+import AccountSettings from "./Pages/AccountSettings";
+import AdminFinalResults from "./Pages/AdminFinalResults";
 import {
   ActivateAccountPage,
   ForgotPasswordPage,
@@ -29,9 +31,11 @@ function isHttpError(error: unknown): error is Error & { status: number } {
 function ProtectedPage({
   children,
   roles,
+  permissions,
 }: {
   children: ReactNode;
   roles?: string[];
+  permissions?: string[];
 }) {
   const [user, setUser] = useState<UserSummary | null>(null);
   const [loading, setLoading] = useState(true);
@@ -71,6 +75,9 @@ function ProtectedPage({
   if (roles?.length && !roles.some((role) => user.roles.includes(role))) {
     return <Navigate to="/unauthorized" replace />;
   }
+  if (permissions?.some((permission) => !user.permissions?.includes(permission))) {
+    return <Navigate to="/unauthorized" replace />;
+  }
   return children;
 }
 
@@ -94,8 +101,8 @@ function Unauthorized() {
   );
 }
 
-function protectedElement(element: ReactNode, roles?: string[]) {
-  return <ProtectedPage roles={roles}>{element}</ProtectedPage>;
+function protectedElement(element: ReactNode, roles?: string[], permissions?: string[]) {
+  return <ProtectedPage roles={roles} permissions={permissions}>{element}</ProtectedPage>;
 }
 
 export default function App() {
@@ -112,16 +119,27 @@ export default function App() {
         <Route path="/courses" element={protectedElement(<Courses />)} />
         <Route path="/lecturer/courses" element={protectedElement(<Courses />)} />
         <Route path="/lecturer/courses/create" element={protectedElement(<LecCreateCourse />, ["ADMIN", "STAFF"])} />
+        <Route path="/lecturer/courses/edit" element={protectedElement(<LecCreateCourse />, ["ADMIN", "STAFF"])} />
         <Route path="/lecturer/courses/view" element={protectedElement(<LecViewCourse />)} />
         <Route path="/lecturer/assignments" element={protectedElement(<LecModuleAssignment />, ["LECTURER", "ADMIN"])} />
-        <Route path="/lecturer/submissions" element={protectedElement(<LecAssignmentSubmission />, ["LECTURER", "ADMIN"])} />
+        <Route path="/lecturer/submissions" element={protectedElement(<Navigate to="/lecturer/assignments" replace />, ["LECTURER", "ADMIN"])} />
         <Route path="/lecturer/dashboard" element={protectedElement(<LecDashboard />, ["LECTURER", "ADMIN"])} />
         <Route path="/student/results" element={protectedElement(<StudentResults />, ["STUDENT"])} />
         <Route path="/student/assignments" element={protectedElement(<StudentAssignments />, ["STUDENT"])} />
+        <Route path="/student/enrollments" element={protectedElement(<StudentEnrollments />, ["STUDENT"])} />
+        <Route path="/account" element={protectedElement(<AccountSettings />)} />
         <Route path="/admin" element={protectedElement(<Admin_Dashboard />, ["ADMIN"])} />
+        <Route
+          path="/admin/final-results"
+          element={protectedElement(
+            <AdminFinalResults />,
+            ["ADMIN"],
+            ["assessments:student:read", "assessments:results:import"],
+          )}
+        />
 
         <Route path="/LecModuleAssignment" element={protectedElement(<LecModuleAssignment />, ["LECTURER", "ADMIN"])} />
-        <Route path="/LecAssignmentSubmission" element={protectedElement(<LecAssignmentSubmission />, ["LECTURER", "ADMIN"])} />
+        <Route path="/LecAssignmentSubmission" element={protectedElement(<Navigate to="/lecturer/assignments" replace />, ["LECTURER", "ADMIN"])} />
         <Route path="/LecViewCourse" element={protectedElement(<LecViewCourse />)} />
         <Route path="/LecCreateCourse" element={protectedElement(<LecCreateCourse />, ["ADMIN", "STAFF"])} />
         <Route path="/LecMyCourses" element={protectedElement(<Courses />)} />

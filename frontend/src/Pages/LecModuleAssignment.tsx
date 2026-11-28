@@ -127,16 +127,14 @@ export default function LecModuleAssignment() {
             <p>Teaching</p>
             <h1>Assessments</h1>
           </div>
-          <Link
+          <button
             className="lecturer-assessments__primary"
-            to={offeringId ? `/LecAssignmentSubmissionSettings?offeringId=${encodeURIComponent(offeringId)}` : "#"}
-            aria-disabled={!offeringId}
-            onClick={(event) => {
-              if (!offeringId) event.preventDefault();
-            }}
+            disabled={!offeringId}
+            onClick={() => navigate(`/LecAssignmentSubmissionSettings?offeringId=${encodeURIComponent(offeringId)}`)}
+            type="button"
           >
             Create assessment
-          </Link>
+          </button>
         </header>
 
         <section className="lecturer-assessments__panel">

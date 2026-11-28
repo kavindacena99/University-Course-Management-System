@@ -14,6 +14,25 @@ export type UserSummary = {
   permissions?: string[];
 };
 
+export type AccountProfile = UserSummary & {
+  version: number;
+  status_reason?: string;
+  created_at?: string;
+  updated_at?: string;
+};
+
+export type UserSession = {
+  id: string;
+  user_id: string;
+  created_at: string;
+  last_used_at: string;
+  absolute_expires_at: string;
+  revoked_at?: string | null;
+  user_agent?: string;
+  ip_address?: string;
+  current: boolean;
+};
+
 export type AuthResponse = {
   user: UserSummary;
   access_token?: string;
@@ -53,6 +72,10 @@ export type CreateCourseInput = {
   credits: number;
 };
 
+export type UpdateCourseInput = CreateCourseInput & {
+  version: number;
+};
+
 export type CourseOffering = {
   id: string;
   course_id: string;
@@ -62,7 +85,30 @@ export type CourseOffering = {
   semester: string;
   start_date: string;
   end_date: string;
+  enrollment_opens_at?: string | null;
+  enrollment_closes_at?: string | null;
+  enrollment_capacity?: number | null;
+  lecturer_user_id?: string | null;
   status: "draft" | "published" | "closed" | "archived";
+  version: number;
+};
+
+export type CreateOfferingInput = {
+  course_id: string;
+  academic_year: string;
+  semester: string;
+  start_date: string;
+  end_date: string;
+  enrollment_opens_at?: string | null;
+  enrollment_closes_at?: string | null;
+  enrollment_capacity?: number | null;
+  lecturer_user_id?: string | null;
+};
+
+export type UpdateOfferingInput = Omit<
+  CreateOfferingInput,
+  "course_id" | "lecturer_user_id"
+> & {
   version: number;
 };
 
@@ -145,6 +191,18 @@ export type Grade = {
   released_at?: string;
 };
 
+export type FinalResult = {
+  id: string;
+  offering_id: string;
+  student_user_id: string;
+  final_mark: number;
+  max_mark: number;
+  version: number;
+  import_batch_id: string;
+  imported_by_user_id: string;
+  imported_at: string;
+};
+
 export type SubmissionDetail = {
   submission: Submission;
   grade: Grade | null;
@@ -210,6 +268,17 @@ export type AdminUser = {
   registration_status: "pending" | "approved" | "rejected" | "suspended";
   version: number;
   created_at: string;
+};
+
+export type AdminUserStatusHistory = {
+  id: number;
+  user_id: string;
+  from_status?: AdminUser["registration_status"] | null;
+  to_status: AdminUser["registration_status"];
+  reason?: string;
+  changed_by: string;
+  version: number;
+  changed_at: string;
 };
 
 export type AdminUserList = {

@@ -101,10 +101,6 @@ export default function Login() {
             </div>
 
             <div className="form-options">
-              <label className="remember">
-                <input name="remember" type="checkbox" />
-                <span>Remember me</span>
-              </label>
               <button
                 className="text-button forgot"
                 type="button"

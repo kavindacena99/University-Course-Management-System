@@ -120,6 +120,7 @@ export default function StudentAssignments() {
         </div>
         <nav>
           <Link to="/courses">My courses</Link>
+          <Link to="/student/enrollments">Enroll in courses</Link>
           <Link to="/student/results">Results and grades</Link>
         </nav>
       </header>
