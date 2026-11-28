@@ -1,6 +1,6 @@
 import { FormEvent, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { login } from "../services/auth";
+import { useSession } from "../session";
 import UniversityIllustration from "./UniversityIllustration";
 
 const assetPathPrefix = "/assets";
@@ -14,6 +14,7 @@ export default function Login() {
   const [notice, setNotice] = useState<Notice>(null);
   const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
+  const { signIn } = useSession();
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -28,16 +29,15 @@ export default function Login() {
 
     setSubmitting(true);
     try {
-      const response = await login(email, password);
+      const user = await signIn(email, password);
       setNotice({
         tone: "success",
-        text: `Welcome back, ${response.user.first_name || email}.`,
+        text: "Welcome back.",
       });
-      const roles = response.user.roles ?? [];
       navigate(
-        roles.includes("ADMIN")
-          ? "/admin"
-          : roles.includes("LECTURER")
+        user.roles.includes("ADMIN")
+          ? "/admin/dashboard"
+          : user.roles.includes("LECTURER")
             ? "/lecturer/dashboard"
             : "/courses",
       );
@@ -101,10 +101,6 @@ export default function Login() {
             </div>
 
             <div className="form-options">
-              <label className="remember">
-                <input name="remember" type="checkbox" />
-                <span>Remember me</span>
-              </label>
               <button
                 className="text-button forgot"
                 type="button"
@@ -130,11 +126,7 @@ export default function Login() {
 
           <p className="signup-copy">
             <span>Don’t have an account?</span>{" "}
-            <button
-              className="text-button"
-              type="button"
-              onClick={() => navigate("/register")}
-            >
+            <button className="text-button" type="button" onClick={() => navigate("/register")}>
               Sign up
             </button>
           </p>

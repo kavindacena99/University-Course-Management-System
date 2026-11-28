@@ -9,7 +9,7 @@ import type {
   SubmissionDetail,
   SubmissionList,
 } from "../types/api";
-import { apiRequest } from "./api";
+import { apiFile, apiRequest } from "./api";
 
 const submissionKeys = new WeakMap<File, string>();
 
@@ -64,32 +64,23 @@ export function createAssessment(
   offeringId: string,
   input: CreateAssessmentInput,
 ): Promise<{ assessment: Assessment }> {
-  return apiRequest(
-    `/api/v1/offerings/${encodeURIComponent(offeringId)}/assessments`,
-    {
-      method: "POST",
-      body: JSON.stringify(input),
-    },
-  );
+  return apiRequest(`/api/v1/offerings/${encodeURIComponent(offeringId)}/assessments`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
 }
 
 export function changeAssessmentStatus(
   assessment: Assessment,
   action: "publish" | "close",
 ): Promise<{ assessment: Assessment }> {
-  return apiRequest(
-    `/api/v1/assessments/${encodeURIComponent(assessment.id)}/${action}`,
-    {
-      method: "POST",
-      body: JSON.stringify({ version: assessment.version }),
-    },
-  );
+  return apiRequest(`/api/v1/assessments/${encodeURIComponent(assessment.id)}/${action}`, {
+    method: "POST",
+    body: JSON.stringify({ version: assessment.version }),
+  });
 }
 
-export function listSubmissions(
-  assessmentId: string,
-  offset = 0,
-): Promise<SubmissionList> {
+export function listSubmissions(assessmentId: string, offset = 0): Promise<SubmissionList> {
   return apiRequest(
     `/api/v1/assessments/${encodeURIComponent(assessmentId)}/submissions?limit=100&offset=${offset}`,
   );
@@ -109,10 +100,7 @@ export function saveGrade(
   });
 }
 
-export function releaseGrade(
-  submissionId: string,
-  version: number,
-): Promise<{ grade: Grade }> {
+export function releaseGrade(submissionId: string, version: number): Promise<{ grade: Grade }> {
   return apiRequest(`/api/v1/submissions/${encodeURIComponent(submissionId)}/release`, {
     method: "POST",
     body: JSON.stringify({ version }),
@@ -148,13 +136,5 @@ export function getStudentReport(): Promise<{ report: StudentReport }> {
 }
 
 export async function downloadSubmission(submissionId: string): Promise<Blob> {
-  const response = await fetch(
-    `${(import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "")}/api/v1/submissions/${encodeURIComponent(submissionId)}/file`,
-    { credentials: "include" },
-  );
-  if (!response.ok) {
-    const payload = await response.json().catch(() => null);
-    throw new Error(payload?.error?.message || `Request failed (${response.status})`);
-  }
-  return response.blob();
+  return apiFile(`/api/v1/submissions/${encodeURIComponent(submissionId)}/file`);
 }

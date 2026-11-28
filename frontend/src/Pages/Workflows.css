@@ -1,0 +1,20 @@
+.workflow-shell { min-height: 100vh; background: #f8fafc; color: #0f172a; font-family: Inter, Arial, sans-serif; }
+.workflow-shell header { display: flex; align-items: center; flex-wrap: wrap; gap: 1rem; padding: 1rem 2rem; background: #1e293b; color: white; }
+.workflow-shell header a { color: white; text-decoration: none; }
+.workflow-brand { font-weight: 700; }
+.workflow-shell nav { display: flex; gap: 1rem; flex-wrap: wrap; margin-right: auto; }
+.workflow-shell main { max-width: 960px; margin: auto; padding: 2rem 1rem; }
+.workflow-shell h1 { font-size: 2rem; font-weight: 700; margin-bottom: 1rem; }
+.workflow-shell h2 { font-size: 1.3rem; font-weight: 600; margin: 1.5rem 0 .75rem; }
+.workflow-shell button { background: #2563eb; color: white; border-radius: .4rem; padding: .55rem .85rem; cursor: pointer; }
+.workflow-shell button:disabled { opacity: .5; cursor: default; }
+.workflow-shell a { color: #1d4ed8; text-decoration: underline; }
+.workflow-list { display: grid; gap: .65rem; margin: 1rem 0; padding: 0; list-style: none; }
+.workflow-list li { background: white; border: 1px solid #cbd5e1; border-radius: .5rem; padding: 1rem; display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+.workflow-list span { color: #475569; }
+.workflow-form { display: grid; gap: 1rem; max-width: 580px; margin: 1rem 0; }
+.workflow-form label { display: grid; gap: .3rem; font-weight: 600; }
+.workflow-form input,.workflow-form textarea,.workflow-form select { border: 1px solid #94a3b8; background: white; border-radius: .3rem; padding: .55rem; }
+.workflow-pager { display: flex; align-items: center; gap: 1rem; }
+.workflow-shell [role=alert] { color: #b91c1c; }
+@media(max-width:600px) { .workflow-shell header { padding: 1rem; } .workflow-shell nav { width: 100%; order: 3; } }
