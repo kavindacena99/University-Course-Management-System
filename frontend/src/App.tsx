@@ -154,6 +154,8 @@ import LecViewCourse from './Pages/LecViewCourse';
 import LecCreateCourse from './Pages/LecCreateCourse';
 import LecMyCourses from './Pages/LecMyCourses';
 import AssignmentSubmissionSetting from './Pages/AssignmentSubmissionSetting';
+import AdminStudentLogin from './Pages/AdminStudentLogin';
+import Admin_Dashboard from './Pages/Admin_Dashboard';
 
 export default function App() {
   return (
@@ -182,6 +184,12 @@ export default function App() {
 
         { /* AssignmentSubmissionSetting */}
         <Route path="/AssignmentSubmissionSetting" element={<AssignmentSubmissionSetting /> } />
+
+        { /* AdminStudentLogin */}
+        <Route path="/AdminStudentLogin" element={<AdminStudentLogin /> } />
+
+        { /* Admin_Dashboard */}
+        <Route path="/Admin_Dashboard" element={<Admin_Dashboard /> } />        
 
       </Routes>
     </Router>
