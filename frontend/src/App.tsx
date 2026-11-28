@@ -154,6 +154,9 @@ import LecViewCourse from './Pages/LecViewCourse';
 import LecCreateCourse from './Pages/LecCreateCourse';
 import LecMyCourses from './Pages/LecMyCourses';
 import AssignmentSubmissionSetting from './Pages/AssignmentSubmissionSetting';
+import LecAssignmentGrading from './Pages/LecAssignmentGrading';
+import LecAssignmentSubmissionSettings from './Pages/LecAssignmentSubmissionSettings';
+import LecDashboard from './Pages/LecDashboard';
 import AdminStudentLogin from './Pages/AdminStudentLogin';
 import Admin_Dashboard from './Pages/Admin_Dashboard';
 
@@ -185,12 +188,20 @@ export default function App() {
         { /* AssignmentSubmissionSetting */}
         <Route path="/AssignmentSubmissionSetting" element={<AssignmentSubmissionSetting /> } />
 
+      { /* LecAssignmentGrading */}
+        <Route path="/LecAssignmentGrading" element={<LecAssignmentGrading /> } />
+        
+      { /* LecAssignmentSubmissionSettings */}
+        <Route path="/LecAssignmentSubmissionSettings" element={<LecAssignmentSubmissionSettings /> } />                
+
+      { /* LecDashboard */}
+        <Route path="/LecDashboard" element={<LecDashboard /> } />       
+
         { /* AdminStudentLogin */}
         <Route path="/AdminStudentLogin" element={<AdminStudentLogin /> } />
 
         { /* Admin_Dashboard */}
         <Route path="/Admin_Dashboard" element={<Admin_Dashboard /> } />        
-
       </Routes>
     </Router>
   );
