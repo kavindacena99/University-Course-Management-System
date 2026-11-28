@@ -11,6 +11,7 @@ export type UserSummary = {
   last_name: string;
   status?: string;
   roles?: string[];
+  permissions?: string[];
 };
 
 export type AuthResponse = {

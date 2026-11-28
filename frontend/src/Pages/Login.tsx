@@ -1,6 +1,6 @@
 import { FormEvent, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { login } from "../services/auth";
+import { useSession } from "../session";
 
 const assetPathPrefix = "/assets";
 
@@ -13,6 +13,7 @@ export default function Login() {
   const [notice, setNotice] = useState<Notice>(null);
   const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
+  const { signIn } = useSession();
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -27,10 +28,10 @@ export default function Login() {
 
     setSubmitting(true);
     try {
-      const response = await login(email, password);
+      await signIn(email, password);
       setNotice({
         tone: "success",
-        text: `Welcome back, ${response.user.first_name || email}.`,
+        text: `Welcome back.`,
       });
       navigate("/courses");
     } catch (error) {
@@ -93,41 +94,8 @@ export default function Login() {
               </div>
             </div>
 
-            <div className="form-options">
-              <label className="remember">
-                <input name="remember" type="checkbox" />
-                <span>Remember me</span>
-              </label>
-              <button
-                className="text-button forgot"
-                type="button"
-                onClick={() =>
-                  setNotice({
-                    tone: "info",
-                    text: "Password recovery instructions will be sent to your university email.",
-                  })
-                }
-              >
-                Forgot Password
-              </button>
-            </div>
-
             <button className="primary-button" type="submit" disabled={submitting}>
               {submitting ? "Signing in..." : "Sign In"}
-            </button>
-
-            <button
-              className="google-button"
-              type="button"
-              onClick={() =>
-                setNotice({
-                  tone: "info",
-                  text: "Google sign-in is ready to connect to your university account.",
-                })
-              }
-            >
-              <img src={`${assetPathPrefix}/027c9.png`} alt="" />
-              <span>Sign In with Google</span>
             </button>
 
             <div
@@ -139,22 +107,6 @@ export default function Login() {
               {notice?.text ?? ""}
             </div>
           </form>
-
-          <p className="signup-copy">
-            <span>Don’t have an account?</span>{" "}
-            <button
-              className="text-button"
-              type="button"
-              onClick={() =>
-                setNotice({
-                  tone: "info",
-                  text: "Account registration is ready for new students and faculty.",
-                })
-              }
-            >
-              Sign up
-            </button>
-          </p>
         </div>
       </section>
     </main>
