@@ -203,8 +203,10 @@ export default function App() {
         <Route path="/Admin_Dashboard" element={<Admin_Dashboard /> } />        
 
         { /* StudentLearning_HubBrowseCatalog */}
-        <Route path="/StudentLearning_HubBrowseCatalog" element={<StudentLearning_HubBrowseCatalog /> } />  
-
+        <Route
+          path="/StudentLearning_HubBrowseCatalog"
+          element={<StudentLearning_HubBrowseCatalog />}
+        />  
       </Routes>
     </Router>
   );
