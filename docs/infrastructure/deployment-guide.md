@@ -4,7 +4,10 @@
 
 Phase 4 published nine immutable application images; the retained manifest is
 `release-manifests/phase-4/e83d2d131136624024175d16d2f41e1501d0b385/image-manifest.json`.
-The first candidate is prepared under `release-manifests/v0.1.0-rc.1/`.
+RC1 and RC2 have immutable prereleases, but both failed QA acceptance. The
+current RC2 verdict is in `release-manifests/v0.1.0-rc.2/qa-validation.json`.
+Do not promote either candidate. A new published source commit and RC are
+required before another acceptance attempt.
 For the consolidated targets, use [the QA runbook](qa-deployment-runbook.md)
 and [the PROD-like runbook](prodlike-deployment-runbook.md) with
 `infrastructure/docker/targetctl.ps1`. The older `platformctl.py` and Ansible

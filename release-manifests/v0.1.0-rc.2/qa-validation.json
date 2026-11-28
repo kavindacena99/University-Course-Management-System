@@ -1,0 +1,128 @@
+{
+  "schema_version": 1,
+  "version": "0.1.0-rc.2",
+  "tag": "v0.1.0-rc.2",
+  "verdict": "failed",
+  "environment": "qa",
+  "project": "platform-qa-target",
+  "source_commit": "1d76667cfb27077568f5dca283352386b67d6f02",
+  "publication_workflow_run_id": "46120731377",
+  "release_manifest_sha256": "eb58d421135506f8c9e16d019e2bf65b805b09aaac06f68812fc88037a5b94dc",
+  "images": {
+    "auth": "sha256:f9e218d9fcfcf64ee19efb68a8b6cd0168315790738ffd02955a6bbab3441281",
+    "user": "sha256:91ccecf5d079d1d957b884b07e28ab5f12a9ca532241d19228098e004f5ef913",
+    "course": "sha256:32846e827d47c1b5fcf4722349fa74a6db3f6738a7ad7e2a9b76866a2dfb2143",
+    "enrollment": "sha256:a27582fd9a6ed1651bda9875108ea9e97670cb248691a184fcdaaa677667e87d",
+    "assessment": "sha256:517aa508681a0b6464397be8ba28902d909f3bf110a21abf921b90a765de6c3d",
+    "analytics": "sha256:f67f7e25f9f3bab3ad866d30813b015a050b1818380922a6eb3890683f1fd856",
+    "frontend": "sha256:cd95839a680443f221f84996509619678f2626c6d81b9cb24ca821be631abef8",
+    "gateway": "sha256:abf55e165f82b629543b14dc46c4ab5405323ffa0a4805b97126230a3a57c756",
+    "assessment-minio-init": "sha256:6c4dcd9c5f59219f58947e1bda15a758c6cdbff7076e6c61ccc3eef0f2de2b19"
+  },
+  "deployed_at": "2026-11-28T10:39:35.386032+00:00",
+  "recorded_at": "2026-11-28T11:18:28.638172+00:00",
+  "backup": {
+    "status": "passed",
+    "manifest_sha256": "48819db48224221284b52fbbff3a2121237dd4baa74b2d16b69c4301a60e8a9e",
+    "six_database_archives": true,
+    "submissions_bucket_empty": true,
+    "location": "protected external local application data directory"
+  },
+  "infrastructure": {
+    "status": "passed",
+    "components": 19,
+    "database_checks": "six logical DB role/ownership/cross-access/migration checks passed",
+    "storage_guard": "S3 Select denied; direct Silo listener unreachable from gateway",
+    "qa_stopped": true,
+    "qa_volumes_preserved": true
+  },
+  "api": {
+    "unauthenticated_protection": {
+      "auth": {
+        "path": "/api/v1/auth/me",
+        "status": 401,
+        "duration_ms": 3450.5,
+        "unauthorized_denied": true
+      },
+      "user": {
+        "path": "/api/v1/users/me",
+        "status": 401,
+        "duration_ms": 2062.1,
+        "unauthorized_denied": true
+      },
+      "course": {
+        "path": "/api/v1/courses",
+        "status": 401,
+        "duration_ms": 2016.7,
+        "unauthorized_denied": true
+      },
+      "enrollment": {
+        "path": "/api/v1/enrollments/00000000-0000-0000-0000-000000000000",
+        "status": 401,
+        "duration_ms": 2040.5,
+        "unauthorized_denied": true
+      },
+      "assessment": {
+        "path": "/api/v1/offerings/00000000-0000-0000-0000-000000000000/assessments",
+        "status": 401,
+        "duration_ms": 2047.5,
+        "unauthorized_denied": true
+      },
+      "analytics": {
+        "path": "/api/v1/analytics/students/me",
+        "status": 401,
+        "duration_ms": 2027.7,
+        "unauthorized_denied": true
+      }
+    },
+    "authenticated_business_flows": "not run"
+  },
+  "storage": {
+    "scoped_upload_read_checksum_delete": "passed",
+    "fixture_sha256": "3bdc63416b3d29043e628580ac3ce643d200722d2253d9ca5a84f60280df80cf",
+    "fixture_deleted": true
+  },
+  "browser": {
+    "engine": "Playwright with installed Chrome",
+    "login_page_rendered": true,
+    "courses_page_rendered": true,
+    "unauthenticated_courses_error_shown": true,
+    "api_via_frontend_origin_only": true,
+    "lecturer_pages_without_login_or_api": [
+      {
+        "route": "/lecturer/assignments",
+        "renderedWithoutLogin": true,
+        "apiRequests": []
+      },
+      {
+        "route": "/lecturer/submissions",
+        "renderedWithoutLogin": true,
+        "apiRequests": []
+      },
+      {
+        "route": "/lecturer/courses/view",
+        "renderedWithoutLogin": true,
+        "apiRequests": []
+      }
+    ],
+    "page_errors": [],
+    "full_auth_business_workflow": "failed"
+  },
+  "performance": {
+    "gateway_unauthenticated_probe_ms": {
+      "auth": 3450.5,
+      "user": 2062.1,
+      "course": 2016.7,
+      "enrollment": 2040.5,
+      "assessment": 2047.5,
+      "analytics": 2027.7
+    },
+    "bounded_load_test": "not run"
+  },
+  "failure_reasons": [
+    "Three lecturer assignment/course pages rendered without authentication and made no API requests; their content is static local state.",
+    "Required authenticated login, enrollment, assessment/file and analytics browser workflows were not demonstrated."
+  ],
+  "promotion_eligible": false,
+  "prodlike_deployed": false
+}
