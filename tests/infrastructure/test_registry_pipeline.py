@@ -131,12 +131,12 @@ class PublicationContract(unittest.TestCase):
         workflow=yaml.load((ROOT/'.github/workflows/ci.yml').read_text(), Loader=yaml.BaseLoader)
         jobs=workflow['jobs']
         self.assertNotIn('workflow_run',workflow['on'])
-        self.assertEqual(set(jobs['publish']['needs']), {'backend','frontend','infrastructure','images','publication-prerequisites'})
+        self.assertEqual(set(jobs['publish']['needs']), {'backend','frontend','infrastructure','images','image-inputs','publication-prerequisites'})
         for name,job in jobs.items():
             if name!='publish': self.assertNotEqual(job.get('permissions',{}).get('packages'),'write')
         self.assertEqual(jobs['publish']['permissions'], {'contents':'read','packages':'write'})
         condition=jobs['publish']['if']
-        for boundary in ('github.ref_protected', 'github.event_name', 'github.event.repository.default_branch'):
+        for boundary in ('github.ref_protected', 'github.event_name', 'github.event.repository.default_branch', "needs.image-inputs.outputs.changed == 'true'"):
             self.assertIn(boundary,condition)
         build=next(s for s in jobs['images']['steps'] if s.get('uses','').startswith('docker/build-push-action@'))
         self.assertEqual(build['with']['push'],'false')

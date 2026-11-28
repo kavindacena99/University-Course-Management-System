@@ -4,3 +4,5 @@
 *.go text eol=lf
 go.mod text eol=lf
 go.sum text eol=lf
+release-manifests/**/*.json text eol=lf
+release-manifests/**/images.env text eol=lf

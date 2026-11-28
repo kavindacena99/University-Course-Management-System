@@ -188,3 +188,18 @@ statements are verified by subject and digest but remain **unsigned**. No
 GitHub-signed attestation claim or extra signing key is introduced. The complete
 manifest and scan evidence use finite 90-day Actions retention; retain their
 artifact URL and arrange durable custody in a later release phase.
+
+## 2026-11-28 successful publication
+
+Protected-main [run 46108269083](https://github.com/kavindacena99/University-Course-Management-System/actions/runs/46108269083)
+completed all 20 jobs successfully at source commit
+`e83d2d131136624024175d16d2f41e1501d0b385`. Both prerequisite checks
+passed; the publisher authenticated with its scoped `GITHUB_TOKEN`, uploaded
+the nine scanned application OCI archives, resolved their registry digests,
+pulled by digest, and rescanned them. The actual
+[manifest artifact](https://github.com/kavindacena99/University-Course-Management-System/actions/runs/46108269083/artifacts/15248428875)
+and [publication evidence artifact](https://github.com/kavindacena99/University-Course-Management-System/actions/runs/46108269083/artifacts/15248269004)
+were downloaded and cross-checked with all nine GHCR SHA tags. The non-secret
+manifest and `images.env` are retained in `release-manifests/phase-4/` beyond
+the Actions 90-day artifact window. SPDX and SLSA references are present but
+unsigned. This is image publication evidence, not runtime deployment approval.

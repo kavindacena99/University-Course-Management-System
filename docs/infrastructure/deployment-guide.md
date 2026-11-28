@@ -1,5 +1,27 @@
 # Local deployment and delivery guide
 
+## 2026-11-28 consolidated release path
+
+Phase 4 published nine immutable application images; the retained manifest is
+`release-manifests/phase-4/e83d2d131136624024175d16d2f41e1501d0b385/image-manifest.json`.
+The first candidate is prepared under `release-manifests/v0.1.0-rc.1/`.
+For the consolidated targets, use [the QA runbook](qa-deployment-runbook.md)
+and [the PROD-like runbook](prodlike-deployment-runbook.md) with
+`infrastructure/docker/targetctl.ps1`. The older `platformctl.py` and Ansible
+interfaces below operate on the legacy six-database topology; do not use them
+for the consolidated targets.
+
+The owner must separately authorize the exact Silo digest for each local
+runtime scope before target startup. The target controller requires a protected
+ignored `.infra-state/releases/storage-runtime-approval.json` record with
+`image`, `environments`, `owner`, `approved_at`, and `guard_required: true`.
+This file is created only after the owner grants runtime approval. The Phase 4
+publication-policy flag is not a runtime approval. Existing target inputs and
+volumes must be preserved. A target with existing volumes requires a verified
+external backup before deployment or migrations; image rollback also requires
+a previous manifest and migration-compatibility review. Database migrations
+are never reversed automatically.
+
 ## Current safety gate and PostgreSQL target selection
 
 The [new implementation integration report](phase-1-2-3-integration-report.md)

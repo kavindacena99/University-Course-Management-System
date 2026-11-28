@@ -4,6 +4,32 @@ Date: 2026-11-24. Repository: `kavindacena99/University-Course-Management-System
 (private). Publication is currently blocked by prerequisites. The names below
 are implemented destinations, not claims that packages exist.
 
+**2026-11-28 update:** the repository is public and protected-main run
+[46108269083](https://github.com/kavindacena99/University-Course-Management-System/actions/runs/46108269083)
+published and verified all nine application packages. The opening paragraph
+records the original implementation state. The authoritative current digests
+are in the downloaded manifest retained under
+`release-manifests/phase-4/e83d2d131136624024175d16d2f41e1501d0b385/`.
+
+| Service | Verified registry digest |
+| --- | --- |
+| auth | `sha256:e60f2e3b360d7f3d74db7df943dc5ad04b31ebc62858a6dd1a07dcd767dd1d28` |
+| user | `sha256:729dcc9c1ab41a0a20cbfd31b01807d53dfe4a3860b8be0764070df0534e11f1` |
+| course | `sha256:76c9e2a965d1da9150c03adafcb2c82cfaa89e126eff085f4b5416e72575cd7f` |
+| enrollment | `sha256:11437199b3da2cb427c4611d1f7ba45e88f47972ac276be2383cbee4f64addaf` |
+| assessment | `sha256:404e89c62797e1f5bf10d5ab6c8cddcb2a704ad7dde1d135a258be23eb3a13d4` |
+| analytics | `sha256:ae0f61d12b161599a83421efba406051fa10c33bd5d2f75ad892a91bc427b50d` |
+| frontend | `sha256:9ffef77827a25bd4031d4fa50706f6b45c1eefcdeb078441aa5507e70e565552` |
+| gateway | `sha256:ce0ac03594458b8d5e5a2cffc22e87dabfcc3bae81ab878501c9853b818c5d77` |
+| assessment-minio-init | `sha256:829438be26acbe3805c0ed27b1ccd1134e35738e6b9144caa5c9def78938ceb5` |
+
+All nine `sha-e83d2d131136624024175d16d2f41e1501d0b385` tags were
+independently resolved against GHCR and matched these digests. See the
+[manifest artifact](https://github.com/kavindacena99/University-Course-Management-System/actions/runs/46108269083/artifacts/15248428875)
+and [publication evidence](https://github.com/kavindacena99/University-Course-Management-System/actions/runs/46108269083/artifacts/15248269004).
+The BuildKit SPDX/SLSA statements are unsigned. Artifacts retain 90 days in
+GitHub Actions; the repository manifest copy is the durable image reference.
+
 ## Inventory and names
 
 Registry prefix: `ghcr.io/kavindacena99/university-course-management-system/`.

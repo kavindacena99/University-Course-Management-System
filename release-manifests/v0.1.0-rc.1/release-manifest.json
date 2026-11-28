@@ -1,0 +1,215 @@
+{
+  "schema_version": 1,
+  "version": "0.1.0-rc.1",
+  "tag": "v0.1.0-rc.1",
+  "channel": "rc",
+  "rc_number": 1,
+  "repository": "kavindacena99/University-Course-Management-System",
+  "source_commit": "e83d2d131136624024175d16d2f41e1501d0b385",
+  "source_branch": "main",
+  "publication": {
+    "workflow_run_id": "46108269083",
+    "workflow_url": "https://github.com/kavindacena99/University-Course-Management-System/actions/runs/46108269083",
+    "image_manifest_path": "release-manifests/phase-4/e83d2d131136624024175d16d2f41e1501d0b385/image-manifest.json",
+    "image_manifest_sha256": "2716a60fd606b4f9cdee39806b03741d228ce71d48b9b157862cd86790fc616b",
+    "manifest_artifact_url": "https://github.com/kavindacena99/University-Course-Management-System/actions/runs/46108269083/artifacts/15248428875",
+    "evidence_artifact_url": "https://github.com/kavindacena99/University-Course-Management-System/actions/runs/46108269083/artifacts/15248269004",
+    "published_at": "2026-11-28T04:43:24.754216+00:00"
+  },
+  "images": [
+    {
+      "service": "auth",
+      "image": "ghcr.io/kavindacena99/university-course-management-system/auth",
+      "tag": "sha-e83d2d131136624024175d16d2f41e1501d0b385",
+      "digest": "sha256:e60f2e3b360d7f3d74db7df943dc5ad04b31ebc62858a6dd1a07dcd767dd1d28",
+      "runtime_digest": "sha256:c356e0b5bcbbfb368064ca3874688cf6e8e7d1d1e57926146389471f31bbfbfd",
+      "platforms": [
+        "linux/amd64"
+      ],
+      "build_status": "success",
+      "scan_status": "passed",
+      "registry_scan_status": "passed",
+      "pull_status": "passed",
+      "attestations": {
+        "https://spdx.dev/Document": "sha256:295c9a73d4b620076049c81a7e11df17a7e120a1e4e8a97af55a4e4df8a42f77",
+        "https://slsa.dev/provenance/v1": "sha256:2aa7bab11e7f6c5c2ba1fc0e84b9743f9cc35fdd1c0b0f7216bd94bbde220ce2"
+      },
+      "signed_attestation": false,
+      "sbom_reference": "ghcr.io/kavindacena99/university-course-management-system/auth@sha256:e60f2e3b360d7f3d74db7df943dc5ad04b31ebc62858a6dd1a07dcd767dd1d28",
+      "provenance_reference": "ghcr.io/kavindacena99/university-course-management-system/auth@sha256:e60f2e3b360d7f3d74db7df943dc5ad04b31ebc62858a6dd1a07dcd767dd1d28"
+    },
+    {
+      "service": "user",
+      "image": "ghcr.io/kavindacena99/university-course-management-system/user",
+      "tag": "sha-e83d2d131136624024175d16d2f41e1501d0b385",
+      "digest": "sha256:729dcc9c1ab41a0a20cbfd31b01807d53dfe4a3860b8be0764070df0534e11f1",
+      "runtime_digest": "sha256:37706ffa73441c1914fbcd7c8043138fded75763f80c1139e9353ce1e760ab62",
+      "platforms": [
+        "linux/amd64"
+      ],
+      "build_status": "success",
+      "scan_status": "passed",
+      "registry_scan_status": "passed",
+      "pull_status": "passed",
+      "attestations": {
+        "https://spdx.dev/Document": "sha256:304697fb492f3a4fab6c671e6c5134f1585b86a94bf33f23c10a5f98d42aa4db",
+        "https://slsa.dev/provenance/v1": "sha256:756bef6cee9956dba2ad2d348feec9cc8f49b7396664e0fff4fe238674bac144"
+      },
+      "signed_attestation": false,
+      "sbom_reference": "ghcr.io/kavindacena99/university-course-management-system/user@sha256:729dcc9c1ab41a0a20cbfd31b01807d53dfe4a3860b8be0764070df0534e11f1",
+      "provenance_reference": "ghcr.io/kavindacena99/university-course-management-system/user@sha256:729dcc9c1ab41a0a20cbfd31b01807d53dfe4a3860b8be0764070df0534e11f1"
+    },
+    {
+      "service": "course",
+      "image": "ghcr.io/kavindacena99/university-course-management-system/course",
+      "tag": "sha-e83d2d131136624024175d16d2f41e1501d0b385",
+      "digest": "sha256:76c9e2a965d1da9150c03adafcb2c82cfaa89e126eff085f4b5416e72575cd7f",
+      "runtime_digest": "sha256:a6bd4d84060e0dfdeaad021315de2fe1a2ac1a925e708cfb8050fee8b25bed93",
+      "platforms": [
+        "linux/amd64"
+      ],
+      "build_status": "success",
+      "scan_status": "passed",
+      "registry_scan_status": "passed",
+      "pull_status": "passed",
+      "attestations": {
+        "https://spdx.dev/Document": "sha256:b57759f9118c4f3c9a340f1e7ccdc46741d3f92d620722038d23b88865939cf5",
+        "https://slsa.dev/provenance/v1": "sha256:4967f403ddcf7ac521728e57a492cb6173463f682eb9a9a1a1f155b002b2e9c2"
+      },
+      "signed_attestation": false,
+      "sbom_reference": "ghcr.io/kavindacena99/university-course-management-system/course@sha256:76c9e2a965d1da9150c03adafcb2c82cfaa89e126eff085f4b5416e72575cd7f",
+      "provenance_reference": "ghcr.io/kavindacena99/university-course-management-system/course@sha256:76c9e2a965d1da9150c03adafcb2c82cfaa89e126eff085f4b5416e72575cd7f"
+    },
+    {
+      "service": "enrollment",
+      "image": "ghcr.io/kavindacena99/university-course-management-system/enrollment",
+      "tag": "sha-e83d2d131136624024175d16d2f41e1501d0b385",
+      "digest": "sha256:11437199b3da2cb427c4611d1f7ba45e88f47972ac276be2383cbee4f64addaf",
+      "runtime_digest": "sha256:e9c36feec06ccd8060fa1960b01cbbab362bbb32c780bf5ac6f3b278322a0fd7",
+      "platforms": [
+        "linux/amd64"
+      ],
+      "build_status": "success",
+      "scan_status": "passed",
+      "registry_scan_status": "passed",
+      "pull_status": "passed",
+      "attestations": {
+        "https://spdx.dev/Document": "sha256:f940e141d9be9113f5b85b4e2d1ba4e76f14c5c2d06a4c28e8f7ad96cc580034",
+        "https://slsa.dev/provenance/v1": "sha256:046c32ad0f419dec97e002eefdc9d25a84aa249dc312cfe17ea2351d322df9d8"
+      },
+      "signed_attestation": false,
+      "sbom_reference": "ghcr.io/kavindacena99/university-course-management-system/enrollment@sha256:11437199b3da2cb427c4611d1f7ba45e88f47972ac276be2383cbee4f64addaf",
+      "provenance_reference": "ghcr.io/kavindacena99/university-course-management-system/enrollment@sha256:11437199b3da2cb427c4611d1f7ba45e88f47972ac276be2383cbee4f64addaf"
+    },
+    {
+      "service": "assessment",
+      "image": "ghcr.io/kavindacena99/university-course-management-system/assessment",
+      "tag": "sha-e83d2d131136624024175d16d2f41e1501d0b385",
+      "digest": "sha256:404e89c62797e1f5bf10d5ab6c8cddcb2a704ad7dde1d135a258be23eb3a13d4",
+      "runtime_digest": "sha256:2efc1e146ccab5c57025d6c9fdbd1bcda82c9cba227c96aac64c223d0b9cdf18",
+      "platforms": [
+        "linux/amd64"
+      ],
+      "build_status": "success",
+      "scan_status": "passed",
+      "registry_scan_status": "passed",
+      "pull_status": "passed",
+      "attestations": {
+        "https://spdx.dev/Document": "sha256:3188ed4294b71f54d9151e582078ecfa6353dff0a50893df089b53167c82996e",
+        "https://slsa.dev/provenance/v1": "sha256:cfa72971ad1cf7fea19ed6febed217489f7cc6ebdb1c3a6477117ab66694e04f"
+      },
+      "signed_attestation": false,
+      "sbom_reference": "ghcr.io/kavindacena99/university-course-management-system/assessment@sha256:404e89c62797e1f5bf10d5ab6c8cddcb2a704ad7dde1d135a258be23eb3a13d4",
+      "provenance_reference": "ghcr.io/kavindacena99/university-course-management-system/assessment@sha256:404e89c62797e1f5bf10d5ab6c8cddcb2a704ad7dde1d135a258be23eb3a13d4"
+    },
+    {
+      "service": "analytics",
+      "image": "ghcr.io/kavindacena99/university-course-management-system/analytics",
+      "tag": "sha-e83d2d131136624024175d16d2f41e1501d0b385",
+      "digest": "sha256:ae0f61d12b161599a83421efba406051fa10c33bd5d2f75ad892a91bc427b50d",
+      "runtime_digest": "sha256:c7f11e15b16e8a42c1c1a4c978d43c7e3926ef27e3ebfadd175885e1175604ca",
+      "platforms": [
+        "linux/amd64"
+      ],
+      "build_status": "success",
+      "scan_status": "passed",
+      "registry_scan_status": "passed",
+      "pull_status": "passed",
+      "attestations": {
+        "https://spdx.dev/Document": "sha256:a88ae89ceda329b51486192e3be27e1c8f7a2829af062ce96cd8b16bc73e7339",
+        "https://slsa.dev/provenance/v1": "sha256:7f7135f0cbf142a27dca7c4890c40f2bd5130dba00c8648852e3a7d3d2dbff13"
+      },
+      "signed_attestation": false,
+      "sbom_reference": "ghcr.io/kavindacena99/university-course-management-system/analytics@sha256:ae0f61d12b161599a83421efba406051fa10c33bd5d2f75ad892a91bc427b50d",
+      "provenance_reference": "ghcr.io/kavindacena99/university-course-management-system/analytics@sha256:ae0f61d12b161599a83421efba406051fa10c33bd5d2f75ad892a91bc427b50d"
+    },
+    {
+      "service": "frontend",
+      "image": "ghcr.io/kavindacena99/university-course-management-system/frontend",
+      "tag": "sha-e83d2d131136624024175d16d2f41e1501d0b385",
+      "digest": "sha256:9ffef77827a25bd4031d4fa50706f6b45c1eefcdeb078441aa5507e70e565552",
+      "runtime_digest": "sha256:720a8c496d6cc217b49beb9c33e566d5062b09755dd7f6f85dcb5f9c27aabd73",
+      "platforms": [
+        "linux/amd64"
+      ],
+      "build_status": "success",
+      "scan_status": "passed",
+      "registry_scan_status": "passed",
+      "pull_status": "passed",
+      "attestations": {
+        "https://spdx.dev/Document": "sha256:43c68e6bd1fb6b9ee601a85e27547cfd19dec0af30c3c8919b0f4b2c75629498",
+        "https://slsa.dev/provenance/v1": "sha256:fe25b127fd9d7659b63a4743329a06ffbc888f71482182c5c64cb0cf25b8bed2"
+      },
+      "signed_attestation": false,
+      "sbom_reference": "ghcr.io/kavindacena99/university-course-management-system/frontend@sha256:9ffef77827a25bd4031d4fa50706f6b45c1eefcdeb078441aa5507e70e565552",
+      "provenance_reference": "ghcr.io/kavindacena99/university-course-management-system/frontend@sha256:9ffef77827a25bd4031d4fa50706f6b45c1eefcdeb078441aa5507e70e565552"
+    },
+    {
+      "service": "gateway",
+      "image": "ghcr.io/kavindacena99/university-course-management-system/gateway",
+      "tag": "sha-e83d2d131136624024175d16d2f41e1501d0b385",
+      "digest": "sha256:ce0ac03594458b8d5e5a2cffc22e87dabfcc3bae81ab878501c9853b818c5d77",
+      "runtime_digest": "sha256:7b9fe7626c1b1fb11764a6010042a2ba53816bba1306d694d248bd6bc88f1f65",
+      "platforms": [
+        "linux/amd64"
+      ],
+      "build_status": "success",
+      "scan_status": "passed",
+      "registry_scan_status": "passed",
+      "pull_status": "passed",
+      "attestations": {
+        "https://spdx.dev/Document": "sha256:e45df3b6eabd88232417b0f1591a285b4562f6f65f0718eea5415398f340a8e3",
+        "https://slsa.dev/provenance/v1": "sha256:46c47e1cf2d01831dc1e374e3cb835bfd23f912002c16fb574f17f980aabf629"
+      },
+      "signed_attestation": false,
+      "sbom_reference": "ghcr.io/kavindacena99/university-course-management-system/gateway@sha256:ce0ac03594458b8d5e5a2cffc22e87dabfcc3bae81ab878501c9853b818c5d77",
+      "provenance_reference": "ghcr.io/kavindacena99/university-course-management-system/gateway@sha256:ce0ac03594458b8d5e5a2cffc22e87dabfcc3bae81ab878501c9853b818c5d77"
+    },
+    {
+      "service": "assessment-minio-init",
+      "image": "ghcr.io/kavindacena99/university-course-management-system/assessment-minio-init",
+      "tag": "sha-e83d2d131136624024175d16d2f41e1501d0b385",
+      "digest": "sha256:829438be26acbe3805c0ed27b1ccd1134e35738e6b9144caa5c9def78938ceb5",
+      "runtime_digest": "sha256:0cd4f155489bc7addc1c1f9584c1d5ba2e781669fd8ca900f961253700cdafc9",
+      "platforms": [
+        "linux/amd64"
+      ],
+      "build_status": "success",
+      "scan_status": "passed",
+      "registry_scan_status": "passed",
+      "pull_status": "passed",
+      "attestations": {
+        "https://spdx.dev/Document": "sha256:e2ce77ae57c791eca1680d00cd7d5137cb6c2762187445215a5841f3e9daf291",
+        "https://slsa.dev/provenance/v1": "sha256:0db601183880e135bef062fbed620d482c6c26b6b8896b0f71d1d9f0e552d63f"
+      },
+      "signed_attestation": false,
+      "sbom_reference": "ghcr.io/kavindacena99/university-course-management-system/assessment-minio-init@sha256:829438be26acbe3805c0ed27b1ccd1134e35738e6b9144caa5c9def78938ceb5",
+      "provenance_reference": "ghcr.io/kavindacena99/university-course-management-system/assessment-minio-init@sha256:829438be26acbe3805c0ed27b1ccd1134e35738e6b9144caa5c9def78938ceb5"
+    }
+  ],
+  "qa_validation": {
+    "status": "pending",
+    "reference": null
+  },
+  "created_at": "2026-11-28T05:06:44.707419+00:00"
+}

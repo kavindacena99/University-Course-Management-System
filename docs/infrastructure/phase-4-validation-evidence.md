@@ -162,3 +162,33 @@ identical reruns, partial reruns, conflicts, authentication denial, digest
 mismatch, missing attestation and scanner failures. Historical run failures
 remain recorded above. The publication-scope storage decision remains pending;
 no source or registry publication has been claimed by this continuation.
+
+## 2026-11-28 successful publication verification
+
+The historical failures and local-only conclusions above describe their own
+checkpoints. Protected-main [run 46108269083](https://github.com/kavindacena99/University-Course-Management-System/actions/runs/46108269083)
+at `e83d2d131136624024175d16d2f41e1501d0b385` finished with 20 successful
+jobs, including `publication-prerequisites` and `publish`. The downloaded
+[manifest artifact 15248428875](https://github.com/kavindacena99/University-Course-Management-System/actions/runs/46108269083/artifacts/15248428875)
+and [publication evidence artifact 15248269004](https://github.com/kavindacena99/University-Course-Management-System/actions/runs/46108269083/artifacts/15248269004)
+were read from GitHub, not reconstructed from expected values.
+
+`registry_pipeline.py validate --directory .infra-state/phase4/verified-publication`
+passed on the downloaded manifest. A separate comparison checked its nine rows
+against nine `publication.json` records, nine `published-digest.txt` files,
+and the nine `images.env` entries. The manifest records complete publication,
+verified registry access, successful build/prepublication scan/registry
+scan/pull, linux/amd64, SPDX and SLSA references, and unsigned attestations.
+Its SHA-256 is
+`2716a60fd606b4f9cdee39806b03741d228ce71d48b9b157862cd86790fc616b`;
+`images.env` SHA-256 is
+`a336fafc1dd2a3ca41a05c1ae7ddf4ad22561884f6ca75ce9a21e9f8c02364ce`.
+All nine SHA tags were then queried directly via `docker buildx imagetools
+inspect`; every registry digest matched the downloaded manifest. Neither
+command rebuilt, retagged, or republished an image.
+
+The non-secret manifest and image references are retained in
+`release-manifests/phase-4/e83d2d131136624024175d16d2f41e1501d0b385/`.
+The GitHub Actions artifacts have 90-day retention. Supporting Silo's raw HIGH
+CVE-2026-39414 and unsigned BuildKit statements remain explicit limitations.
+**PHASE 4: COMPLETED** for application image publication only.
