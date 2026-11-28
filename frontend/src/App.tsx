@@ -159,6 +159,7 @@ import LecAssignmentSubmissionSettings from './Pages/LecAssignmentSubmissionSett
 import LecDashboard from './Pages/LecDashboard';
 import AdminStudentLogin from './Pages/AdminStudentLogin';
 import Admin_Dashboard from './Pages/Admin_Dashboard';
+import StudentLearning_HubBrowseCatalog from './Pages/StudentLearning_HubBrowseCatalog';
 
 export default function App() {
   return (
@@ -200,6 +201,10 @@ export default function App() {
 
         { /* Admin_Dashboard */}
         <Route path="/Admin_Dashboard" element={<Admin_Dashboard /> } />        
+
+        { /* StudentLearning_HubBrowseCatalog */}
+        <Route path="/StudentLearning_HubBrowseCatalog" element={<StudentLearning_HubBrowseCatalog /> } />  
+
       </Routes>
     </Router>
   );
