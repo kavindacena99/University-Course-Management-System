@@ -1,5 +1,5 @@
 import { FormEvent, useMemo, useState } from "react";
-import "./Courses.css";
+import "./LecCreateCourse.css";
 
 const asset = (name: string) => `/assets/${name}`;
 
