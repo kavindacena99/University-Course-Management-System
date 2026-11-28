@@ -601,3 +601,171 @@ body,
     width: 100% !important;
   }
 }
+
+/* --- Fix Right Edge Clipping, Edit Mode Toggle & Save Course Button --- */
+.app-shell,
+.app-shell .workspace,
+.app-shell .content,
+.app-shell .course-card,
+.app-shell form,
+.app-shell fieldset,
+.app-shell .form-grid,
+.app-shell .field,
+.app-shell .form-actions {
+  min-width: 0 !important;
+  max-width: 100% !important;
+}
+
+.app-shell .content {
+  padding: 24px 28px 48px !important;
+  width: 100% !important;
+  overflow-x: hidden !important;
+}
+
+.app-shell .course-card {
+  width: 100% !important;
+  max-width: 100% !important;
+  padding: 24px 26px !important;
+  overflow: hidden !important;
+}
+
+.app-shell .card-heading {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 16px !important;
+  width: 100% !important;
+  flex-wrap: wrap !important;
+}
+
+.app-shell .edit-toggle {
+  flex-shrink: 0 !important;
+  margin-right: 4px !important;
+  padding: 6px 12px 6px 14px !important;
+}
+
+.app-shell .form-grid {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 0 20px !important;
+  width: 100% !important;
+}
+
+.app-shell .field input,
+.app-shell .field textarea {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+}
+
+.app-shell .form-actions {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 12px !important;
+  width: 100% !important;
+  flex-wrap: wrap !important;
+  padding-right: 4px !important;
+}
+
+.app-shell .button {
+  flex-shrink: 0 !important;
+  white-space: nowrap !important;
+  padding: 0 20px !important;
+}
+
+@media (max-width: 720px) {
+  .app-shell .form-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* --- Remove Extra Left Gap & Center Course Card Cleanly --- */
+.app-shell .workspace {
+  position: relative !important;
+  margin-left: 280px !important;
+  width: calc(100% - 280px) !important;
+  max-width: calc(100% - 280px) !important;
+  left: 0 !important;
+  right: 0 !important;
+  box-sizing: border-box !important;
+}
+
+.app-shell .topbar {
+  position: sticky !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  padding: 0 28px !important;
+  box-sizing: border-box !important;
+}
+
+.app-shell .content {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: flex-start !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  left: 0 !important;
+  padding: 28px 24px 48px !important;
+  box-sizing: border-box !important;
+}
+
+.app-shell .course-card {
+  width: 100% !important;
+  max-width: 880px !important;
+  margin: 0 auto !important;
+  left: 0 !important;
+  right: 0 !important;
+  padding: 26px 28px !important;
+  overflow: visible !important;
+  box-sizing: border-box !important;
+}
+
+.app-shell .form-grid {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 0 20px !important;
+  width: 100% !important;
+}
+
+.app-shell .form-actions {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 12px !important;
+  width: 100% !important;
+  flex-wrap: wrap !important;
+}
+
+.app-shell .button {
+  flex-shrink: 0 !important;
+  white-space: nowrap !important;
+}
+
+@media (max-width: 960px) {
+  .app-shell .workspace {
+    margin-left: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .app-shell .content {
+    padding: 20px 16px 40px !important;
+  }
+
+  .app-shell .course-card {
+    max-width: 100% !important;
+    padding: 20px 18px !important;
+  }
+}
+
+@media (max-width: 720px) {
+  .app-shell .form-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
