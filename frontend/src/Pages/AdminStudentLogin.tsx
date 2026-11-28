@@ -177,3 +177,10 @@ const UniversityIllustration = () => (
         d="M157 184C163 187 174 187 180 183C179 191 173 195 167 195C161 195 157 190 157 184Z"
         fill="#ffffff"
       />
+    </svg>
+  </div>
+);
+
+// The illustration draft is retained for completion of the admin login page.
+// It is not exposed as a login route; the existing API-backed Login remains active.
+export default UniversityIllustration;
