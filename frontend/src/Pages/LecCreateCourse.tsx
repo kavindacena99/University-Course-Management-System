@@ -1,17 +1,15 @@
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import "./LecCreateCourse.css";
 import { createCourse } from "../services/courses";
+import { getCurrentUser, logout } from "../services/auth";
+import type { UserSummary } from "../types/api";
 
 const asset = (name: string) => `/assets/${name}`;
 
 const navItems = [
   { label: "Dashboard", icon: "57bc3.png" },
   { label: "My Courses", icon: "45c82.png" },
-  { label: "Assignments", icon: "2c8cd.png" },
-  { label: "Results and Grades", icon: "1cad0.png" },
-  { label: "Class Analysis", icon: "4ebe4.png" },
-  { label: "Academic Calender", icon: "2e776.png" },
-  { label: "Notice Board", icon: "4c71a.png" },
 ];
 
 type FormState = {
@@ -31,9 +29,11 @@ const emptyForm: FormState = {
 function Sidebar({
   activeItem,
   onNavigate,
+  onLogout,
 }: {
   activeItem: string;
   onNavigate: (item: string) => void;
+  onLogout: () => void;
 }) {
   return (
     <aside className="sidebar">
@@ -59,7 +59,7 @@ function Sidebar({
         ))}
       </nav>
 
-      <button className="logout" type="button" onClick={() => onNavigate("Logged out")}>
+      <button className="logout" type="button" onClick={onLogout}>
         <img className="logout-line" src={asset("00bb1.svg")} alt="" />
         <span className="logout-content">
           <img src={asset("394ee.svg")} alt="" />
@@ -71,26 +71,14 @@ function Sidebar({
 }
 
 function Header({
-  query,
-  onQueryChange,
+  user,
 }: {
-  query: string;
-  onQueryChange: (value: string) => void;
+  user: UserSummary | null;
 }) {
   const [profileOpen, setProfileOpen] = useState(false);
 
   return (
     <header className="topbar">
-      <label className="search">
-        <img src={asset("a02fb.svg")} alt="" />
-        <input
-          value={query}
-          onChange={(event) => onQueryChange(event.target.value)}
-          placeholder="Search Courses, Assignments, Results and Grades etc..."
-          aria-label="Search courses, assignments, results and grades"
-        />
-      </label>
-
       <div className="profile-wrap">
         <button
           className="profile"
@@ -98,17 +86,18 @@ function Header({
           aria-expanded={profileOpen}
           onClick={() => setProfileOpen((open) => !open)}
         >
-          <img className="avatar" src={asset("b5e3e.png")} alt="Ms Dileeshi Sathsarani" />
+          <span className="avatar" aria-hidden="true">
+            {user ? `${user.first_name[0] ?? ""}${user.last_name[0] ?? ""}`.toUpperCase() : ""}
+          </span>
           <span>
-            <strong>Ms Dileeshi Sathsarani</strong>
-            <small>Lecturer in IT</small>
+            <strong>{user ? `${user.first_name} ${user.last_name}` : "Account"}</strong>
+            <small>{user?.email ?? ""}</small>
           </span>
           <img className="chevron" src={asset("0d534.svg")} alt="" />
         </button>
         {profileOpen && (
-          <div className="profile-menu">
-            <button type="button">View profile</button>
-            <button type="button">Account settings</button>
+          <div className="profile-menu" role="status">
+            {user?.email ?? "Loading account details..."}
           </div>
         )}
       </div>
@@ -247,30 +236,54 @@ function CourseForm({ onSaved }: { onSaved: (message: string) => void }) {
 }
 
 export default function LecCreateCourse () {
-    
+  const navigate = useNavigate();
   const [activeItem, setActiveItem] = useState("My Courses");
-  const [query, setQuery] = useState("");
   const [notice, setNotice] = useState("");
+  const [user, setUser] = useState<UserSummary | null>(null);
 
-  const navigate = (item: string) => {
+  useEffect(() => {
+    let active = true;
+    getCurrentUser()
+      .then((currentUser) => {
+        if (active) setUser(currentUser);
+      })
+      .catch((error: unknown) => {
+        if (active) {
+          setNotice(error instanceof Error ? error.message : "Unable to load account details.");
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const navigateToItem = (item: string) => {
     setActiveItem(item);
-    if (item !== "My Courses") setNotice(`${item} selected.`);
+    navigate(
+      item === "Dashboard" && user?.roles.includes("ADMIN")
+        ? "/admin"
+        : "/courses",
+    );
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate("/login");
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Unable to sign out.");
+    }
   };
 
   return (
     <div className="app-shell">
-      <Sidebar activeItem={activeItem} onNavigate={navigate} />
+      <Sidebar activeItem={activeItem} onNavigate={navigateToItem} onLogout={handleLogout} />
       <div className="workspace">
-        <Header query={query} onQueryChange={setQuery} />
-        {query && (
-          <div className="search-status" role="status">
-            Searching for “{query}”
-          </div>
-        )}
+        <Header user={user} />
         <CourseForm onSaved={setNotice} />
       </div>
       {notice && (
-        <button className="toast" type="button" onClick={() => setNotice("")}>
+        <button className="toast" type="button" role="status" onClick={() => setNotice("")}>
           {notice}
         </button>
       )}

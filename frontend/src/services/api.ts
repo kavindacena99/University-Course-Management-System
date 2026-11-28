@@ -4,10 +4,13 @@ import type { ApiError } from "../types/api";
 // unchanged in QA and PROD-like. Local development may explicitly override it.
 const baseUrl = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
 
-let csrfToken = "";
+const csrfStorageKey = "ucm_csrf_token";
+let csrfToken = sessionStorage.getItem(csrfStorageKey) || "";
 
 export function setCsrfToken(token: string) {
   csrfToken = token;
+  if (token) sessionStorage.setItem(csrfStorageKey, token);
+  else sessionStorage.removeItem(csrfStorageKey);
 }
 
 export function getCsrfToken() {
@@ -22,7 +25,9 @@ export async function apiRequest<T>(
   const headers = new Headers(options.headers);
   headers.set("Accept", "application/json");
 
-  if (options.body && !headers.has("Content-Type")) {
+  const isFormData =
+    typeof FormData !== "undefined" && options.body instanceof FormData;
+  if (options.body && !headers.has("Content-Type") && !isFormData) {
     headers.set("Content-Type", "application/json");
   }
   if (csrfToken && ["POST", "PUT", "PATCH", "DELETE"].includes(method)) {
