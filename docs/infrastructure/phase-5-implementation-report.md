@@ -70,3 +70,19 @@ failed on unauthenticated, static lecturer pages. The RC2 tag, image digests and
 failure evidence remain preserved. No stable tag or release was created.
 Phase 5 remains **IN PROGRESS** because the stable transition cannot pass
 without accepted QA.
+
+## Later main application source — publication without promotion
+
+PR #24 added new frontend pages and changed application inputs after RC2. PR
+#26 repaired its pnpm lockfile and build errors; all 19 executed PR checks
+passed. The merged source is `9cc70c16d60854a4c987e226cb201aaa237369a9`.
+Protected-main [run 46141408825](https://github.com/kavindacena99/University-Course-Management-System/actions/runs/46141408825)
+completed 21/21 jobs successfully and published nine new immutable images.
+Its downloaded [manifest artifact](https://github.com/kavindacena99/University-Course-Management-System/actions/runs/46141408825/artifacts/15262505569)
+and [publication evidence](https://github.com/kavindacena99/University-Course-Management-System/actions/runs/46141408825/artifacts/15261709765)
+matched all nine publication records, digest files, registry scans, SHA-tag
+resolutions and `images.env`. The nonsecret manifest is retained at
+`release-manifests/phase-4/9cc70c16d60854a4c987e226cb201aaa237369a9/`.
+This does not create an RC3 or change RC2's failed verdict. The new frontend
+pages still use local state rather than backend APIs; their authenticated
+business workflows require an application fix before a new QA candidate.

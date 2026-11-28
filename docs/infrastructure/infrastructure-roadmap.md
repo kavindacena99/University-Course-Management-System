@@ -15,3 +15,7 @@ results; this page records the current acceptance state.
 
 The local PROD-like target is a rehearsal, not an externally accessible
 Production system. No cloud provider or live Production server has been chosen.
+
+The latest protected-main source `9cc70c16d60854a4c987e226cb201aaa237369a9`
+has its own successful nine-image publication in run 46141408825. It is not
+an accepted RC. RC2 remains the last QA-deployed candidate and failed QA.
