@@ -54,18 +54,25 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 export function Protected({
   children,
   role,
+  roles,
   permission,
+  permissions,
 }: {
   children: ReactNode;
   role?: string;
+  roles?: string[];
   permission?: string;
+  permissions?: string[];
 }) {
   const { user, loading } = useSession();
   const location = useLocation();
   if (loading) return <main role="status">Restoring your session…</main>;
   if (!user) return <Navigate to="/login" replace state={{ from: location.pathname }} />;
-  if (role && !hasRole(user, role)) return <main role="alert">Access denied.</main>;
-  if (permission && !hasPermission(user, permission))
+  const allowedRoles = roles || (role ? [role] : []);
+  const requiredPermissions = permissions || (permission ? [permission] : []);
+  if (allowedRoles.length && !allowedRoles.some((value) => hasRole(user, value)))
+    return <main role="alert">Access denied.</main>;
+  if (requiredPermissions.some((value) => !hasPermission(user, value)))
     return <main role="alert">Access denied.</main>;
   return <>{children}</>;
 }

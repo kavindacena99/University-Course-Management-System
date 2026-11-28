@@ -72,10 +72,10 @@ export const offeringEnrollments = (id: string, offset = 0) =>
   apiRequest<Page<{ enrollments: Enrollment[] }>>(
     `/api/v1/offerings/${id}/enrollments?limit=20&offset=${offset}`,
   );
-export const enroll = (offeringId: string, studentId: string) =>
+export const enroll = (offeringId: string) =>
   apiRequest<{ enrollment: Enrollment }>("/api/v1/enrollments", {
     method: "POST",
-    body: JSON.stringify({ offering_id: offeringId, student_user_id: studentId }),
+    body: JSON.stringify({ offering_id: offeringId }),
   });
 export const assessments = (id: string, offset = 0) =>
   apiRequest<Page<{ assessments: Assessment[] }>>(

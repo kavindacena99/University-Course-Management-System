@@ -92,7 +92,7 @@ export default function StudentEnrollments() {
       <header className="student-enrollments__header">
         <div>
           <p>Student portal</p>
-          <h1>Course enrollment</h1>
+          <h1>My enrolments</h1>
           <span>{user ? `${user.first_name} ${user.last_name}` : ""}</span>
         </div>
         <nav aria-label="Student navigation">

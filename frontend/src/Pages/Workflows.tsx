@@ -347,7 +347,7 @@ export function OfferingPage({ lecturer = false }: { lecturer?: boolean }) {
     (!!user && hasRole(user, "ADMIN"));
   async function enrol() {
     try {
-      await api.enroll(id, user!.id);
+      await api.enroll(id);
       setNotice("Enrolment saved.");
       assessmentList.reload();
     } catch (cause) {

@@ -9,7 +9,7 @@ import {
   revokeAccountSession,
   updateAccountProfile,
 } from "../services/account";
-import { setCsrfToken } from "../services/api";
+import { endSession } from "../services/api";
 import "./AccountSettings.css";
 
 export default function AccountSettings() {
@@ -119,7 +119,7 @@ export default function AccountSettings() {
     try {
       await logoutAllSessions();
       sessionStorage.clear();
-      setCsrfToken("");
+      endSession();
       navigate("/login", { replace: true });
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Unable to sign out all sessions.");
