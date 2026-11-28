@@ -1,0 +1,771 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+
+html,
+body,
+#root {
+  margin: 0 !important;
+  padding: 0 !important;
+  width: 100% !important;
+  min-height: 100vh !important;
+  background-color: #f1f5f9 !important;
+  overflow-x: hidden !important;
+}
+
+.app-shell:has(.sidebar-accent) {
+  display: flex !important;
+  min-height: 100vh !important;
+  width: 100% !important;
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif !important;
+  box-sizing: border-box !important;
+}
+
+.app-shell:has(.sidebar-accent) *,
+.app-shell:has(.sidebar-accent) *::before,
+.app-shell:has(.sidebar-accent) *::after {
+  box-sizing: border-box !important;
+}
+
+.app-shell:has(.sidebar-accent) button,
+.app-shell:has(.sidebar-accent) input,
+.app-shell:has(.sidebar-accent) textarea,
+.app-shell:has(.sidebar-accent) select {
+  font-family: inherit !important;
+  outline: none;
+}
+
+.app-shell:has(.sidebar-accent) button {
+  cursor: pointer;
+}
+
+/* --- Sidebar --- */
+.app-shell:has(.sidebar-accent) .sidebar {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  bottom: 0 !important;
+  width: 280px !important;
+  min-width: 280px !important;
+  max-width: 280px !important;
+  height: 100vh !important;
+  background: #0f172a !important;
+  color: #f8fafc !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: flex-start !important;
+  align-items: stretch !important;
+  padding: 16px 12px 24px 12px !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  z-index: 40 !important;
+  box-shadow: 4px 0 20px rgba(15, 23, 42, 0.08) !important;
+  scrollbar-width: none !important;
+}
+
+.app-shell:has(.sidebar-accent) .sidebar::-webkit-scrollbar {
+  display: none !important;
+}
+
+.app-shell:has(.sidebar-accent) .sidebar-accent {
+  display: none !important;
+}
+
+.app-shell:has(.sidebar-accent) .brand {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 100% !important;
+  padding: 16px 12px !important;
+  margin-bottom: 14px !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 14px !important;
+  text-align: center !important;
+  flex-shrink: 0 !important;
+}
+
+.app-shell:has(.sidebar-accent) .brand-mark img {
+  width: 44px !important;
+  height: 44px !important;
+  object-fit: contain !important;
+  background: #ffffff !important;
+  padding: 5px !important;
+  border-radius: 10px !important;
+  margin-bottom: 8px !important;
+  display: block !important;
+}
+
+.app-shell:has(.sidebar-accent) .brand p {
+  margin: 0 !important;
+  color: #e2e8f0 !important;
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  line-height: 1.35 !important;
+}
+
+.app-shell:has(.sidebar-accent) .sidebar-nav {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 4px !important;
+  width: 100% !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  flex: 0 0 auto !important;
+}
+
+.app-shell:has(.sidebar-accent) .sidebar .nav-item {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 10px !important;
+  width: 100% !important;
+  min-height: 38px !important;
+  padding: 8px 12px !important;
+  margin: 0 !important;
+  border: none !important;
+  border-radius: 10px !important;
+  background: transparent !important;
+  color: #cbd5e1 !important;
+  font-size: 12.5px !important;
+  font-weight: 500 !important;
+  text-align: left !important;
+  white-space: nowrap !important;
+  transition: all 0.2s ease !important;
+}
+
+.app-shell:has(.sidebar-accent) .sidebar .nav-item:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: #ffffff !important;
+}
+
+.app-shell:has(.sidebar-accent) .sidebar .nav-item.active {
+  background: linear-gradient(90deg, #0d9488 0%, #0284c7 100%) !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
+  box-shadow: 0 4px 12px rgba(13, 148, 136, 0.35) !important;
+}
+
+.app-shell:has(.sidebar-accent) .sidebar .nav-item img {
+  width: 18px !important;
+  height: 18px !important;
+  object-fit: contain !important;
+  filter: brightness(0) invert(1) !important;
+  opacity: 0.85 !important;
+  flex-shrink: 0 !important;
+}
+
+.app-shell:has(.sidebar-accent) .sidebar .nav-item.active img {
+  opacity: 1 !important;
+}
+
+.app-shell:has(.sidebar-accent) .sidebar .logout {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  width: 100% !important;
+  height: 40px !important;
+  min-height: 40px !important;
+  margin: 14px 0 4px 0 !important;
+  padding: 0 12px !important;
+  border-radius: 10px !important;
+  border: 1px solid rgba(248, 113, 113, 0.3) !important;
+  background: rgba(239, 68, 68, 0.12) !important;
+  color: #fca5a5 !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  flex-shrink: 0 !important;
+  transition: all 0.2s ease !important;
+}
+
+.app-shell:has(.sidebar-accent) .sidebar .logout:hover {
+  background: #ef4444 !important;
+  color: #ffffff !important;
+}
+
+.app-shell:has(.sidebar-accent) .logout-line {
+  display: none !important;
+}
+
+.app-shell:has(.sidebar-accent) .logout-content {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+.app-shell:has(.sidebar-accent) .logout-content img {
+  width: 17px !important;
+  height: 17px !important;
+  filter: brightness(0) invert(1) !important;
+}
+
+/* --- Workspace & Topbar --- */
+.app-shell:has(.sidebar-accent) .workspace {
+  flex: 1 !important;
+  margin-left: 280px !important;
+  width: calc(100% - 280px) !important;
+  min-width: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.app-shell:has(.sidebar-accent) .topbar {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 30 !important;
+  height: 70px !important;
+  background: rgba(255, 255, 255, 0.92) !important;
+  backdrop-filter: blur(10px) !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  padding: 0 32px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 20px !important;
+}
+
+.app-shell:has(.sidebar-accent) .search {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  width: min(460px, 100%) !important;
+  height: 40px !important;
+  padding: 0 14px !important;
+  background: #f8fafc !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 10px !important;
+  transition: all 0.2s ease !important;
+}
+
+.app-shell:has(.sidebar-accent) .search:focus-within {
+  background: #ffffff !important;
+  border-color: #0d9488 !important;
+  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.12) !important;
+}
+
+.app-shell:has(.sidebar-accent) .search img {
+  width: 16px !important;
+  height: 16px !important;
+  opacity: 0.6 !important;
+  flex-shrink: 0 !important;
+}
+
+.app-shell:has(.sidebar-accent) .search input {
+  width: 100% !important;
+  border: none !important;
+  background: transparent !important;
+  font-size: 13px !important;
+  color: #0f172a !important;
+}
+
+.app-shell:has(.sidebar-accent) .profile-wrap {
+  position: relative !important;
+  flex-shrink: 0 !important;
+}
+
+.app-shell:has(.sidebar-accent) .profile {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  padding: 6px 12px !important;
+  border: none !important;
+  border-radius: 12px !important;
+  background: transparent !important;
+  transition: background 0.2s ease !important;
+}
+
+.app-shell:has(.sidebar-accent) .profile:hover {
+  background: #f1f5f9 !important;
+}
+
+.app-shell:has(.sidebar-accent) .profile .avatar {
+  width: 38px !important;
+  height: 38px !important;
+  border-radius: 50% !important;
+  object-fit: cover !important;
+  flex-shrink: 0 !important;
+}
+
+.app-shell:has(.sidebar-accent) .profile > span {
+  display: flex !important;
+  flex-direction: column !important;
+  text-align: left !important;
+  gap: 2px !important;
+}
+
+.app-shell:has(.sidebar-accent) .profile strong {
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: #0f172a !important;
+  white-space: nowrap !important;
+}
+
+.app-shell:has(.sidebar-accent) .profile small {
+  font-size: 11.5px !important;
+  color: #64748b !important;
+  white-space: nowrap !important;
+}
+
+.app-shell:has(.sidebar-accent) .profile .chevron {
+  width: 14px !important;
+  height: 14px !important;
+  opacity: 0.65 !important;
+  flex-shrink: 0 !important;
+}
+
+.app-shell:has(.sidebar-accent) .profile-menu {
+  position: absolute !important;
+  top: calc(100% + 8px) !important;
+  right: 0 !important;
+  width: 175px !important;
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 10px !important;
+  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.12) !important;
+  padding: 6px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  z-index: 50 !important;
+}
+
+.app-shell:has(.sidebar-accent) .profile-menu button {
+  padding: 8px 12px !important;
+  border: none !important;
+  border-radius: 7px !important;
+  background: transparent !important;
+  color: #1e293b !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  text-align: left !important;
+}
+
+.app-shell:has(.sidebar-accent) .profile-menu button:hover {
+  background: #f1f5f9 !important;
+  color: #0d9488 !important;
+}
+
+.app-shell:has(.sidebar-accent) .search-status {
+  margin: 18px 32px 0 !important;
+  padding: 10px 16px !important;
+  border-radius: 10px !important;
+  background: #f0fdfa !important;
+  border: 1px solid #99f6e4 !important;
+  color: #0f766e !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+}
+
+/* --- Main Form Card --- */
+.app-shell:has(.sidebar-accent) .content {
+  padding: 28px 32px 48px !important;
+  width: 100% !important;
+}
+
+.app-shell:has(.sidebar-accent) .course-card {
+  width: 100% !important;
+  max-width: 960px !important;
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 18px !important;
+  padding: 28px 32px !important;
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.04) !important;
+}
+
+.app-shell:has(.sidebar-accent) .card-heading {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 16px !important;
+  padding-bottom: 18px !important;
+  margin-bottom: 24px !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  flex-wrap: wrap !important;
+}
+
+.app-shell:has(.sidebar-accent) .card-heading h1 {
+  margin: 0 !important;
+  font-size: 24px !important;
+  font-weight: 700 !important;
+  color: #0f172a !important;
+  letter-spacing: -0.02em !important;
+}
+
+.app-shell:has(.sidebar-accent) .edit-toggle {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: #334155 !important;
+  cursor: pointer !important;
+}
+
+.app-shell:has(.sidebar-accent) .edit-toggle input {
+  position: absolute !important;
+  opacity: 0 !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+.app-shell:has(.sidebar-accent) .switch-track {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  width: 44px !important;
+  height: 24px !important;
+  padding: 2px !important;
+  border-radius: 999px !important;
+  background: linear-gradient(90deg, #0d9488 0%, #0284c7 100%) !important;
+  transition: all 0.2s ease !important;
+}
+
+.app-shell:has(.sidebar-accent) .switch-track img {
+  width: 20px !important;
+  height: 20px !important;
+  border-radius: 50% !important;
+  background: #ffffff !important;
+  object-fit: contain !important;
+}
+
+.app-shell:has(.sidebar-accent) fieldset {
+  border: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  min-width: 0 !important;
+}
+
+.app-shell:has(.sidebar-accent) .field {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 6px !important;
+  margin-bottom: 18px !important;
+}
+
+.app-shell:has(.sidebar-accent) .field label {
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: #1e293b !important;
+}
+
+.app-shell:has(.sidebar-accent) .field input,
+.app-shell:has(.sidebar-accent) .field textarea {
+  width: 100% !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 10px !important;
+  background: #f8fafc !important;
+  color: #0f172a !important;
+  font-size: 14px !important;
+  transition: all 0.2s ease !important;
+}
+
+.app-shell:has(.sidebar-accent) .field input {
+  height: 42px !important;
+  padding: 0 14px !important;
+}
+
+.app-shell:has(.sidebar-accent) .field textarea {
+  min-height: 120px !important;
+  padding: 12px 14px !important;
+  resize: vertical !important;
+}
+
+.app-shell:has(.sidebar-accent) .field input:focus,
+.app-shell:has(.sidebar-accent) .field textarea:focus {
+  background: #ffffff !important;
+  border-color: #0d9488 !important;
+  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.12) !important;
+}
+
+.app-shell:has(.sidebar-accent) .form-grid {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 0 20px !important;
+}
+
+.app-shell:has(.sidebar-accent) .form-error {
+  margin: 8px 0 16px !important;
+  padding: 10px 14px !important;
+  border-radius: 10px !important;
+  background: #fef2f2 !important;
+  border: 1px solid #fecaca !important;
+  color: #b91c1c !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+}
+
+.app-shell:has(.sidebar-accent) .form-actions {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 12px !important;
+  margin-top: 24px !important;
+  padding-top: 18px !important;
+  border-top: 1px solid #f1f5f9 !important;
+}
+
+.app-shell:has(.sidebar-accent) .button {
+  height: 42px !important;
+  padding: 0 22px !important;
+  border-radius: 10px !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  transition: all 0.2s ease !important;
+}
+
+.app-shell:has(.sidebar-accent) .button.secondary {
+  border: 1px solid #cbd5e1 !important;
+  background: #ffffff !important;
+  color: #334155 !important;
+}
+
+.app-shell:has(.sidebar-accent) .button.secondary:hover {
+  background: #f8fafc !important;
+  border-color: #94a3b8 !important;
+}
+
+.app-shell:has(.sidebar-accent) .button.primary {
+  border: none !important;
+  background: linear-gradient(90deg, #0d9488 0%, #0284c7 100%) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(13, 148, 136, 0.28) !important;
+}
+
+.app-shell:has(.sidebar-accent) .button.primary:hover:not(:disabled) {
+  transform: translateY(-1px) !important;
+  box-shadow: 0 6px 16px rgba(13, 148, 136, 0.36) !important;
+}
+
+.app-shell:has(.sidebar-accent) .button:disabled {
+  opacity: 0.45 !important;
+  cursor: not-allowed !important;
+}
+
+/* --- Toast --- */
+.app-shell:has(.sidebar-accent) .toast {
+  position: fixed !important;
+  right: 24px !important;
+  bottom: 24px !important;
+  z-index: 60 !important;
+  padding: 12px 18px !important;
+  border: none !important;
+  border-radius: 12px !important;
+  background: #0f172a !important;
+  color: #ffffff !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.2) !important;
+}
+
+/* --- Responsive Breakpoints --- */
+@media (max-width: 960px) {
+  .app-shell:has(.sidebar-accent) .sidebar {
+    transform: translateX(-100%) !important;
+  }
+
+  .app-shell:has(.sidebar-accent) .workspace {
+    margin-left: 0 !important;
+    width: 100% !important;
+  }
+
+  .app-shell:has(.sidebar-accent) .topbar {
+    padding: 0 18px !important;
+  }
+
+  .app-shell:has(.sidebar-accent) .content {
+    padding: 20px 18px 40px !important;
+  }
+}
+
+@media (max-width: 680px) {
+  .app-shell:has(.sidebar-accent) .form-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .app-shell:has(.sidebar-accent) .course-card {
+    padding: 20px 16px !important;
+  }
+
+  .app-shell:has(.sidebar-accent) .profile > span,
+  .app-shell:has(.sidebar-accent) .profile .chevron {
+    display: none !important;
+  }
+
+  .app-shell:has(.sidebar-accent) .form-actions {
+    flex-direction: column-reverse !important;
+    align-items: stretch !important;
+  }
+
+  .app-shell:has(.sidebar-accent) .button {
+    width: 100% !important;
+  }
+}
+
+/* --- Fix Right Edge Clipping, Edit Mode Toggle & Save Course Button --- */
+.app-shell:has(.sidebar-accent),
+.app-shell:has(.sidebar-accent) .workspace,
+.app-shell:has(.sidebar-accent) .content,
+.app-shell:has(.sidebar-accent) .course-card,
+.app-shell:has(.sidebar-accent) form,
+.app-shell:has(.sidebar-accent) fieldset,
+.app-shell:has(.sidebar-accent) .form-grid,
+.app-shell:has(.sidebar-accent) .field,
+.app-shell:has(.sidebar-accent) .form-actions {
+  min-width: 0 !important;
+  max-width: 100% !important;
+}
+
+.app-shell:has(.sidebar-accent) .content {
+  padding: 24px 28px 48px !important;
+  width: 100% !important;
+  overflow-x: hidden !important;
+}
+
+.app-shell:has(.sidebar-accent) .course-card {
+  width: 100% !important;
+  max-width: 100% !important;
+  padding: 24px 26px !important;
+  overflow: hidden !important;
+}
+
+.app-shell:has(.sidebar-accent) .card-heading {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 16px !important;
+  width: 100% !important;
+  flex-wrap: wrap !important;
+}
+
+.app-shell:has(.sidebar-accent) .edit-toggle {
+  flex-shrink: 0 !important;
+  margin-right: 4px !important;
+  padding: 6px 12px 6px 14px !important;
+}
+
+.app-shell:has(.sidebar-accent) .form-grid {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 0 20px !important;
+  width: 100% !important;
+}
+
+.app-shell:has(.sidebar-accent) .field input,
+.app-shell:has(.sidebar-accent) .field textarea {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+}
+
+.app-shell:has(.sidebar-accent) .form-actions {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 12px !important;
+  width: 100% !important;
+  flex-wrap: wrap !important;
+  padding-right: 4px !important;
+}
+
+.app-shell:has(.sidebar-accent) .button {
+  flex-shrink: 0 !important;
+  white-space: nowrap !important;
+  padding: 0 20px !important;
+}
+
+@media (max-width: 720px) {
+  .app-shell:has(.sidebar-accent) .form-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* --- Remove Extra Left Gap & Center Course Card Cleanly --- */
+.app-shell:has(.sidebar-accent) .workspace {
+  position: relative !important;
+  margin-left: 280px !important;
+  width: calc(100% - 280px) !important;
+  max-width: calc(100% - 280px) !important;
+  left: 0 !important;
+  right: 0 !important;
+  box-sizing: border-box !important;
+}
+
+.app-shell:has(.sidebar-accent) .topbar {
+  position: sticky !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  padding: 0 28px !important;
+  box-sizing: border-box !important;
+}
+
+.app-shell:has(.sidebar-accent) .content {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: flex-start !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  left: 0 !important;
+  padding: 28px 24px 48px !important;
+  box-sizing: border-box !important;
+}
+
+.app-shell:has(.sidebar-accent) .course-card {
+  width: 100% !important;
+  max-width: 880px !important;
+  margin: 0 auto !important;
+  left: 0 !important;
+  right: 0 !important;
+  padding: 26px 28px !important;
+  overflow: visible !important;
+  box-sizing: border-box !important;
+}
+
+.app-shell:has(.sidebar-accent) .form-grid {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 0 20px !important;
+  width: 100% !important;
+}
+
+.app-shell:has(.sidebar-accent) .form-actions {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 12px !important;
+  width: 100% !important;
+  flex-wrap: wrap !important;
+}
+
+.app-shell:has(.sidebar-accent) .button {
+  flex-shrink: 0 !important;
+  white-space: nowrap !important;
+}
+
+@media (max-width: 960px) {
+  .app-shell:has(.sidebar-accent) .workspace {
+    margin-left: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .app-shell:has(.sidebar-accent) .content {
+    padding: 20px 16px 40px !important;
+  }
+
+  .app-shell:has(.sidebar-accent) .course-card {
+    max-width: 100% !important;
+    padding: 20px 18px !important;
+  }
+}
+
+@media (max-width: 720px) {
+  .app-shell:has(.sidebar-accent) .form-grid {
+    grid-template-columns: 1fr !important;
+  }
+}

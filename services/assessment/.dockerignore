@@ -1,4 +1,10 @@
 .env
+.env.*
+!.env.example
+var/
+bin/
+*.pem
+*.key
+*.log
 *.test
 coverage.out
-var/

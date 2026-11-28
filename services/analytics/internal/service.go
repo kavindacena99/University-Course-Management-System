@@ -186,7 +186,7 @@ func (s *Service) LecturerOfferingReport(
 		percent := result.FinalMark / result.MaxMark * 100
 		item := ReportStudent{
 			StudentUserID: result.StudentUserID,
-			FinalMark: result.FinalMark, MaxMark: result.MaxMark,
+			FinalMark:     result.FinalMark, MaxMark: result.MaxMark,
 			Percent: percent, ImportedAt: result.ImportedAt,
 		}
 		for _, band := range bands {

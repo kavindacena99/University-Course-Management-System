@@ -1,5 +1,0 @@
-2026/10/16 14:12:03 [emerg] 28112#29180: CreateDirectory() "C:/Users/user/OneDrive/Desktop/ESD/project/University-Course-Management-System/infrastructure/nginx/temp/client_body_temp" failed (3: The system cannot find the path specified)
-2026/10/16 14:14:40 [error] 26416#13872: *1 "C:/Users/user/OneDrive/Desktop/ESD/project/University-Course-Management-System/infrastructure/nginx/html/index.html" is not found (3: The system cannot find the path specified), client: 127.0.0.1, server: localhost, request: "GET / HTTP/1.1", host: "localhost:8080"
-2026/10/16 16:31:28 [error] 26416#13872: *3 "C:/Users/user/OneDrive/Desktop/ESD/project/University-Course-Management-System/infrastructure/nginx/html/index.html" is not found (3: The system cannot find the path specified), client: 127.0.0.1, server: localhost, request: "GET / HTTP/1.1", host: "localhost:8080"
-2026/10/16 18:40:37 [notice] 28160#29564: signal process started
-2026/10/16 18:49:36 [notice] 30488#28348: signal process started

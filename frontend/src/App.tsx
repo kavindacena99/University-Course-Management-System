@@ -164,23 +164,21 @@ export default function App() {
   return (
     <Router>
       <Routes>
-        {/* Login */}
         <Route path="/" element={<Login />} />
-        
-        {/* 'My Courses' Page */}
+        <Route path="/login" element={<Login />} />
+
         <Route path="/courses" element={<Courses />} />
-        
-        {/* 'Lecturer Module Assignment' Page */}
+        <Route path="/lecturer/courses" element={<Courses />} />
+        <Route path="/lecturer/courses/create" element={<LecCreateCourse />} />
+        <Route path="/lecturer/courses/view" element={<LecViewCourse />} />
+        <Route path="/lecturer/assignments" element={<LecModuleAssignment />} />
+        <Route path="/lecturer/submissions" element={<LecAssignmentSubmission />} />
+
         <Route path="/LecModuleAssignment" element={<LecModuleAssignment />} />
-
-        {/* 'Lecturer Assignment Submission' Page */}
         <Route path="/LecAssignmentSubmission" element={<LecAssignmentSubmission />} />
-        
-        { /* Lecturer View Course ' Page */} 
-        <Route path="/LecViewCourse" element={<LecViewCourse /> } />
-
-        { /* Lecturer Create Courses Page */}
-        <Route path="/LecCreateCourse" element={<LecCreateCourse /> } />
+        <Route path="/LecViewCourse" element={<LecViewCourse />} />
+        <Route path="/LecCreateCourse" element={<LecCreateCourse />} />
+        <Route path="/LecMyCourses" element={<Courses />} />
 
         {/* Lecturer My Courses Page */}
         <Route path="/LecMyCourses" element={<LecMyCourses />} />

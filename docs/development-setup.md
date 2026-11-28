@@ -5,6 +5,8 @@
 - Go 1.27.2 or later
 - PostgreSQL 16 or later
 - NGINX (optional for gateway testing)
+- Docker Desktop (optional; for the local Compose stack)
+- Node 22 and pnpm 10.34.3 (for the frontend)
 - Git
 
 ## 1. Create databases and roles
@@ -131,9 +133,11 @@ The services bind to loopback ports `8081` through `8086` by default.
 
 ## 6. Start the gateway
 
-From the repository root, run NGINX with this configuration. On Windows:
+From the repository root, validate and then run NGINX with this
+configuration. On Windows:
 
 ```powershell
+nginx -t -p infrastructure/nginx/ -c nginx.conf
 nginx -p infrastructure/nginx/ -c nginx.conf
 ```
 
@@ -163,6 +167,22 @@ curl -X POST http://localhost:8080/api/v1/auth/login \
   -H 'Content-Type: application/json' \
   -d '{"email":"admin@example.com","password":"StrongPassword123!"}'
 ```
+
+## Frontend development
+
+The frontend uses Node 22 and pnpm 10.34.3 (see `.mise.toml`):
+
+```bash
+cd frontend
+corepack enable
+pnpm install --frozen-lockfile
+pnpm dev
+```
+
+Vite serves on port `8443` by default; set `PORT` to override it. The app
+currently has no API integration. When API calls are added, point them at the
+gateway origin and keep the frontend Nginx CSP and service CORS allowlist in
+sync. The production image is built from `frontend/Dockerfile`.
 
 ## Testing
 
@@ -210,25 +230,78 @@ go test ./internal/...
 
 ## Local Docker Compose
 
-`compose.yaml` runs six separate PostgreSQL containers, a private MinIO
-service, one migration job per service, the six services, and an NGINX
-gateway. Only gateway port 8080 is published. Configure all six ignored
-service `.env` files and set Auth's
-`AUTH_JWT_PRIVATE_KEY_FILE` to the generated file under `./var/keys`. Export
-`AUTH_DB_PASSWORD`, `USER_DB_PASSWORD`, `COURSE_DB_PASSWORD`,
-`ENROLLMENT_DB_PASSWORD`, `ASSESSMENT_DB_PASSWORD`, `ANALYTICS_DB_PASSWORD`,
-`MINIO_ROOT_USER`, `MINIO_ROOT_PASSWORD`, `ASSESSMENT_OBJECT_USER`, and
-`ASSESSMENT_OBJECT_PASSWORD` for the local
-containers, then run:
+The stack lives under `infrastructure/docker`:
 
-```sh
-docker compose config --quiet
-docker compose up --build
+- `compose.yaml` defines the base stack.
+- `compose.dev.yaml` sets `LOG_LEVEL=debug` for the six services.
+- `infrastructure/environments/dev/.env.example` is the tracked Compose-level
+  environment template.
+
+It runs six PostgreSQL containers, the private object store, six migration
+jobs, the MinIO bootstrap job, the six services, the gateway, and the
+frontend. Only frontend port `3000` and gateway port `8080` are published.
+
+1. Create the ignored environment files:
+
+```bash
+cp infrastructure/environments/dev/.env.example infrastructure/docker/.env
+cp services/security-and-authentication/.env.example services/security-and-authentication/.env
+cp services/user/.env.example services/user/.env
+cp services/course/.env.example services/course/.env
+cp services/enrollment/.env.example services/enrollment/.env
+cp services/assessment/.env.example services/assessment/.env
+cp services/analytics/.env.example services/analytics/.env
 ```
 
-This is a development integration stack, not a production TLS deployment.
-An isolated stack was built and reached readiness on 2026-11-14; that does not
-establish production deployment readiness.
+Set the database passwords and object-store credentials in
+`infrastructure/docker/.env`. Keep the shared `INTERNAL_SERVICE_SECRET`, JWT
+issuer/audience, and `AUTH_JWT_PUBLIC_KEYS_JSON` aligned across the service
+`.env` files. Auth's generated key directory is mounted read-only at
+`/app/var/keys`; keep `AUTH_JWT_PRIVATE_KEY_FILE` pointed at the generated
+file under that directory.
+
+2. Validate the combined configuration:
+
+```bash
+docker compose -f infrastructure/docker/compose.yaml -f infrastructure/docker/compose.dev.yaml -p platform-dev config --quiet
+```
+
+3. Build and start:
+
+```bash
+docker compose -f infrastructure/docker/compose.yaml -f infrastructure/docker/compose.dev.yaml -p platform-dev up -d --build
+```
+
+4. Check readiness and logs:
+
+```bash
+docker compose -f infrastructure/docker/compose.yaml -f infrastructure/docker/compose.dev.yaml -p platform-dev ps
+docker compose -f infrastructure/docker/compose.yaml -f infrastructure/docker/compose.dev.yaml -p platform-dev logs -f gateway
+```
+
+The frontend is at `http://localhost:3000`; the gateway health endpoint is
+`http://localhost:8080/health`. The gateway uses Compose service-name
+upstreams and re-resolves Docker DNS every 10 seconds. Scale a stateless
+service with:
+
+```bash
+docker compose -f infrastructure/docker/compose.yaml -f infrastructure/docker/compose.dev.yaml -p platform-dev up -d --scale auth=2
+```
+
+Stop the stack with `docker compose ... down`; add `-v` only when
+intentionally deleting the database and object-store volumes.
+
+The object store uses the maintained `pgsty/silo` fork because MinIO
+community-edition images are no longer published. The frontend currently has
+no API calls; `VITE_API_BASE_URL` and the frontend CSP are pre-wired for the
+gateway at `http://localhost:8080`. Analytics has no CORS configuration and
+no frontend analytics calls yet.
+
+This is a development integration stack, not a production TLS deployment. The
+full stack built and reached readiness on 2026-11-22; that does not establish
+production deployment readiness. See
+[Infrastructure Architecture](infrastructure/architecture.md) for the topology
+and validation evidence.
 
 ## Code quality
 

@@ -1,0 +1,49 @@
+# Disposable synthetic data only; never select a legacy project or volume.
+name: ${STORAGE_PROJECT:?new storage rehearsal project}
+services:
+  minio:
+    image: ${OBJECT_STORE_IMAGE:?pin vendor image}
+    entrypoint: [/usr/bin/silo]
+    command: [server, --address, "127.0.0.1:19000", --console-address, "127.0.0.1:19001", /data]
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?}
+      MINIO_BROWSER: "off"
+    volumes: ["object-data:/data"]
+    networks: [data]
+    healthcheck:
+      test: [CMD, curl, --fail, --silent, http://127.0.0.1:19000/minio/health/live]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    restart: unless-stopped
+    mem_limit: 512m
+    cpus: 1
+    pids_limit: 128
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    logging:
+      driver: json-file
+      options: {max-size: 10m, max-file: '3'}
+  storage-guard:
+    extends: {file: compose.storage-guard.yaml, service: storage-guard}
+  assessment-minio-init:
+    image: ${ASSESSMENT_MINIO_INIT_IMAGE:?pin helper}
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?}
+      ASSESSMENT_OBJECT_USER: ${ASSESSMENT_OBJECT_USER:?}
+      ASSESSMENT_OBJECT_PASSWORD: ${ASSESSMENT_OBJECT_PASSWORD:?}
+    depends_on:
+      minio: {condition: service_healthy}
+      storage-guard: {condition: service_healthy}
+    networks: [data]
+    restart: "no"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    tmpfs: ["/tmp:rw,noexec,nosuid,size=16m"]
+volumes:
+  object-data:
+networks:
+  data:

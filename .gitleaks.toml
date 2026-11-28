@@ -1,0 +1,11 @@
+[extend]
+useDefault = true
+
+[[rules]]
+id = "generic-api-key"
+[[rules.allowlists]]
+description = "Exact non-secret route-status prose fragment in Phase 1/2 report; reviewed false positive"
+condition = "AND"
+paths = ['''(^|/)docs/infrastructure/phase-1-2-report[.]md$''']
+regexTarget = "secret"
+regexes = ['''^unknown/internal/missing$''']

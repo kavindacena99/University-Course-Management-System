@@ -152,6 +152,34 @@ Race test: UNAVAILABLE (CGO disabled; no C compiler installed)
 ```
 
 The existing User and Auth migration histories were retained; the Course
-test database was recreated only for migration verification. No Compose or
-CI configuration exists in this repository. Capacity reductions on published
-offerings remain disallowed pending an Enrollment Service validation contract.
+test database was recreated only for migration verification. At the time of
+that extension, no Compose or CI configuration existed; see the infrastructure
+update below. Capacity reductions on published offerings remain disallowed
+pending an Enrollment Service validation contract.
+
+## Infrastructure update (2026-11-22)
+
+The repository now includes a full local Docker Compose stack in
+`infrastructure/docker/compose.yaml`, a development override in
+`compose.dev.yaml`, and a tracked environment template in
+`infrastructure/environments/dev/.env.example`. It runs the React frontend,
+gateway, six services, six PostgreSQL databases, the private object store, and
+one-shot migration/bootstrap jobs.
+
+Local validation on 2026-11-22:
+
+- All nine images built.
+- All long-running containers became healthy; all migrations and the MinIO
+  bootstrap job exited 0.
+- Gateway routing reached all six services; only frontend port 3000 and
+  gateway port 8080 were published.
+- Frontend health, SPA fallback, assets, security headers, and CORS preflight
+  passed.
+- Scaling Auth to two replicas split traffic 10/10; stopping one replica left
+  the other serving requests.
+- A Course outage produced gateway 504/502 responses; restart restored
+  routing, and Course logged `server_stopped` during shutdown.
+
+Production deployment remains unverified; see
+[deployment-readiness.md](deployment-readiness.md) and
+[infrastructure/architecture.md](infrastructure/architecture.md).

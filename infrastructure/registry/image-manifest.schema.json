@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Verified nine-image GHCR publication",
+  "type": "object",
+  "required": ["schema_version", "publication_complete", "registry_access_verified", "source", "workflow", "published_at", "images"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "publication_complete": {"const": true},
+    "registry_access_verified": {"const": true},
+    "source": {
+      "type": "object",
+      "required": ["repository", "commit", "ref"],
+      "properties": {
+        "repository": {"const": "kavindacena99/University-Course-Management-System"},
+        "commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+        "ref": {"const": "refs/heads/main"}
+      }
+    },
+    "workflow": {
+      "type": "object", "required": ["run_id", "run_attempt", "url"],
+      "properties": {"run_id": {"type": "string", "pattern": "^[0-9]+$"}, "run_attempt": {"type": "integer", "minimum": 1}, "url": {"type": "string", "format": "uri"}}
+    },
+    "published_at": {"type": "string", "format": "date-time"},
+    "images": {
+      "type": "array", "minItems": 9, "maxItems": 9,
+      "items": {
+        "type": "object",
+        "required": ["service", "image", "tag", "digest", "runtime_digest", "platforms", "build_status", "scan_status", "registry_scan_status", "pull_status", "attestations", "signed_attestation", "sbom_reference", "provenance_reference"],
+        "properties": {
+          "service": {"enum": ["auth", "user", "course", "enrollment", "assessment", "analytics", "frontend", "gateway", "assessment-minio-init"]},
+          "image": {"type": "string", "pattern": "^ghcr.io/kavindacena99/university-course-management-system/[a-z-]+$"},
+          "tag": {"type": "string", "pattern": "^sha-[0-9a-f]{40}$"},
+          "digest": {"$ref": "#/$defs/digest"},
+          "runtime_digest": {"$ref": "#/$defs/digest"},
+          "platforms": {"const": ["linux/amd64"]},
+          "build_status": {"const": "success"},
+          "scan_status": {"const": "passed"},
+          "registry_scan_status": {"const": "passed"},
+          "pull_status": {"const": "passed"},
+          "attestations": {"type": "object", "minProperties": 2, "additionalProperties": {"$ref": "#/$defs/digest"}},
+          "signed_attestation": {"const": false},
+          "sbom_reference": {"type": "string", "pattern": "@sha256:[0-9a-f]{64}$"},
+          "provenance_reference": {"type": "string", "pattern": "@sha256:[0-9a-f]{64}$"}
+        }
+      }
+    }
+  },
+  "$defs": {"digest": {"type": "string", "pattern": "^sha256:(?!0{64}$)[0-9a-f]{64}$"}}
+}

@@ -1,0 +1,5 @@
+---
+platform_environment: qa
+environment_directory: qa
+deployment_mode: existing
+release_manifest: ""

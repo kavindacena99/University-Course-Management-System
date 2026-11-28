@@ -1,0 +1,5 @@
+---
+platform_environment: dev
+environment_directory: dev
+deployment_mode: existing
+release_manifest: ""

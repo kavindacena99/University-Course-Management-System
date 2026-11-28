@@ -6,10 +6,12 @@ The backend is split into six independently deployable Go services behind an
 NGINX gateway:
 
 ```text
-Client
+Browser
+  |
+  |-- :3000 -> frontend Nginx (static React SPA)
   |
   v
-NGINX :8080
+API gateway NGINX :8080
   |-- /api/v1/auth/*, /api/v1/admin/auth/* ------> Authentication Service :8081
   |-- /api/v1/users/*, /api/v1/admin/users/* -----> User Service :8082
   |-- /api/v1/courses/*, /api/v1/offerings/* ------> Course Service :8083
@@ -25,6 +27,10 @@ Assessment -- transactional outbox / signed HTTP --> Analytics
 Analytics -- signed Course offering facts -----------> Course
 ```
 
+The browser calls the gateway directly. The frontend Nginx server does not
+proxy `/api/`; this keeps the gateway as the public API edge and preserves the
+client address seen by the gateway. The frontend currently has no API calls.
+
 Each service owns its PostgreSQL database. There are no shared tables.
 
 - User Service database: `users` (`user_app`)
@@ -36,6 +42,20 @@ Each service owns its PostgreSQL database. There are no shared tables.
 
 ## Components
 
+### Frontend
+
+- React 19, Vite 8, and Tailwind 4 static application served by Nginx.
+- The production image is built from `frontend/Dockerfile` and served on
+  container port `80` (host port `3000` in Compose).
+- The browser calls the API gateway directly at `VITE_API_BASE_URL`; the
+  frontend Nginx server does not proxy `/api/`.
+- Exposes `GET /health`, applies a CSP and security headers, caches hashed
+  assets, returns `404` for missing assets, and falls back to `index.html` for
+  SPA routes.
+- Currently has no API integration. The API base URL build argument and CSP
+  `connect-src` entry are pre-wired for the gateway at
+  `http://localhost:8080`.
+
 ### NGINX gateway
 
 - Terminates public HTTP traffic on port `8080`.
@@ -44,6 +64,26 @@ Each service owns its PostgreSQL database. There are no shared tables.
 - Does not expose `/internal/*` endpoints; only the service paths above are
   proxied, and all other paths return `404`.
 - Exposes `GET /health` for gateway liveness.
+- Host development uses loopback upstreams. The Docker Compose gateway uses
+  service-name upstreams with dynamic Docker DNS re-resolution. Each service
+  has its own `least_conn` upstream group, so replicas are load balanced and
+  failing peers are marked down by passive health checks.
+- In Compose, only frontend port `3000` and gateway port `8080` are published;
+  service, database, and object-store ports stay on private Compose networks.
+
+### Local container topology
+
+The Compose stack in `infrastructure/docker/compose.yaml` uses three networks:
+
+- `edge`: `frontend` and `gateway`.
+- `backend`: `gateway` and the six services.
+- `data`: the six services, six PostgreSQL databases, and `minio`.
+
+Each service has its own PostgreSQL container and named volume. The
+`assessment-minio-init` one-shot job creates the private submission bucket,
+policy, and scoped user before Assessment starts. The stack uses the
+maintained `pgsty/silo` fork because MinIO community-edition images are no
+longer published.
 
 ### User Service
 
@@ -78,6 +118,8 @@ Each service owns its PostgreSQL database. There are no shared tables.
 ### Assessment Service
 
 - Owns component assessments, submissions, marks, and imported final results.
+- Stores submission files in the private MinIO-compatible object store; the
+  local Compose stack uses `pgsty/silo`.
 - Writes grade/result events to a transactional outbox and exposes the retained
   event history to Analytics through signed internal HTTP.
 
@@ -146,6 +188,16 @@ the outbox so the Authentication Service keeps its user projection in sync.
   refresh into stale claims; existing access tokens expire within the short
   access-token TTL.
 - Eligibility checks are fail-closed: a dependency failure never grants access.
+
+## Local deployment
+
+`infrastructure/docker/compose.yaml` builds and runs the full local stack,
+including the frontend, gateway, six services, six PostgreSQL databases, and
+the object store. `infrastructure/docker/compose.dev.yaml` adds development
+logging. Only frontend port `3000` and gateway port `8080` are published. This
+is a development integration stack, not a production TLS deployment. See
+[Infrastructure Architecture](infrastructure/architecture.md) for topology,
+startup ordering, and validation evidence.
 
 ## Trust boundaries
 

@@ -366,7 +366,7 @@ func (r *Repository) CreateProgramme(ctx context.Context, input CreateProgrammeI
 	item := Programme{ID: uuid.New(), Code: input.Code, Name: input.Name,
 		Category: input.Category, RepeatPolicy: input.RepeatPolicy,
 		FailedResultPolicy: input.FailedResultPolicy,
-		PassGradePoints: input.PassGradePoints, Active: true}
+		PassGradePoints:    input.PassGradePoints, Active: true}
 	err := r.db.QueryRow(ctx, `
 		INSERT INTO programmes (
 			id, code, name, category, repeat_policy, failed_result_policy, pass_grade_points
