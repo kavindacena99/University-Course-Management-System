@@ -161,10 +161,18 @@ The skips are recorded as **no browser acceptance evidence**.
 
 Local non-runtime gates passed: 51 infrastructure tests, all ten Compose
 models, `git diff --check`, formatting of changed frontend files, and a scan
-of 48 reachable commits plus 552 tracked/non-ignored working-tree files with
+of 49 reachable commits plus 552 tracked/non-ignored working-tree files with
 no secret findings. The built frontend assets contained no direct service or
 environment-specific API URL. No Go service source changed, so the Go test
-matrix is delegated to the PR's required CI checks.
+matrix was checked by the PR's required CI jobs.
+
+Draft [PR #28](https://github.com/kavindacena99/University-Course-Management-System/pull/28)
+is mergeable. Its 19 application/infrastructure/image-input and image-build
+checks passed, including all six Go service jobs, frontend, infrastructure,
+and ten image-build jobs. Publication prerequisite/publish jobs were skipped
+for this PR as intended. This CI result does not replace the five skipped live
+Playwright tests, a reviewed merge, new immutable publication, or full QA
+acceptance.
 
 `docker ps` showed no running service stack. No QA or PROD-like target was
 started, so authenticated browser tests, API persistence checks, negative
