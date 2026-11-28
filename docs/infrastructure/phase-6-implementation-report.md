@@ -236,3 +236,50 @@ publish nine immutable images, and obtain a fresh verified external backup of
 the existing QA PostgreSQL and object-store data before any QA migration or
 potentially destructive change. RC1/RC2 evidence and the storage guard remain
 unchanged. Phase 5 remains in progress; Phase 7 remains blocked by QA acceptance.
+
+## RC3 live development and isolated QA acceptance — 2026-11-28
+
+The section above records the earlier PR #28 state. PRs #28, #29 and #30 were
+subsequently merged. The accepted application source is
+`91f53ba8b3b68c74b4de99c70baa20639102c181`. In DEV, dedicated synthetic
+administrator, lecturer and student accounts exercised the real gateway and
+backend. All five Phase 6 Playwright tests passed with zero skips. The suite
+checked anonymous denial, session restoration and logout, role restrictions,
+assigned and unassigned offerings, student self enrolments and analytics,
+administrator summary, assessment creation and publication, multipart file
+submission, protected byte-exact download, grading, release, and persisted
+results after navigation and reload. It required actual API responses.
+
+The same nine-image source was published by protected-main
+[run 46153596004](https://github.com/kavindacena99/University-Course-Management-System/actions/runs/46153596004)
+and tagged as [RC3](https://github.com/kavindacena99/University-Course-Management-System/releases/tag/v0.1.0-rc.3).
+The [RC3 manifest](../../release-manifests/v0.1.0-rc.3/release-manifest.json)
+pins nine digests. Before QA migrations, a fresh external backup verified six
+PostgreSQL archives and the empty submissions bucket. The consolidated QA
+deployment passed 19 component health and exact image checks, six database
+permission/migration checks, gateway/frontend smoke, S3 Select denial and
+alternate-listener isolation. A separate synthetic S3 object was uploaded,
+read back by checksum and deleted through the guard.
+
+In QA, **five Playwright tests passed, none failed or skipped** using new
+synthetic accounts and the actual frontend/gateway. A persisted released grade
+and protected file survived an Assessment restart; an anonymous file request
+returned 401. During a bounded Analytics outage, the route returned 5xx and
+then recovered to 200; health returned to 19 components. A second external
+backup verified six database archives plus the submission object. QA was
+stopped gracefully, with both target volumes preserved. The detailed
+[machine-readable QA verdict](../../release-manifests/v0.1.0-rc.3/qa-validation.json)
+is **passed**. Authenticated screenshots show [student results](evidence/rc3-qa/student-results.png),
+[lecturer analytics](evidence/rc3-qa/lecturer-analytics.png), and the
+[administrator dashboard](evidence/rc3-qa/admin-dashboard.png). The report and
+browser artifacts remain under ignored local state; the screenshots contain
+synthetic records only.
+
+Account settings, administrator final-results UI, registration/password
+recovery, pagination extremes and Analytics rebuilding were not separately
+browser tested. A later catalog change merged as `889c5b7` after RC3 image
+publication; it is outside RC3 QA acceptance. The pinned Silo image retains
+raw HIGH CVE-2026-39414. Its exact-digest local QA/PROD-like approval does not
+erase that finding, and the guard remains mandatory. Phase 6 application and
+isolated QA acceptance passed for **RC3's exact source and digests**; this does
+not establish later-main acceptance, recovery, or public production readiness.
